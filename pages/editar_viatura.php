@@ -1,173 +1,129 @@
 <?php
-// Inclui o sidebar do template
-include_once '../templates/sidebar.php';
+session_start(); // Inicia a sessão para usar mensagens de toast/alert
 
-// Inclui a conexão com o banco de dados (ajuste o caminho se necessário)
-// Certifique-se de que este arquivo contém a sua instância PDO, por exemplo: $pdo = new PDO(...)
-// include_once '../config/db.php'; 
+// Configurações para exibição de erros (APENAS PARA DESENVOLVIMENTO!)
+// Remova ou comente estas linhas em ambiente de produção para evitar expor detalhes.
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-// Variável para armazenar os dados da viatura
-$viatura = [];
-$error_message = '';
+// Inclui os arquivos de dependência
+require_once '../components/ConexaoDB/conexao.php'; // Inclui o arquivo de conexão (usado pelo ViaturaDAO)
+require_once '../components/ConexaoDB/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
+require_once '../utils/validate_functions_editar_viatura.php'; // Inclui o arquivo com a função de validação
 
-// Verifica se um ID foi passado na URL
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $viatura_id = $_GET['id'];
-
-    try {
-        // --- SIMULAÇÃO DE BANCO DE DADOS ---
-        // Em um ambiente real, você faria uma consulta PDO aqui:
-        // $stmt = $pdo->prepare("SELECT v.*, u.nome as nome_unidade FROM viaturas v LEFT JOIN unidades u ON v.lotacao_atual_id = u.id WHERE v.id = :id");
-        // $stmt->bindParam(':id', $viatura_id, PDO::PARAM_INT);
-        // $stmt->execute();
-        // $viatura = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Se a viatura não for encontrada
-        // if (!$viatura) {
-        //     $error_message = "Viatura não encontrada.";
-        //     // Opcional: redirecionar para a página de gerenciamento
-        //     // header('Location: gerencia_viaturas.php?status=notfound');
-        //     // exit;
-        // }
-        // --- FIM DA SIMULAÇÃO ---
-
-        // SIMULAÇÃO: Dados de viatura para teste
-        $simulated_viaturas = [
-            1 => [
-                'id' => 1, 'tipo_operacional' => 'Combate a incendio', 'prefixo' => 'VTR01', 'numero' => 101, 'placa' => 'ABC1234',
-                'renavam' => '12345678901', 'marca' => 'Mercedes-Benz', 'modelo' => 'Atego 1718', 'ano' => 2010,
-                'pbt' => 17000, 'tipo_aquisicao' => 'Própria', 'status_da_viatura' => 'Operante',
-                'lotacao_atual_id' => 1, 'cilindradas' => 4800, 'cavalos_forca' => 180, 'torque' => '670 Nm',
-                'quilometragem' => 150000, 'garantia_fim' => '2025-12-31', 'tipo_cambio' => 'Manual',
-                'numero_marchas' => 6, 'tipo_carroceria' => 'Caminhão Bombeiro', 'equipamentos_especificos' => 'Bomba de alta vazão, Escada articulada'
-            ],
-            2 => [
-                'id' => 2, 'tipo_operacional' => 'Administrativa', 'prefixo' => 'VTR02', 'numero' => 202, 'placa' => 'DEF5678',
-                'renavam' => '23456789012', 'marca' => 'Ford', 'modelo' => 'Ka', 'ano' => 2020,
-                'pbt' => 1500, 'tipo_aquisicao' => 'Locada', 'status_da_viatura' => 'Indisponível',
-                'lotacao_atual_id' => 2, 'cilindradas' => 1000, 'cavalos_forca' => 85, 'torque' => '105 Nm',
-                'quilometragem' => 50000, 'garantia_fim' => '2024-06-30', 'tipo_cambio' => 'Automático',
-                'numero_marchas' => 6, 'tipo_carroceria' => 'Hatchback', 'equipamentos_especificos' => 'Nenhum'
-            ],
-            // Adicione mais viaturas simuladas conforme necessário
-        ];
-
-        $viatura = $simulated_viaturas[$viatura_id] ?? [];
-
-        if (!$viatura) {
-            $error_message = "Viatura com ID '{$viatura_id}' não encontrada na simulação.";
-        }
-
-    } catch (PDOException $e) {
-        $error_message = "Erro ao carregar dados da viatura: " . $e->getMessage();
-        // Em produção: error_log($e->getMessage());
-    }
-} else {
-    $error_message = "ID da viatura não fornecido ou inválido.";
-    // Opcional: redirecionar para a página de gerenciamento
-    // header('Location: gerencia_viaturas.php?status=invalid_id');
-    // exit;
-}
-
-// Lógica para processar o formulário de atualização
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
-    $viatura_id_post = $_POST['id'];
-
-    // Coleta os dados do formulário
-    $tipo_operacional = $_POST['tipo_operacional'] ?? null;
-    $prefixo = $_POST['prefixo'] ?? null;
-    $numero = $_POST['numero'] ?? null;
-    $placa = $_POST['placa'] ?? null;
-    $renavam = $_POST['renavam'] ?? null;
-    $marca = $_POST['marca'] ?? null;
-    $modelo = $_POST['modelo'] ?? null;
-    $ano = $_POST['ano'] ?? null;
-    $pbt = $_POST['pbt'] ?? null;
-    $tipo_aquisicao = $_POST['tipo_aquisicao'] ?? null;
-    $status_da_viatura = $_POST['status_da_viatura'] ?? null;
-    $lotacao_atual_id = $_POST['lotacao_atual_id'] ?? null;
-    $cilindradas = $_POST['cilindradas'] ?? null;
-    $cavalos_forca = $_POST['cavalos_forca'] ?? null;
-    $torque = $_POST['torque'] ?? null;
-    $quilometragem = $_POST['quilometragem'] ?? null;
-    $garantia_fim = $_POST['garantia_fim'] ?? null;
-    $tipo_cambio = $_POST['tipo_cambio'] ?? null;
-    $numero_marchas = $_POST['numero_marchas'] ?? null;
-    // Campos que estão no HTML mas não na tabela viaturas
-    $tipo_carroceria = $_POST['tipo_carroceria'] ?? null; 
-    $equipamentos_especificos = $_POST['equipamentos_especificos'] ?? null;
-
-
-    // Validação básica (adicione mais validações conforme necessário)
-    if (empty($viatura_id_post) || !is_numeric($viatura_id_post)) {
-        $error_message = "Erro: ID da viatura para atualização inválido.";
-    } else {
-        try {
-            // --- SIMULAÇÃO DE BANCO DE DADOS PARA UPDATE ---
-            // Em um ambiente real, você faria um UPDATE PDO aqui:
-            // $stmt = $pdo->prepare("UPDATE viaturas SET
-            //     tipo_operacional = :tipo_operacional, prefixo = :prefixo, numero = :numero,
-            //     placa = :placa, renavam = :renavam, marca = :marca, modelo = :modelo,
-            //     ano = :ano, pbt = :pbt, tipo_aquisicao = :tipo_aquisicao,
-            //     status_da_viatura = :status_da_viatura, lotacao_atual_id = :lotacao_atual_id,
-            //     cilindradas = :cilindradas, cavalos_forca = :cavalos_forca, torque = :torque,
-            //     quilometragem = :quilometragem, garantia_fim = :garantia_fim,
-            //     tipo_cambio = :tipo_cambio, numero_marchas = :numero_marchas
-            //     WHERE id = :id");
-            // $stmt->execute([
-            //     ':tipo_operacional' => $tipo_operacional,
-            //     ':prefixo' => $prefixo,
-            //     ':numero' => $numero,
-            //     // ... continue com todos os campos ...
-            //     ':id' => $viatura_id_post
-            // ]);
-
-            // SIMULAÇÃO: Atualiza os dados na variável simulada
-            if (isset($simulated_viaturas[$viatura_id_post])) {
-                $simulated_viaturas[$viatura_id_post] = array_merge($simulated_viaturas[$viatura_id_post], [
-                    'tipo_operacional' => $tipo_operacional,
-                    'prefixo' => $prefixo,
-                    'numero' => $numero,
-                    'placa' => $placa,
-                    'renavam' => $renavam,
-                    'marca' => $marca,
-                    'modelo' => $modelo,
-                    'ano' => $ano,
-                    'pbt' => $pbt,
-                    'tipo_aquisicao' => $tipo_aquisicao,
-                    'status_da_viatura' => $status_da_viatura,
-                    'lotacao_atual_id' => $lotacao_atual_id,
-                    'cilindradas' => $cilindradas,
-                    'cavalos_forca' => $cavalos_forca,
-                    'torque' => $torque,
-                    'quilometragem' => $quilometragem,
-                    'garantia_fim' => $garantia_fim,
-                    'tipo_cambio' => $tipo_cambio,
-                    'numero_marchas' => $numero_marchas,
-                    'tipo_carroceria' => $tipo_carroceria, // Mantido aqui para demonstração do preenchimento
-                    'equipamentos_especificos' => $equipamentos_especificos // Mantido aqui
-                ]);
-                $viatura = $simulated_viaturas[$viatura_id_post]; // Atualiza a variável $viatura para refletir as mudanças
-                echo "<script>alert('Viatura atualizada com sucesso!'); window.location.href='gerencia_viaturas.php';</script>";
-                exit; // Termina a execução para evitar re-submissão
-            } else {
-                $error_message = "Erro na simulação: Viatura com ID '{$viatura_id_post}' não encontrada para atualização.";
-            }
-
-        } catch (PDOException $e) {
-            $error_message = "Erro ao atualizar viatura: " . $e->getMessage();
-            // Em produção: error_log($e->getMessage());
-        }
-    }
-}
-
-// Simulação de dados de unidades para os selects (repetido do cadastro.php)
+// Definição das unidades de exemplo (substitua por dados reais do seu banco se tiver um DAO de Unidades)
 $unidadesExemplo = [
-    ['id' => 1, 'nome' => '1ª CIBM'],
-    ['id' => 2, 'nome' => '2ª CIBM'],
-    ['id' => 3, 'nome' => 'QCG'],
+    ['id' => 1, 'nome' => '1ºBBM'],
+    ['id' => 2, 'nome' => '2ºBBM'],
+    ['id' => 3, 'nome' => '3ºBBM'],
+    ['id' => 4, 'nome' => '4ºBBM'],
+    ['id' => 5, 'nome' => '5ºBBM'],
 ];
 
+// Variáveis para mensagens e erros, populadas a partir da sessão (se houver)
+$toast_message = $_SESSION['toast_message'] ?? '';
+$toast_type = $_SESSION['toast_type'] ?? '';
+$validation_errors = $_SESSION['validation_errors'] ?? [];
+
+// Limpa as mensagens de sessão e erros de validação após recuperá-los
+unset($_SESSION['toast_message']);
+unset($_SESSION['toast_type']);
+unset($_SESSION['validation_errors']);
+
+// Inicializa $display_data com os dados que preencherão o formulário
+$display_data = [];
+
+// --- Lógica para processar a requisição POST (submissão do formulário) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // A função validateViaturaData espera um array com todos os dados do POST
+    // Ela própria fará a filtragem e validação dos dados passados
+    $data_from_form = $_POST; // Copia os dados do POST para um array mutável
+
+    // Realiza a validação usando a função externa.
+    // A função pode modificar o array $data_from_form in-place com os valores filtrados.
+    $validation_errors = validateViaturaData($data_from_form);
+
+    if (!empty($validation_errors)) {
+        // Se houver erros de validação, define as mensagens e usa os dados do formulário
+        // (que já foram filtrados pela função de validação) para re-preencher o formulário.
+        $toast_message = "Houve erros no preenchimento do formulário. Por favor, corrija os campos indicados.";
+        $toast_type = "danger";
+        $display_data = $data_from_form; // Mantém os dados validados/filtrados para re-preenchimento
+    } else {
+        // Se a validação passar, os dados em $data_from_form já estão limpos e prontos para o DAO
+        try {
+            // Instancia o DAO (assumimos que ele obtém a conexão PDO internamente)
+            $viaturaDAO = new ViaturaDAO();
+
+            // Tenta atualizar a viatura.
+            // Os dados já estão filtrados e validados por validateViaturaData
+            if ($viaturaDAO->updateViatura($data_from_form)) {
+                $toast_message = "Viatura atualizada com sucesso!";
+                $toast_type = "success";
+                // Após o sucesso, recarrega os dados do banco para mostrar os valores atualizados
+                // O ID já foi validado em validateViaturaData
+                $display_data = $viaturaDAO->getViaturaById($data_from_form['id']);
+            } else {
+                // Caso o updateViatura retorne false (erro interno no DAO ou nenhuma linha afetada)
+                $toast_message = "Erro ao atualizar a viatura no banco de dados. Verifique os logs para detalhes ou tente novamente.";
+                $toast_type = "danger";
+                $display_data = $data_from_form; // Mantém os dados que foram submetidos para re-preenchimento
+            }
+        } catch (PDOException $e) {
+            // Captura erros de conexão ou SQL
+            error_log("Exceção PDO na atualização da viatura: " . $e->getMessage()); // Loga o erro detalhado
+            $toast_message = "Erro interno no banco de dados: " . $e->getMessage();
+            $toast_type = "danger";
+            $display_data = $data_from_form; // Mantém os dados submetidos
+        } catch (Exception $e) {
+            // Captura outras exceções genéricas
+            error_log("Exceção geral na atualização da viatura: " . $e->getMessage()); // Loga o erro detalhado
+            $toast_message = "Ocorreu um erro inesperado: " . $e->getMessage();
+            $toast_type = "danger";
+            $display_data = $data_from_form; // Mantém os dados submetidos
+        }
+    }
+}
+// --- Lógica para requisição GET (carregar formulário pela primeira vez ou após redefinição) ---
+else {
+    // O ID da viatura deve vir da URL para carregar o formulário
+    $id_viatura_get = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+    // Se o ID não foi especificado ou é inválido na URL, redireciona
+    if (!$id_viatura_get) {
+        $_SESSION['toast_message'] = "ID da viatura não especificado ou inválido para edição.";
+        $_SESSION['toast_type'] = "danger";
+        header('Location: index.php'); // Redireciona para uma página inicial ou de erro
+        exit();
+    }
+
+    try {
+        $viaturaDAO = new ViaturaDAO(); // Instancia o DAO
+    } catch (PDOException $e) {
+        $_SESSION['toast_message'] = "Erro ao conectar ao banco de dados: " . $e->getMessage();
+        $_SESSION['toast_type'] = "danger";
+        header('Location: index.php');
+        exit();
+    }
+
+    // Busca os dados da viatura pelo ID para preencher o formulário
+    // Usando getViaturaById, que assumimos que retorna todos os campos (*)
+    $viatura_from_db = $viaturaDAO->getViaturaById($id_viatura_get);
+
+    // Se a viatura não for encontrada no banco, redireciona
+    if (!$viatura_from_db) {
+        $_SESSION['toast_message'] = "Viatura com o ID " . htmlspecialchars($id_viatura_get) . " não encontrada.";
+        $_SESSION['toast_type'] = "danger";
+        header('Location: index.php');
+        exit();
+    }
+    // Preenche $display_data com os dados da viatura recém-buscados para exibição no formulário
+    $display_data = $viatura_from_db;
+}
+
+// Inclui o template da barra lateral
+include_once '../templates/sidebar.php';
 ?>
 
 <div class="d-flex min-vh-100 w-100" style="padding-bottom: 3rem;">
@@ -176,187 +132,272 @@ $unidadesExemplo = [
             <div class="content-area">
                 <div class="row justify-content-center">
                     <div class="col-12">
-                        <h1 class="mb-3">Editar Viatura</h1>
+                        <h1 class="mb-3">Edição de Viatura</h1>
                         <p class="lead">Atualize os dados da viatura.</p>
                         <hr class="mb-4">
-                        <?php if ($error_message): ?>
-                            <div class="alert alert-danger" role="alert">
-                                <?= htmlspecialchars($error_message) ?>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
-                <form action="" method="POST" id="editViaturaForm">
-                    <input type="hidden" name="id" value="<?= htmlspecialchars($viatura['id'] ?? '') ?>">
+                <?php if (!empty($display_data) || !empty($validation_errors)): // Verifica se há dados para exibir ou erros para indicar o formulário ?>
+                    <form action="editar_viatura.php" method="POST" id="editViaturaForm">
+                        <!-- O ID é crucial e deve ser mantido no formulário -->
+                        <input type="hidden" name="id" value="<?= htmlspecialchars($display_data['id'] ?? '') ?>">
 
-                    <ul class="nav nav-tabs mb-4" id="viaturaTab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="dados-basicos-tab" data-bs-toggle="tab" data-bs-target="#dados-basicos-pane" type="button" role="tab" aria-controls="dados-basicos-pane" aria-selected="true">Dados Básicos</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="motorizacao-tab" data-bs-toggle="tab" data-bs-target="#motorizacao-pane" type="button" role="tab" aria-controls="motorizacao-pane" aria-selected="false">Motorização</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="diversos-tab" data-bs-toggle="tab" data-bs-target="#diversos-pane" type="button" role="tab" aria-controls="diversos-pane" aria-selected="false">Diversos</button>
-                        </li>
-                    </ul>
+                        <ul class="nav nav-tabs mb-4" id="viaturaTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="dados-basicos-tab" data-bs-toggle="tab" data-bs-target="#dados-basicos-pane" type="button" role="tab" aria-controls="dados-basicos-pane" aria-selected="true">Dados Básicos</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="motorizacao-tab" data-bs-toggle="tab" data-bs-target="#motorizacao-pane" type="button" role="tab" aria-controls="motorizacao-pane" aria-selected="false">Motorização</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="diversos-tab" data-bs-toggle="tab" data-bs-target="#diversos-pane" type="button" role="tab" aria-controls="diversos-pane" aria-selected="false">Diversos</button>
+                            </li>
+                        </ul>
 
-                    <div class="tab-content" id="viaturaTabContent">
+                        <div class="tab-content" id="viaturaTabContent">
 
-                        <div class="tab-pane fade show active" id="dados-basicos-pane" role="tabpanel" aria-labelledby="dados-basicos-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="tipo_operacional" class="form-label">Tipo Operacional</label>
-                                    <select class="form-select" id="tipo_operacional" name="tipo_operacional">
-                                        <option value="" disabled>Selecione...</option>
-                                        <?php
-                                        $tiposOperacionais = ['Operacional Geral', 'Combate a incendio', 'Administrativa'];
-                                        foreach ($tiposOperacionais as $tipo) {
-                                            $selected = (isset($viatura['tipo_operacional']) && $viatura['tipo_operacional'] == $tipo) ? 'selected' : '';
-                                            echo "<option value=\"$tipo\" $selected>$tipo</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="prefixo" class="form-label">Prefixo</label>
-                                    <input type="text" class="form-control" id="prefixo" name="prefixo" maxlength="5" value="<?= htmlspecialchars($viatura['prefixo'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="numero" class="form-label">Número</label>
-                                    <input type="number" class="form-control" id="numero" name="numero" value="<?= htmlspecialchars($viatura['numero'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="placa" class="form-label">Placa</label>
-                                    <input type="text" class="form-control" id="placa" name="placa" maxlength="7" placeholder="Ex: ABC1234" value="<?= htmlspecialchars($viatura['placa'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="renavam" class="form-label">Renavam</label>
-                                    <input type="text" class="form-control" id="renavam" name="renavam" maxlength="11" placeholder="Somente números" value="<?= htmlspecialchars($viatura['renavam'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="marca" class="form-label">Marca</label>
-                                    <input type="text" class="form-control" id="marca" name="marca" maxlength="50" value="<?= htmlspecialchars($viatura['marca'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="modelo" class="form-label">Modelo</label>
-                                    <input type="text" class="form-control" id="modelo" name="modelo" maxlength="50" value="<?= htmlspecialchars($viatura['modelo'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="ano" class="form-label">Ano</label>
-                                    <input type="number" class="form-control" id="ano" name="ano" min="1900" max="<?= date('Y') + 1 ?>" value="<?= htmlspecialchars($viatura['ano'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="pbt" class="form-label">PBT (kg)</label>
-                                    <input type="number" class="form-control" id="pbt" name="pbt" value="<?= htmlspecialchars($viatura['pbt'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="tipo_aquisicao" class="form-label">Tipo de Aquisição</label>
-                                    <select class="form-select" id="tipo_aquisicao" name="tipo_aquisicao">
-                                        <option value="" disabled>Selecione...</option>
-                                        <?php
-                                        $tiposAquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
-                                        foreach ($tiposAquisicao as $tipo) {
-                                            $selected = (isset($viatura['tipo_aquisicao']) && $viatura['tipo_aquisicao'] == $tipo) ? 'selected' : '';
-                                            echo "<option value=\"$tipo\" $selected>$tipo</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="status_da_viatura" class="form-label">Status da Viatura</label>
-                                    <select class="form-select" id="status_da_viatura" name="status_da_viatura">
-                                        <option value="" disabled>Selecione...</option>
-                                        <?php
-                                        $statusViatura = ['Operante', 'Baixada', 'Descarregada', 'Indisponível'];
-                                        foreach ($statusViatura as $status) {
-                                            $selected = (isset($viatura['status_da_viatura']) && $viatura['status_da_viatura'] == $status) ? 'selected' : '';
-                                            echo "<option value=\"$status\" $selected>$status</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
-                                    <select class="form-select" id="lotacao_atual_id" name="lotacao_atual_id">
-                                        <option value="" disabled>Selecione a Unidade</option>
-                                        <?php
-                                        foreach ($unidadesExemplo as $unidade) { // Usando a simulação de unidades
-                                            $selected = (isset($viatura['lotacao_atual_id']) && $viatura['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
-                                            echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-
-                                <div class="col-12 mt-4">
-                                    <h4>Características Adicionais</h4>
-                                    <hr>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="tipo_carroceria" class="form-label">Tipo de Carroceria</label>
-                                    <input type="text" class="form-control" id="tipo_carroceria" name="tipo_carroceria" maxlength="100" value="<?= htmlspecialchars($viatura['tipo_carroceria'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="equipamentos_especificos" class="form-label">Equipamentos Específicos</label>
-                                    <textarea class="form-control" id="equipamentos_especificos" name="equipamentos_especificos" rows="3"><?= htmlspecialchars($viatura['equipamentos_especificos'] ?? '') ?></textarea>
-                                </div>
-                                </div>
-                        </div>
-
-                        <div class="tab-pane fade" id="motorizacao-pane" role="tabpanel" aria-labelledby="motorizacao-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
-                                    <input type="number" class="form-control" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($viatura['cilindradas'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="cavalos_forca" class="form-label">Cavalos de Força (cv)</label>
-                                    <input type="number" class="form-control" id="cavalos_forca" name="cavalos_forca" value="<?= htmlspecialchars($viatura['cavalos_forca'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="torque" class="form-label">Torque</label>
-                                    <input type="text" class="form-control" id="torque" name="torque" maxlength="50" placeholder="Ex: 250 Nm" value="<?= htmlspecialchars($viatura['torque'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="tipo_cambio" class="form-label">Tipo de Câmbio</label>
-                                    <select class="form-select" id="tipo_cambio" name="tipo_cambio">
-                                        <option value="" disabled>Selecione...</option>
-                                        <?php
-                                        $tiposCambio = ['Manual', 'Automático'];
-                                        foreach ($tiposCambio as $tipo) {
-                                            $selected = (isset($viatura['tipo_cambio']) && $viatura['tipo_cambio'] == $tipo) ? 'selected' : '';
-                                            echo "<option value=\"$tipo\" $selected>$tipo</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="numero_marchas" class="form-label">Número de Marchas</label>
-                                    <input type="number" class="form-control" id="numero_marchas" name="numero_marchas" min="1" value="<?= htmlspecialchars($viatura['numero_marchas'] ?? '') ?>">
+                            <div class="tab-pane fade show active" id="dados-basicos-pane" role="tabpanel" aria-labelledby="dados-basicos-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="tipo_operacional" class="form-label">Tipo Operacional</label>
+                                        <select class="form-select <?= isset($validation_errors['tipo_operacional']) ? 'is-invalid' : '' ?>" id="tipo_operacional" name="tipo_operacional">
+                                            <option value="" <?= (!isset($display_data['tipo_operacional']) || $display_data['tipo_operacional'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <?php
+                                            $tiposOperacionais = ['Operacional Geral', 'Combate a incendio', 'Administrativa'];
+                                            foreach ($tiposOperacionais as $tipo) {
+                                                $selected = (isset($display_data['tipo_operacional']) && $display_data['tipo_operacional'] == $tipo) ? 'selected' : '';
+                                                echo "<option value=\"$tipo\" $selected>$tipo</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <?php if (isset($validation_errors['tipo_operacional'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['tipo_operacional']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="prefixo" class="form-label">Prefixo</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['prefixo']) ? 'is-invalid' : '' ?>" id="prefixo" name="prefixo" maxlength="5" value="<?= htmlspecialchars($display_data['prefixo'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['prefixo'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['prefixo']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="numero" class="form-label">Número</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['numero']) ? 'is-invalid' : '' ?>" id="numero" name="numero" value="<?= htmlspecialchars($display_data['numero'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['numero'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['numero']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="placa" class="form-label">Placa</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['placa']) ? 'is-invalid' : '' ?>" id="placa" name="placa" maxlength="8" placeholder="Ex: ABC1234" value="<?= htmlspecialchars($display_data['placa'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['placa'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['placa']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="renavam" class="form-label">Renavam</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['renavam']) ? 'is-invalid' : '' ?>" id="renavam" name="renavam" maxlength="11" placeholder="Somente números" value="<?= htmlspecialchars($display_data['renavam'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['renavam'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['renavam']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="marca" class="form-label">Marca</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['marca']) ? 'is-invalid' : '' ?>" id="marca" name="marca" maxlength="50" value="<?= htmlspecialchars($display_data['marca'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['marca'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['marca']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="modelo" class="form-label">Modelo</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['modelo']) ? 'is-invalid' : '' ?>" id="modelo" name="modelo" maxlength="50" value="<?= htmlspecialchars($display_data['modelo'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['modelo'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['modelo']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="ano" class="form-label">Ano</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['ano']) ? 'is-invalid' : '' ?>" id="ano" name="ano" min="1900" max="<?= date('Y') + 1 ?>" value="<?= htmlspecialchars($display_data['ano'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['ano'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['ano']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="pbt" class="form-label">PBT (kg)</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['pbt']) ? 'is-invalid' : '' ?>" id="pbt" name="pbt" value="<?= htmlspecialchars($display_data['pbt'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['pbt'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['pbt']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="tipo_aquisicao" class="form-label">Tipo de Aquisição</label>
+                                        <select class="form-select <?= isset($validation_errors['tipo_aquisicao']) ? 'is-invalid' : '' ?>" id="tipo_aquisicao" name="tipo_aquisicao">
+                                            <option value="" <?= (!isset($display_data['tipo_aquisicao']) || $display_data['tipo_aquisicao'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <?php
+                                            $tiposAquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
+                                            foreach ($tiposAquisicao as $tipo) {
+                                                $selected = (isset($display_data['tipo_aquisicao']) && $display_data['tipo_aquisicao'] == $tipo) ? 'selected' : '';
+                                                echo "<option value=\"$tipo\" $selected>$tipo</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <?php if (isset($validation_errors['tipo_aquisicao'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['tipo_aquisicao']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="status_da_viatura" class="form-label">Status da Viatura</label>
+                                        <select class="form-select <?= isset($validation_errors['status_da_viatura']) ? 'is-invalid' : '' ?>" id="status_da_viatura" name="status_da_viatura">
+                                            <option value="" <?= (!isset($display_data['status_da_viatura']) || $display_data['status_da_viatura'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <?php
+                                            $statusViatura = ['Operante', 'Baixada', 'Descarregada', 'Indisponível'];
+                                            foreach ($statusViatura as $status) {
+                                                $selected = (isset($display_data['status_da_viatura']) && $display_data['status_da_viatura'] == $status) ? 'selected' : '';
+                                                echo "<option value=\"$status\" $selected>$status</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <?php if (isset($validation_errors['status_da_viatura'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['status_da_viatura']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
+                                        <select class="form-select <?= isset($validation_errors['lotacao_atual_id']) ? 'is-invalid' : '' ?>" id="lotacao_atual_id" name="lotacao_atual_id">
+                                            <option value="" <?= (!isset($display_data['lotacao_atual_id']) || $display_data['lotacao_atual_id'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <?php
+                                            foreach ($unidadesExemplo as $unidade) { // Usando a simulação de unidades
+                                                $selected = (isset($display_data['lotacao_atual_id']) && $display_data['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
+                                                echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <?php if (isset($validation_errors['lotacao_atual_id'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['lotacao_atual_id']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="tab-pane fade" id="diversos-pane" role="tabpanel" aria-labelledby="diversos-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="quilometragem" class="form-label">Quilometragem (km)</label>
-                                    <input type="number" class="form-control" id="quilometragem" name="quilometragem" value="<?= htmlspecialchars($viatura['quilometragem'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="garantia_fim" class="form-label">Fim da Garantia</label>
-                                    <input type="date" class="form-control" id="garantia_fim" name="garantia_fim" value="<?= htmlspecialchars($viatura['garantia_fim'] ?? '') ?>">
+                            <div class="tab-pane fade" id="motorizacao-pane" role="tabpanel" aria-labelledby="motorizacao-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['cilindradas']) ? 'is-invalid' : '' ?>" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($display_data['cilindradas'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['cilindradas'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['cilindradas']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cavalos_forca" class="form-label">Cavalos de Força (cv)</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['cavalos_forca']) ? 'is-invalid' : '' ?>" id="cavalos_forca" name="cavalos_forca" value="<?= htmlspecialchars($display_data['cavalos_forca'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['cavalos_forca'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['cavalos_forca']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="torque" class="form-label">Torque</label>
+                                        <input type="text" class="form-control <?= isset($validation_errors['torque']) ? 'is-invalid' : '' ?>" id="torque" name="torque" maxlength="50" placeholder="Ex: 250 Nm" value="<?= htmlspecialchars($display_data['torque'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['torque'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['torque']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="tipo_cambio" class="form-label">Tipo de Câmbio</label>
+                                        <select class="form-select <?= isset($validation_errors['tipo_cambio']) ? 'is-invalid' : '' ?>" id="tipo_cambio" name="tipo_cambio">
+                                            <option value="" <?= (!isset($display_data['tipo_cambio']) || $display_data['tipo_cambio'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <?php
+                                            $tiposCambio = ['Manual', 'Automático'];
+                                            foreach ($tiposCambio as $tipo) {
+                                                $selected = (isset($display_data['tipo_cambio']) && $display_data['tipo_cambio'] == $tipo) ? 'selected' : '';
+                                                echo "<option value=\"$tipo\" $selected>$tipo</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <?php if (isset($validation_errors['tipo_cambio'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['tipo_cambio']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="numero_marchas" class="form-label">Número de Marchas</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['numero_marchas']) ? 'is-invalid' : '' ?>" id="numero_marchas" name="numero_marchas" min="0" value="<?= htmlspecialchars($display_data['numero_marchas'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['numero_marchas'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['numero_marchas']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
+                            <div class="tab-pane fade" id="diversos-pane" role="tabpanel" aria-labelledby="diversos-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="quilometragem" class="form-label">Quilometragem (km)</label>
+                                        <input type="number" class="form-control <?= isset($validation_errors['quilometragem']) ? 'is-invalid' : '' ?>" id="quilometragem" name="quilometragem" value="<?= htmlspecialchars($display_data['quilometragem'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['quilometragem'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['quilometragem']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="garantia_fim" class="form-label">Fim da Garantia</label>
+                                        <input type="date" class="form-control <?= isset($validation_errors['garantia_fim']) ? 'is-invalid' : '' ?>" id="garantia_fim" name="garantia_fim" value="<?= htmlspecialchars($display_data['garantia_fim'] ?? '') ?>">
+                                        <?php if (isset($validation_errors['garantia_fim'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?= htmlspecialchars($validation_errors['garantia_fim']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <hr class="my-4">
+                        <button class="btn btn-outline-success btn-lg" type="submit">Atualizar Viatura</button>
+                        <!-- O ID é crucial para o reset do formulário para esta viatura específica -->
+                        <a href="editar_viatura.php?id=<?= htmlspecialchars($display_data['id'] ?? '') ?>" class="btn btn-outline-secondary btn-lg">Redefinir Formulário</a>
+                    </form>
+                <?php else: ?>
+                    <div class="alert alert-info" role="alert">
+                        Nenhum dado de viatura para exibir ou editar. Por favor, selecione uma viatura válida.
                     </div>
-                    <hr class="my-4">
-                    <button class="btn btn-outline-success btn-lg" type="submit">Atualizar Viatura</button>
-                    <a href="editar_viatura.php" class="btn btn-outline-secondary btn-lg">Cancelar</a>
-                </form>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -364,36 +405,86 @@ $unidadesExemplo = [
 
 <div class="b-example-divider b-example-vr"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <!-- Toasts serão injetados aqui pelo JavaScript -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<!-- Se você quer ícones como bi bi-check-circle-fill, precisa incluir o Bootstrap Icons CSS: -->
+<!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> -->
+
 <script>
-    // Inicializa as tabs do Bootstrap
-    var triggerTabList = [].slice.call(document.querySelectorAll('#viaturaTab button'))
-    triggerTabList.forEach(function (triggerEl) {
-        var tabTrigger = new bootstrap.Tab(triggerEl)
-
-        triggerEl.addEventListener('click', function (event) {
-            event.preventDefault()
-            tabTrigger.show()
-        })
-    })
-
-    // Opcional: Adicionar formatação para placa e renavam
-    document.addEventListener('DOMContentLoaded', function() {
-        const placaInput = document.getElementById('placa');
-        if (placaInput) {
-            placaInput.addEventListener('input', function(e) {
-                let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                if (value.length > 3) {
-                    value = value.substring(0, 3) + '-' + value.substring(3);
-                }
-                e.target.value = value.substring(0, 8); // Limita ao formato AAA-0000
-            });
+    // Função para exibir Toasts (a mesma que você já tem)
+    function showToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            console.error('Toast container not found! Make sure you have <div class="toast-container"> in your HTML.');
+            return;
         }
 
+        let bgColorClass = '';
+        let iconClass = '';
+        let toastHeaderContent = '';
+
+        if (type === 'success') {
+            bgColorClass = 'text-bg-success';
+            iconClass = 'bi bi-check-circle-fill';
+            toastHeaderContent = `<i class="${iconClass} me-2"></i><strong class="me-auto">Sucesso!</strong>`;
+        } else if (type === 'danger') {
+            bgColorClass = 'text-bg-danger';
+            iconClass = 'bi bi-x-circle-fill';
+            toastHeaderContent = `<i class="${iconClass} me-2"></i><strong class="me-auto">Erro!</strong>`;
+        } else if (type === 'warning') {
+            bgColorClass = 'text-bg-warning';
+            iconClass = 'bi bi-exclamation-triangle-fill';
+            toastHeaderContent = `<i class="${iconClass} me-2"></i><strong class="me-auto">Atenção!</strong>`;
+        } else {
+            bgColorClass = 'text-bg-info';
+            iconClass = 'bi bi-info-circle-fill';
+            toastHeaderContent = `<i class="${iconClass} me-2"></i><strong class="me-auto">Informação</strong>`;
+        }
+
+        const toastId = `liveToast-${Date.now()}`;
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    ${toastHeaderContent}
+                    <small>Agora</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000 // Toast some após 5 segundos
+        });
+        toast.show();
+
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
+    }
+
+    // --- Exibir toasts com base nas mensagens PHP da sessão ---
+    <?php if (!empty($toast_message)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?= htmlspecialchars($toast_message, ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($toast_type, ENT_QUOTES, 'UTF-8') ?>');
+        });
+    <?php endif; ?>
+
+    // Formatação do renavam (a formatação da placa foi removida para evitar conflitos/comportamento indesejado)
+    document.addEventListener('DOMContentLoaded', function() {
         const renavamInput = document.getElementById('renavam');
         if (renavamInput) {
             renavamInput.addEventListener('input', function(e) {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '').substring(0, 11);
+                e.target.value = e.target.value.replace(/[^0-9]/g, '').substring(0, 11); // Limita a 11 dígitos
             });
         }
     });

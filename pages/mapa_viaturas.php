@@ -64,7 +64,7 @@ try {
 
 <div class="d-flex min-vh-100 w-100" style="padding-bottom: 3rem;">
     <div class="row justify-content-center w-100" style="padding-top: 3rem;">
-        <div class="col-12 col-md-11 col-lg-10">
+        <div class=" col-12 col-md-8 col-lg-6">
             <div class="content-area">
                 <div class="row justify-content-center">
                     <div class="col-12">
