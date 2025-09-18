@@ -1,5 +1,5 @@
 <?php
-// ../utils/validate_functions_editar_viatura.php
+// ../api/validate_functions_editar_viatura.php
 
 /**
  * Valida os dados de uma viatura.

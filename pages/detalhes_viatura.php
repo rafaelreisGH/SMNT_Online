@@ -4,7 +4,7 @@ include_once '../templates/sidebar.php';
 
 // Inclui a classe ViaturaDAO
 // Ajuste o caminho se seu ViaturaDAO.php estiver em um diretório diferente
-require_once '../components/ConexaoDB/ViaturaDAO.php';
+require_once '../components/DAO/ViaturaDAO.php';
 
 // Cria uma instância da ViaturaDAO
 // A conexão PDO será obtida internamente pelo construtor da ViaturaDAO

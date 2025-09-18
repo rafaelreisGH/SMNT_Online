@@ -9,8 +9,8 @@ session_start(); // Inicia a sessão para usar mensagens de toast/alert
 
 // Inclui os arquivos de dependência
 require_once '../components/ConexaoDB/conexao.php'; // Inclui o arquivo de conexão (usado pelo ViaturaDAO)
-require_once '../components/ConexaoDB/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
-require_once '../utils/validate_functions_editar_viatura.php'; // Inclui o arquivo com a função de validação
+require_once '../components/DAO/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
+require_once '../api/validate_functions_editar_viatura.php'; // Inclui o arquivo com a função de validação
 
 // Definição das unidades de exemplo (substitua por dados reais do seu banco se tiver um DAO de Unidades)
 $unidadesExemplo = [

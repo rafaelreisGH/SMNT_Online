@@ -3,16 +3,9 @@
 // antes de qualquer HTML ou includes que gerem HTML.
 session_start();
 
-// Configurações para exibição de erros (APENAS PARA DESENVOLVIMENTO!)
-// DESCOMENTE estas linhas para depurar. Lembre-se de REMOVER/COMENTAR em ambiente de produção.
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
-
 // Inclui os arquivos de dependência. Eles também não devem gerar saída HTML antes de sidebar.php.
-require_once '../components/ConexaoDB/conexao.php'; // Inclui o arquivo de conexão
-require_once '../components/ConexaoDB/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
-require_once '../utils/validate_functions_editar_viatura.php'; // Inclui a função de validação
+require_once '../components/DAO/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
+require_once '../api/validate_functions_editar_viatura.php'; // Inclui a função de validação
 
 // Definição das unidades de exemplo (UNIDADES FICTÍCIAS - não são buscadas do banco)
 $unidadesExemplo = [

@@ -1,5 +1,5 @@
 <?php
-// utils/processar_baixar_viatura.php
+// api/processar_baixar_viatura.php
 
 // Inclua seu arquivo de conexão com o banco de dados.
 // Adapte o caminho conforme a sua estrutura de diretórios.

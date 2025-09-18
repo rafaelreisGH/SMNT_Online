@@ -1,6 +1,6 @@
 <?php
 // Certifique-se de que o caminho para conexao.php está correto em relação a este arquivo
-require_once 'conexao.php'; 
+require_once '../components/ConexaoDB/conexao.php'; 
 
 class ViaturaDAO {
     private $conn;

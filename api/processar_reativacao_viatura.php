@@ -4,7 +4,7 @@ header('Content-Type: application/json');
 
 // Inclui o arquivo de conexão com o banco de dados
 // Certifique-se de que o caminho para o arquivo Conexao.php está correto.
-// Se este arquivo estiver em 'utils/' e a conexão em 'components/ConexaoDB/', o caminho relativo está ok.
+// Se este arquivo estiver em 'api/' e a conexão em 'components/ConexaoDB/', o caminho relativo está ok.
 require_once '../components/ConexaoDB/conexao.php';
 
 // Inicializa a resposta padrão como falha

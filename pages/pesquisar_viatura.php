@@ -484,7 +484,7 @@ try {
                     const formData = new FormData();
                     formData.append('id_viatura', idViatura);
 
-                    fetch('../utils/processar_baixar_viatura.php', {
+                    fetch('../api/processar_baixar_viatura.php', {
                             method: 'POST',
                             body: formData
                         })
@@ -551,7 +551,7 @@ try {
                     const formData = new FormData();
                     formData.append('id_viatura', idViatura);
 
-                    fetch('../utils/processar_reativacao_viatura.php', { // Assumindo este é o endpoint para reativação
+                    fetch('../api/processar_reativacao_viatura.php', { // Assumindo este é o endpoint para reativação
                             method: 'POST',
                             body: formData
                         })
