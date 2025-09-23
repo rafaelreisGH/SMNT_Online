@@ -4,18 +4,21 @@ include_once '../templates/sidebar.php';
 
 ?>
 
-<div class="d-flex min-vh-100 w-100" style="padding-bottom: 3rem;">
-    <div class="row justify-content-center w-100" style="padding-top: 3rem;">
-        <div class="col-12 col-md-8 col-lg-6">
-            <div class="content-area">
-                <div class="row justify-content-center">
-                    <div class="col-12">
-                        <h1 class="mb-3">Cadastro de Condutor</h1>
-                        <p class="lead">Preencha os campos abaixo para registrar um novo condutor no sistema.</p>
-                        <p>As informações estão organizadas em diferentes abas para facilitar o preenchimento.</p>
-                        <hr class="mb-4">
-                    </div>
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <h1 class="h4 mb-4 text-gray-800">Cadastro de condutor</h1>
+
+    <div class="row">
+
+        <div class="col-lg-10 mx-auto">
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="ms-3 font-weight-bold text-primary">Formulário de informações</h6>
                 </div>
+                <div class="card-body mx-3 my-3">
 
                 <form action="#" method="POST">
                     <ul class="nav nav-tabs mb-4" id="condutorTab" role="tablist">
@@ -147,24 +150,25 @@ include_once '../templates/sidebar.php';
 
                     </div>
                     <hr class="my-4">
-                    <button class="btn btn-outline-success btn-lg" type="submit"><i class="fas fa-save me-2"></i>Cadastrar Condutor</button>
-                    <button class="btn btn-outline-secondary btn-lg ms-2" type="reset"><i class="fas fa-eraser me-2"></i>Limpar Campos</button>
+                    <button class="btn btn-outline-success" type="submit"><i class="fas fa-save me-2"></i>Cadastrar Condutor</button>
+                    <button class="btn btn-outline-secondary ms-2" type="reset"><i class="fas fa-eraser me-2"></i>Limpar Campos</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<div class="b-example-divider b-example-vr"></div>
+<!-- Toast container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
 <script>
     // Inicializa as tabs do Bootstrap
     var triggerTabList = [].slice.call(document.querySelectorAll('#condutorTab button'))
-    triggerTabList.forEach(function (triggerEl) {
+    triggerTabList.forEach(function(triggerEl) {
         var tabTrigger = new bootstrap.Tab(triggerEl)
 
-        triggerEl.addEventListener('click', function (event) {
+        triggerEl.addEventListener('click', function(event) {
             event.preventDefault()
             tabTrigger.show()
         })

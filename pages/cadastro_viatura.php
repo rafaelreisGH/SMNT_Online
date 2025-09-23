@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container-fluid">
 
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">Cadastro de Viatura</h1>
+    <h1 class="h4 mb-4 text-gray-800">Cadastro de Viatura</h1>
 
     <div class="row">
 

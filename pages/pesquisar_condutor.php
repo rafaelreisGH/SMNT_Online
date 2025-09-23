@@ -115,136 +115,139 @@ try {
 */
 ?>
 
-<div class="d-flex min-vh-100 w-100" style="padding-bottom: 3rem;">
-    <div class="row justify-content-center w-100" style="padding-top: 3rem;">
-        <div class=" col-12 col-md-10 col-lg-6">
-            <div class="content-area">
-                <div class="row justify-content-center">
-                    <div class="col-12">
-                        <h1 class="mb-3">Pesquisa de Condutores</h1>
-                        <p class="lead">Utilize os filtros abaixo para encontrar condutores no sistema.</p>
-                        <p>Preencha um ou mais campos para refinar sua busca.</p>
-                        <hr class="mb-4">
-                    </div>
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <h1 class="h4 mb-4 text-gray-800">Pesquisa de condutor</h1>
+
+    <div class="row">
+
+        <div class="col-lg-10 mx-auto">
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="ms-3 font-weight-bold text-primary">Formulário de pesquisa</h6>
                 </div>
+                <div class="card-body mx-3 my-3">
 
-                <form action="#" method="POST">
-                    <ul class="nav nav-tabs mb-4" id="condutorSearchTab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="filtros-pessoais-tab" data-bs-toggle="tab" data-bs-target="#filtros-pessoais-pane" type="button" role="tab" aria-controls="filtros-pessoais-pane" aria-selected="true">Dados Pessoais</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="filtros-cnh-tab" data-bs-toggle="tab" data-bs-target="#filtros-cnh-pane" type="button" role="tab" aria-controls="filtros-cnh-pane" aria-selected="false">Dados CNH</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="filtros-militares-tab" data-bs-toggle="tab" data-bs-target="#filtros-militares-pane" type="button" role="tab" aria-controls="filtros-militares-pane" aria-selected="false">Dados Militares</button>
-                        </li>
-                    </ul>
+                    <form action="#" method="POST">
+                        <ul class="nav nav-tabs mb-4" id="condutorSearchTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="filtros-pessoais-tab" data-bs-toggle="tab" data-bs-target="#filtros-pessoais-pane" type="button" role="tab" aria-controls="filtros-pessoais-pane" aria-selected="true">Dados Pessoais</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="filtros-cnh-tab" data-bs-toggle="tab" data-bs-target="#filtros-cnh-pane" type="button" role="tab" aria-controls="filtros-cnh-pane" aria-selected="false">Dados CNH</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="filtros-militares-tab" data-bs-toggle="tab" data-bs-target="#filtros-militares-pane" type="button" role="tab" aria-controls="filtros-militares-pane" aria-selected="false">Dados Militares</button>
+                            </li>
+                        </ul>
 
-                    <div class="tab-content" id="condutorSearchTabContent">
+                        <div class="tab-content" id="condutorSearchTabContent">
 
-                        <div class="tab-pane fade show active" id="filtros-pessoais-pane" role="tabpanel" aria-labelledby="filtros-pessoais-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="nome" class="form-label">Nome</label>
-                                    <input type="text" class="form-control" id="nome" name="nome" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="cpf" class="form-label">CPF</label>
-                                    <input type="text" class="form-control" id="cpf" name="cpf" maxlength="14" placeholder="000.000.000-00" value="<?= htmlspecialchars($_POST['cpf'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="genero" class="form-label">Gênero</label>
-                                    <select class="form-select" id="genero" name="genero">
-                                        <option value="">Todos</option>
-                                        <?php
-                                        $generos = ['M', 'F', 'Outro'];
-                                        foreach ($generos as $g) {
-                                            $selected = (isset($_POST['genero']) && $_POST['genero'] == $g) ? 'selected' : '';
-                                            echo "<option value=\"$g\" $selected>" . ($g == 'M' ? 'Masculino' : ($g == 'F' ? 'Feminino' : 'Outro')) . "</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="status" class="form-label">Status</label>
-                                    <select class="form-select" id="status" name="status">
-                                        <option value="">Todos</option>
-                                        <?php
-                                        $statusCondutor = ['Ativo', 'Inativo', 'Afastado'];
-                                        foreach ($statusCondutor as $s) {
-                                            $selected = (isset($_POST['status']) && $_POST['status'] == $s) ? 'selected' : '';
-                                            echo "<option value=\"$s\" $selected>$s</option>";
-                                        }
-                                        ?>
-                                    </select>
+                            <div class="tab-pane fade show active" id="filtros-pessoais-pane" role="tabpanel" aria-labelledby="filtros-pessoais-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="nome" class="form-label">Nome</label>
+                                        <input type="text" class="form-control" id="nome" name="nome" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="cpf" class="form-label">CPF</label>
+                                        <input type="text" class="form-control" id="cpf" name="cpf" maxlength="14" placeholder="000.000.000-00" value="<?= htmlspecialchars($_POST['cpf'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="genero" class="form-label">Gênero</label>
+                                        <select class="form-select" id="genero" name="genero">
+                                            <option value="">Todos</option>
+                                            <?php
+                                            $generos = ['M', 'F', 'Outro'];
+                                            foreach ($generos as $g) {
+                                                $selected = (isset($_POST['genero']) && $_POST['genero'] == $g) ? 'selected' : '';
+                                                echo "<option value=\"$g\" $selected>" . ($g == 'M' ? 'Masculino' : ($g == 'F' ? 'Feminino' : 'Outro')) . "</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-select" id="status" name="status">
+                                            <option value="">Todos</option>
+                                            <?php
+                                            $statusCondutor = ['Ativo', 'Inativo', 'Afastado'];
+                                            foreach ($statusCondutor as $s) {
+                                                $selected = (isset($_POST['status']) && $_POST['status'] == $s) ? 'selected' : '';
+                                                echo "<option value=\"$s\" $selected>$s</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="tab-pane fade" id="filtros-cnh-pane" role="tabpanel" aria-labelledby="filtros-cnh-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label for="numero_cnh" class="form-label">Número CNH</label>
-                                    <input type="text" class="form-control" id="numero_cnh" name="numero_cnh" maxlength="20" value="<?= htmlspecialchars($_POST['numero_cnh'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="categoria_cnh" class="form-label">Categoria CNH</label>
-                                    <input type="text" class="form-control" id="categoria_cnh" name="categoria_cnh" maxlength="10" placeholder="Ex: AB, C, D" value="<?= htmlspecialchars($_POST['categoria_cnh'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="data_validade_cnh" class="form-label">Validade CNH</label>
-                                    <input type="date" class="form-control" id="data_validade_cnh" name="data_validade_cnh" value="<?= htmlspecialchars($_POST['data_validade_cnh'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="ear_observacao" class="form-label">EAR (Exerce Atividade Remunerada)</label>
-                                    <select class="form-select" id="ear_observacao" name="ear_observacao">
-                                        <option value="">Todos</option>
-                                        <option value="1" <?= (isset($_POST['ear_observacao']) && $_POST['ear_observacao'] === '1') ? 'selected' : '' ?>>Sim</option>
-                                        <option value="0" <?= (isset($_POST['ear_observacao']) && $_POST['ear_observacao'] === '0') ? 'selected' : '' ?>>Não</option>
-                                    </select>
+                            <div class="tab-pane fade" id="filtros-cnh-pane" role="tabpanel" aria-labelledby="filtros-cnh-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="numero_cnh" class="form-label">Número CNH</label>
+                                        <input type="text" class="form-control" id="numero_cnh" name="numero_cnh" maxlength="20" value="<?= htmlspecialchars($_POST['numero_cnh'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="categoria_cnh" class="form-label">Categoria CNH</label>
+                                        <input type="text" class="form-control" id="categoria_cnh" name="categoria_cnh" maxlength="10" placeholder="Ex: AB, C, D" value="<?= htmlspecialchars($_POST['categoria_cnh'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="data_validade_cnh" class="form-label">Validade CNH</label>
+                                        <input type="date" class="form-control" id="data_validade_cnh" name="data_validade_cnh" value="<?= htmlspecialchars($_POST['data_validade_cnh'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="ear_observacao" class="form-label">EAR (Exerce Atividade Remunerada)</label>
+                                        <select class="form-select" id="ear_observacao" name="ear_observacao">
+                                            <option value="">Todos</option>
+                                            <option value="1" <?= (isset($_POST['ear_observacao']) && $_POST['ear_observacao'] === '1') ? 'selected' : '' ?>>Sim</option>
+                                            <option value="0" <?= (isset($_POST['ear_observacao']) && $_POST['ear_observacao'] === '0') ? 'selected' : '' ?>>Não</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="tab-pane fade" id="filtros-militares-pane" role="tabpanel" aria-labelledby="filtros-militares-tab" tabindex="0">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="posto_graduacao" class="form-label">Posto/Graduação</label>
-                                    <input type="text" class="form-control" id="posto_graduacao" name="posto_graduacao" maxlength="50" value="<?= htmlspecialchars($_POST['posto_graduacao'] ?? '') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="unidade_id" class="form-label">Unidade de Lotação</label>
-                                    <select class="form-select" id="unidade_id" name="unidade_id">
-                                        <option value="">Todas as Unidades</option>
-                                        <?php
-                                        /*
+                            <div class="tab-pane fade" id="filtros-militares-pane" role="tabpanel" aria-labelledby="filtros-militares-tab" tabindex="0">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="posto_graduacao" class="form-label">Posto/Graduação</label>
+                                        <input type="text" class="form-control" id="posto_graduacao" name="posto_graduacao" maxlength="50" value="<?= htmlspecialchars($_POST['posto_graduacao'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="unidade_id" class="form-label">Unidade de Lotação</label>
+                                        <select class="form-select" id="unidade_id" name="unidade_id">
+                                            <option value="">Todas as Unidades</option>
+                                            <?php
+                                            /*
                                         // A variável $unidades viria do PHP comentado acima
                                         foreach ($unidades as $unidade) {
                                             $selected = (isset($_POST['unidade_id']) && $_POST['unidade_id'] == $unidade['id']) ? 'selected' : '';
                                             echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
                                         }
                                         */
-                                        // Para demonstração sem backend, adicione algumas opções de exemplo:
-                                        echo "<option value='1'>1º Batalhão</option>";
-                                        echo "<option value='2'>2º Companhia</option>";
-                                        echo "<option value='3'>Quartel General</option>";
-                                        ?>
-                                    </select>
+                                            // Para demonstração sem backend, adicione algumas opções de exemplo:
+                                            echo "<option value='1'>1º Batalhão</option>";
+                                            echo "<option value='2'>2º Companhia</option>";
+                                            echo "<option value='3'>Quartel General</option>";
+                                            ?>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
+                        <hr class="my-4">
+                        <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search me-2"></i>Pesquisar Condutor</button>
+                        <a href="pesquisar_condutores.php" class="btn btn-outline-secondary ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</a>
+                    </form>
 
-                    </div>
-                    <hr class="my-4">
-                    <button class="btn btn-outline-primary btn-lg" type="submit"><i class="fas fa-search me-2"></i>Pesquisar Condutor</button>
-                    <a href="pesquisar_condutores.php" class="btn btn-outline-secondary btn-lg ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</a>
-                </form>
-
-                <?php
-                // Comentei a exibição de resultados, pois o PHP de pesquisa está comentado.
-                // Você pode descomentar esta parte quando o backend estiver ativo e $results for populado.
-                /*
+                    <?php
+                    // Comentei a exibição de resultados, pois o PHP de pesquisa está comentado.
+                    // Você pode descomentar esta parte quando o backend estiver ativo e $results for populado.
+                    /*
                 if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($results)): ?>
                     <div class="alert alert-warning mt-4" role="alert">
                         Nenhum condutor encontrado com os filtros especificados.
@@ -293,50 +296,51 @@ try {
                     </div>
                 <?php endif;
                 */
-                ?>
+                    ?>
 
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="b-example-divider b-example-vr"></div>
+    <!-- Toast container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<script>
-    // Inicializa as tabs do Bootstrap
-    var triggerTabList = [].slice.call(document.querySelectorAll('#condutorSearchTab button'))
-    triggerTabList.forEach(function (triggerEl) {
-        var tabTrigger = new bootstrap.Tab(triggerEl)
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+        // Inicializa as tabs do Bootstrap
+        var triggerTabList = [].slice.call(document.querySelectorAll('#condutorSearchTab button'))
+        triggerTabList.forEach(function(triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
 
-        triggerEl.addEventListener('click', function (event) {
-            event.preventDefault()
-            tabTrigger.show()
+            triggerEl.addEventListener('click', function(event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
         })
-    })
 
-    // Opcional: Adicionar formatação para CPF
-    document.addEventListener('DOMContentLoaded', function() {
-        const cpfInput = document.getElementById('cpf');
-        if (cpfInput) {
-            cpfInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
-                if (value.length > 9) {
-                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-                } else if (value.length > 6) {
-                    value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
-                } else if (value.length > 3) {
-                    value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
-                }
-                e.target.value = value;
-            });
-        }
-    });
-</script>
+        // Opcional: Adicionar formatação para CPF
+        document.addEventListener('DOMContentLoaded', function() {
+            const cpfInput = document.getElementById('cpf');
+            if (cpfInput) {
+                cpfInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+                    if (value.length > 9) {
+                        value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                    } else if (value.length > 6) {
+                        value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+                    } else if (value.length > 3) {
+                        value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+                    }
+                    e.target.value = value;
+                });
+            }
+        });
+    </script>
 
-<?php
+    <?php
 
-include_once '../templates/footer.php';
+    include_once '../templates/footer.php';
 
-?>
+    ?>
