@@ -1,230 +1,551 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="auto">
+<?php
+include 'templates/sidebar.php';
+?>
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CSM Online</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
 
-    <link rel="icon" href="/CBMMT_00.png" sizes="32x32" type="image/png">
-    <link rel="icon" href="/CBMMT_00.png" sizes="16x16" type="image/png">
-    <style>
-        .bd-placeholder-img {
-            font-size: 1.125rem;
-            text-anchor: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            user-select: none
-        }
+            <!-- Main Content -->
+            <div id="content">
 
-        @media (min-width: 768px) {
-            .bd-placeholder-img-lg {
-                font-size: 3.5rem
-            }
-        }
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
-        .b-example-divider {
-            width: 100%;
-            height: 3rem;
-            background-color: #0000001a;
-            border: solid rgba(0, 0, 0, .15);
-            border-width: 1px 0;
-            box-shadow: inset 0 .5em 1.5em #0000001a, inset 0 .125em .5em #00000026
-        }
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
 
-        .b-example-vr {
-            flex-shrink: 0;
-            width: 1.5rem;
-            height: 100vh
-        }
+                    <!-- Topbar Search -->
+                    <form
+                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
+                                aria-label="Search" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button">
+                                    <i class="fas fa-search fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
 
-        .bi {
-            vertical-align: -.125em;
-            fill: currentColor
-        }
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto">
 
-        .nav-scroller {
-            position: relative;
-            z-index: 2;
-            height: 2.75rem;
-            overflow-y: hidden
-        }
+                        <!-- Nav Item - Search Dropdown (Visible Only XS) -->
+                        <li class="nav-item dropdown no-arrow d-sm-none">
+                            <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-search fa-fw"></i>
+                            </a>
+                            <!-- Dropdown - Messages -->
+                            <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
+                                aria-labelledby="searchDropdown">
+                                <form class="form-inline mr-auto w-100 navbar-search">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control bg-light border-0 small"
+                                            placeholder="Search for..." aria-label="Search"
+                                            aria-describedby="basic-addon2">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary" type="button">
+                                                <i class="fas fa-search fa-sm"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </li>
 
-        .nav-scroller .nav {
-            display: flex;
-            flex-wrap: nowrap;
-            padding-bottom: 1rem;
-            margin-top: -1px;
-            overflow-x: auto;
-            text-align: center;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch
-        }
+                        <!-- Nav Item - Alerts -->
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-bell fa-fw"></i>
+                                <!-- Counter - Alerts -->
+                                <span class="badge badge-danger badge-counter">3+</span>
+                            </a>
+                            <!-- Dropdown - Alerts -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="alertsDropdown">
+                                <h6 class="dropdown-header">
+                                    Alerts Center
+                                </h6>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-primary">
+                                            <i class="fas fa-file-alt text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 12, 2019</div>
+                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-success">
+                                            <i class="fas fa-donate text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 7, 2019</div>
+                                        $290.29 has been deposited into your account!
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="mr-3">
+                                        <div class="icon-circle bg-warning">
+                                            <i class="fas fa-exclamation-triangle text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-gray-500">December 2, 2019</div>
+                                        Spending Alert: We've noticed unusually high spending for your account.
+                                    </div>
+                                </a>
+                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+                            </div>
+                        </li>
 
-        .btn-bd-primary {
-            --bd-violet-bg: #712cf9;
-            --bd-violet-rgb: 112.520718, 44.062154, 249.437846;
-            --bs-btn-font-weight: 600;
-            --bs-btn-color: var(--bs-white);
-            --bs-btn-bg: var(--bd-violet-bg);
-            --bs-btn-border-color: var(--bd-violet-bg);
-            --bs-btn-hover-color: var(--bs-white);
-            --bs-btn-hover-bg: #6528e0;
-            --bs-btn-hover-border-color: #6528e0;
-            --bs-btn-focus-shadow-rgb: var(--bd-violet-rgb);
-            --bs-btn-active-color: var(--bs-btn-hover-color);
-            --bs-btn-active-bg: #5a23c8;
-            --bs-btn-active-border-color: #5a23c8
-        }
+                        <!-- Nav Item - Messages -->
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-envelope fa-fw"></i>
+                                <!-- Counter - Messages -->
+                                <span class="badge badge-danger badge-counter">7</span>
+                            </a>
+                            <!-- Dropdown - Messages -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="messagesDropdown">
+                                <h6 class="dropdown-header">
+                                    Message Center
+                                </h6>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
+                                            alt="...">
+                                        <div class="status-indicator bg-success"></div>
+                                    </div>
+                                    <div class="font-weight-bold">
+                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
+                                            problem I've been having.</div>
+                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
+                                            alt="...">
+                                        <div class="status-indicator"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">I have the photos that you ordered last month, how
+                                            would you like them sent to you?</div>
+                                        <div class="small text-gray-500">Jae Chun · 1d</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
+                                            alt="...">
+                                        <div class="status-indicator bg-warning"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">Last month's report looks great, I am very happy with
+                                            the progress so far, keep up the good work!</div>
+                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div class="dropdown-list-image mr-3">
+                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
+                                            alt="...">
+                                        <div class="status-indicator bg-success"></div>
+                                    </div>
+                                    <div>
+                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
+                                            told me that people say this to all dogs, even if they aren't good...</div>
+                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
+                                    </div>
+                                </a>
+                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                            </div>
+                        </li>
 
-        .bd-mode-toggle {
-            z-index: 1500
-        }
+                        <div class="topbar-divider d-none d-sm-block"></div>
 
-        .bd-mode-toggle .bi {
-            width: 1em;
-            height: 1em
-        }
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <img class="img-profile rounded-circle"
+                                    src="img/undraw_profile.svg">
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Profile
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Settings
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Activity Log
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </li>
 
-        .bd-mode-toggle .dropdown-menu .active .bi {
-            display: block !important
-        }
-    </style>
-</head>
+                    </ul>
 
-<body>
-    <div class="container py-3">
-        <header>
-            <div class="d-flex flex-column flex-md-row align-items-center pb- mb-4 border-bottom">
-                <a href="/" class="d-flex align-items-center link-body-emphasis text-decoration-none"><img class="img-fluid mx-auto d-none d-sm-block mb-3" src="/assets/images/CBMMT_00.png" alt="Bootstrap" width="40">&nbsp;&nbsp;
-                    <span class="fs-4">Manutenção - CBMMT</span>
-                </a>
-                <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
-                    <!-- <a class="me-3 py-2 link-body-emphasis text-decoration-none" href="#">Features</a>
-                    <a class="me-3 py-2 link-body-emphasis text-decoration-none" href="#">Enterprise</a>
-                    <a class="me-3 py-2 link-body-emphasis text-decoration-none" href="#">Support</a> -->
-                    <a class="py-2 link-body-emphasis text-decoration-none" href="/login.php"><button class="btn btn-outline-danger w-100" type="submit">Acesse</button></a>
                 </nav>
-            </div>
-            <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
-                <h1 class="display-4 fw-normal text-body-emphasis">Gestão de Frota</h1>
-                <p class="fs-5 text-body-secondary">Quickly build an effective pricing table for your potential customers with this Bootstrap example. It’s built with default Bootstrap components and utilities with little customization.</p>
-            </div>
-        </header>
-        <main>
-            <div class="row row-cols-1 row-cols-md-3 mb-3 text-center">
-                <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm border-danger">
-                        <div class="card-header py-3 text-bg-danger border-danger">
-                            <h4 class="my-0 fw-normal">
-                                <i class="bi bi-truck" style="font-size: 2rem;"></i>
-                                <span class="text-body-primary">Viaturas</span>
-                            </h4>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-title pricing-card-title">Controle de frota</h3>
-                            <span class="text-body-secondary">
-                                <p style="text-align: justify;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum finibus erat eros, eu volutpat lectus suscipit vitae. Fusce congue facilisis purus, a sodales magna.</p>
-                            </span>
-                            <!-- <ul class="list-unstyled mt-3 mb-4">
-                                <li>10 users included</li>
-                                <li>2 GB of storage</li>
-                                <li>Email support</li>
-                                <li>Help center access</li>
-                            </ul> -->
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm border-danger">
-                        <div class="card-header py-3 text-bg-danger border-danger">
-                            <h4 class="my-0 fw-normal">
-                                <i class="bi bi-file-earmark-bar-graph" style="font-size: 2rem;"></i>
-                                <span class="text-body-primary">Estatísticas</span>
-                            </h4>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-title pricing-card-title">Informações precisas</h3>
-                            <span class="text-body-secondary">
-                                <p style="text-align: justify;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum finibus erat eros, eu volutpat lectus suscipit vitae. Fusce congue facilisis purus, a sodales magna.</p>
-                            </span>
-                            <!-- <ul class="list-unstyled mt-3 mb-4">
-                                <li>10 users included</li>
-                                <li>2 GB of storage</li>
-                                <li>Email support</li>
-                                <li>Help center access</li>
-                            </ul> -->
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm border-danger">
-                        <div class="card-header py-3 text-bg-danger border-danger">
-                            <h4 class="my-0 fw-normal">
-                                <i class="bi bi-door-open" style="font-size: 2rem;"></i>
-                                <span class="text-body-primary">Segurança</span>
-                            </h4>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-title pricing-card-title">Dados confiáveis</h3>
-                            <span class="text-body-secondary">
-                                <p style="text-align: justify;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum finibus erat eros, eu volutpat lectus suscipit vitae. Fusce congue facilisis purus, a sodales magna.</p>
-                            </span>
-                            <!-- <ul class="list-unstyled mt-3 mb-4">
-                                <li>10 users included</li>
-                                <li>2 GB of storage</li>
-                                <li>Email support</li>
-                                <li>Help center access</li>
-                            </ul> -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row mb-3 text-center">
-                <div class="col">
-                    <h1 class="cover-heading">Sobre o sistema</h1>
-                    <p class="lead">O SISMAN é uma ferramenta desenvolvida para atender às necessidades de gestão de informações de frota do CBMMT, e visa proporcionar maior eficiência, transparência e controle.</p>
-                </div>
-            </div>
-        </main>
-        <footer class="pt-4 my-md-5 pt-md-5 border-top">
-            <div class="row">
-                <div class="col-12 col-md"> <img class="mb-2" src="/assets/images/CBMMT_00.png" alt="" width="24"> <small class="d-block mb-3 text-body-secondary">&copy; 2017–2025</small> </div>
-                <div class="col-6 col-md">
-                    <h5>Features</h5>
-                    <ul class="list-unstyled text-small">
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Cool stuff</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Random feature</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Team feature</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Stuff for developers</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Another one</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Last time</a></li>
-                    </ul>
-                </div>
-                <div class="col-6 col-md">
-                    <h5>Resources</h5>
-                    <ul class="list-unstyled text-small">
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Resource</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Resource name</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Another resource</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Final resource</a></li>
-                    </ul>
-                </div>
-                <div class="col-6 col-md">
-                    <h5>About</h5>
-                    <ul class="list-unstyled text-small">
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Team</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Locations</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Privacy</a></li>
-                        <li class="mb-1"><a class="link-secondary text-decoration-none" href="#">Terms</a></li>
-                    </ul>
-                </div>
-            </div>
-        </footer>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO" crossorigin="anonymous"></script>
-</body>
+                <!-- End of Topbar -->
 
-</html>
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
+                                class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
+                    </div>
+
+                    <!-- Content Row -->
+                    <div class="row">
+
+                        <!-- Earnings (Monthly) Card Example -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Earnings (Monthly)</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$40,000</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Earnings (Monthly) Card Example -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Earnings (Annual)</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Earnings (Monthly) Card Example -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">50%</div>
+                                                </div>
+                                                <div class="col">
+                                                    <div class="progress progress-sm mr-2">
+                                                        <div class="progress-bar bg-info" role="progressbar"
+                                                            style="width: 50%" aria-valuenow="50" aria-valuemin="0"
+                                                            aria-valuemax="100"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pending Requests Card Example -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Pending Requests</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Row -->
+
+                    <div class="row">
+
+                        <!-- Area Chart -->
+                        <div class="col-xl-8 col-lg-7">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
+                                    <div class="dropdown no-arrow">
+                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                            aria-labelledby="dropdownMenuLink">
+                                            <div class="dropdown-header">Dropdown Header:</div>
+                                            <a class="dropdown-item" href="#">Action</a>
+                                            <a class="dropdown-item" href="#">Another action</a>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="#">Something else here</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <canvas id="myAreaChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pie Chart -->
+                        <div class="col-xl-4 col-lg-5">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
+                                    <div class="dropdown no-arrow">
+                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                            aria-labelledby="dropdownMenuLink">
+                                            <div class="dropdown-header">Dropdown Header:</div>
+                                            <a class="dropdown-item" href="#">Action</a>
+                                            <a class="dropdown-item" href="#">Another action</a>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="#">Something else here</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-pie pt-4 pb-2">
+                                        <canvas id="myPieChart"></canvas>
+                                    </div>
+                                    <div class="mt-4 text-center small">
+                                        <span class="mr-2">
+                                            <i class="fas fa-circle text-primary"></i> Direct
+                                        </span>
+                                        <span class="mr-2">
+                                            <i class="fas fa-circle text-success"></i> Social
+                                        </span>
+                                        <span class="mr-2">
+                                            <i class="fas fa-circle text-info"></i> Referral
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Row -->
+                    <div class="row">
+
+                        <!-- Content Column -->
+                        <div class="col-lg-6 mb-4">
+
+                            <!-- Project Card Example -->
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Projects</h6>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="small font-weight-bold">Server Migration <span
+                                            class="float-right">20%</span></h4>
+                                    <div class="progress mb-4">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 20%"
+                                            aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <h4 class="small font-weight-bold">Sales Tracking <span
+                                            class="float-right">40%</span></h4>
+                                    <div class="progress mb-4">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 40%"
+                                            aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <h4 class="small font-weight-bold">Customer Database <span
+                                            class="float-right">60%</span></h4>
+                                    <div class="progress mb-4">
+                                        <div class="progress-bar" role="progressbar" style="width: 60%"
+                                            aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <h4 class="small font-weight-bold">Payout Details <span
+                                            class="float-right">80%</span></h4>
+                                    <div class="progress mb-4">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 80%"
+                                            aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <h4 class="small font-weight-bold">Account Setup <span
+                                            class="float-right">Complete!</span></h4>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"
+                                            aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Color System -->
+                            <div class="row">
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-primary text-white shadow">
+                                        <div class="card-body">
+                                            Primary
+                                            <div class="text-white-50 small">#4e73df</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-success text-white shadow">
+                                        <div class="card-body">
+                                            Success
+                                            <div class="text-white-50 small">#1cc88a</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-info text-white shadow">
+                                        <div class="card-body">
+                                            Info
+                                            <div class="text-white-50 small">#36b9cc</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-warning text-white shadow">
+                                        <div class="card-body">
+                                            Warning
+                                            <div class="text-white-50 small">#f6c23e</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-danger text-white shadow">
+                                        <div class="card-body">
+                                            Danger
+                                            <div class="text-white-50 small">#e74a3b</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-secondary text-white shadow">
+                                        <div class="card-body">
+                                            Secondary
+                                            <div class="text-white-50 small">#858796</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-light text-black shadow">
+                                        <div class="card-body">
+                                            Light
+                                            <div class="text-black-50 small">#f8f9fc</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card bg-dark text-white shadow">
+                                        <div class="card-body">
+                                            Dark
+                                            <div class="text-white-50 small">#5a5c69</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-lg-6 mb-4">
+
+                            <!-- Illustrations -->
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Illustrations</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 25rem;"
+                                            src="img/undraw_posting_photo.svg" alt="...">
+                                    </div>
+                                    <p>Add some quality, svg illustrations to your project courtesy of <a
+                                            target="_blank" rel="nofollow" href="https://undraw.co/">unDraw</a>, a
+                                        constantly updated collection of beautiful svg images that you can use
+                                        completely free and without attribution!</p>
+                                    <a target="_blank" rel="nofollow" href="https://undraw.co/">Browse Illustrations on
+                                        unDraw &rarr;</a>
+                                </div>
+                            </div>
+
+                            <!-- Approach -->
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Development Approach</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>SB Admin 2 makes extensive use of Bootstrap 4 utility classes in order to reduce
+                                        CSS bloat and poor page performance. Custom CSS classes are used to create
+                                        custom components and custom utility classes.</p>
+                                    <p class="mb-0">Before working with this theme, you should become familiar with the
+                                        Bootstrap framework, especially the utility classes.</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <?php
+            include_once 'templates/footer.php';
+            ?>
