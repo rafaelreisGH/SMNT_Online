@@ -6,7 +6,7 @@ include_once '../templates/sidebar.php';
 <div class="container-fluid">
 
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">Pesquisa de Manutenções</h1>
+    <h1 class="h4 mb-4 text-gray-800">Pesquisa de Manutenções</h1>
 
     <div class="row">
 

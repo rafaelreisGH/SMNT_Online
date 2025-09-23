@@ -53,63 +53,67 @@ include_once '../templates/sidebar.php';
 // ];
 ?>
 
-<div class="d-flex min-vh-100 w-100" style="padding-bottom: 3rem;">
-    <div class="row justify-content-center w-100" style="padding-top: 3rem;">
-        <div class="col-12 col-md-10 col-lg-6">
-            <div class="content-area">
-                <div class="row justify-content-center">
-                    <div class="col-12">
-                        <h1 class="mb-3">Pesquisa de Histórico de Pneus</h1>
-                        <p class="lead">Utilize os filtros abaixo para encontrar registros de histórico de pneus no sistema.</p>
-                        <p>Preencha um ou mais campos para refinar sua busca.</p>
-                        <hr class="mb-4">
-                    </div>
-                </div>
 
-                <form action="#" method="POST">
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <label for="viatura_id" class="form-label">Viatura</label>
-                            <select class="form-select" id="viatura_id" name="viatura_id">
-                                <option value="">Todas as Viaturas</option>
-                                <?php
-                                // Descomente e use $viaturas reais do banco de dados quando a conexão estiver ativa
-                                /*
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Histórico de Pneus</h1>
+
+    <div class="row">
+
+        <div class="col-lg-10 mx-auto">
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="ms-3 font-weight-bold text-primary">Formulário de pesquisa</h6>
+                </div>
+                <div class="card-body mx-3 my-3">
+
+                    <form action="#" method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label for="viatura_id" class="form-label">Viatura</label>
+                                <select class="form-select" id="viatura_id" name="viatura_id">
+                                    <option value="">Todas as Viaturas</option>
+                                    <?php
+                                    // Descomente e use $viaturas reais do banco de dados quando a conexão estiver ativa
+                                    /*
                                 foreach ($viaturas as $viatura) {
                                     $selected = (isset($_POST['viatura_id']) && $_POST['viatura_id'] == $viatura['id']) ? 'selected' : '';
                                     echo "<option value=\"{$viatura['id']}\" $selected>{$viatura['placa']}</option>";
                                 }
                                 */
-                                // Simulação para fins de layout
-                                $simulated_viaturas = [
-                                    ['id' => 1, 'placa' => 'ABC1234'],
-                                    ['id' => 2, 'placa' => 'DEF5678'],
-                                    ['id' => 3, 'placa' => 'GHI9012'],
-                                ];
-                                foreach ($simulated_viaturas as $viatura) {
-                                    $selected = (isset($_POST['viatura_id']) && $_POST['viatura_id'] == $viatura['id']) ? 'selected' : '';
-                                    echo "<option value=\"{$viatura['id']}\" $selected>{$viatura['placa']}</option>";
-                                }
-                                ?>
-                            </select>
+                                    // Simulação para fins de layout
+                                    $simulated_viaturas = [
+                                        ['id' => 1, 'placa' => 'ABC1234'],
+                                        ['id' => 2, 'placa' => 'DEF5678'],
+                                        ['id' => 3, 'placa' => 'GHI9012'],
+                                    ];
+                                    foreach ($simulated_viaturas as $viatura) {
+                                        $selected = (isset($_POST['viatura_id']) && $_POST['viatura_id'] == $viatura['id']) ? 'selected' : '';
+                                        echo "<option value=\"{$viatura['id']}\" $selected>{$viatura['placa']}</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="data_inicial" class="form-label">Data Inicial</label>
+                                <input type="date" class="form-control" id="data_inicial" name="data_inicial" value="<?= htmlspecialchars($_POST['data_inicial'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="data_final" class="form-label">Data Final</label>
+                                <input type="date" class="form-control" id="data_final" name="data_final" value="<?= htmlspecialchars($_POST['data_final'] ?? '') ?>">
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label for="data_inicial" class="form-label">Data Inicial</label>
-                            <input type="date" class="form-control" id="data_inicial" name="data_inicial" value="<?= htmlspecialchars($_POST['data_inicial'] ?? '') ?>">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="data_final" class="form-label">Data Final</label>
-                            <input type="date" class="form-control" id="data_final" name="data_final" value="<?= htmlspecialchars($_POST['data_final'] ?? '') ?>">
-                        </div>
-                        </div>
-                    <hr class="my-4">
-                    <button class="btn btn-outline-primary btn-lg" type="submit"><i class="fas fa-search me-2"></i>Pesquisar Histórico</button>
-                    <a href="pesquisar_historico_pneus.php" class="btn btn-outline-secondary btn-lg ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</a>
-                </form>
+                        <hr class="my-4">
+                        <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search me-2"></i>Pesquisar Histórico</button>
+                        <a href="pesquisar_historico_pneus.php" class="btn btn-outline-secondary ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</a>
+                    </form>
 
-                <?php
-                // Resultados da pesquisa (comentado, pois o foco é o layout visual)
-                /*
+                    <?php
+                    // Resultados da pesquisa (comentado, pois o foco é o layout visual)
+                    /*
                 if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($results)): ?>
                     <div class="alert alert-warning mt-4" role="alert">
                         Nenhum histórico de pneu encontrado com os filtros especificados.
@@ -146,16 +150,16 @@ include_once '../templates/sidebar.php';
                     </div>
                 <?php endif;
                 */
-                ?>
+                    ?>
 
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="b-example-divider b-example-vr"></div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
-<?php
-// Inclua o arquivo do rodapé
-include_once '../templates/footer.php';
-?>
+    <?php
+    // Inclua o arquivo do rodapé
+    include_once '../templates/footer.php';
+    ?>

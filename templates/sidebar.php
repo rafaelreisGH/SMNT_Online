@@ -116,7 +116,7 @@
 
             <!-- Heading -->
             <div class="sidebar-heading">
-                Addons
+                Extras
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
