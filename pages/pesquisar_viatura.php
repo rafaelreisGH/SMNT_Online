@@ -2,7 +2,7 @@
 include_once '../templates/sidebar.php';
 
 // Inclua seu arquivo de conexão com o banco de dados
-require_once '../components/ConexaoDB/conexao.php';
+require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
 
 // Lógica de pesquisa
@@ -331,7 +331,7 @@ try {
                                 </div>
                             </div>
                         <?php elseif (!empty($results)): ?>
-                            <div class="col-12 col-md-10 col-lg-9">
+                            <div class="container-fluid">
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover">
                                         <thead>
@@ -391,6 +391,7 @@ try {
                             </div> <?php endif; ?>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
 
