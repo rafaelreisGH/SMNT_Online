@@ -1,7 +1,4 @@
 <?php
-// Inclua o arquivo da barra lateral (sidebar)
-include_once '../templates/sidebar.php';
-
 // Conexão com o banco de dados (descomente e configure conforme necessário)
 // include_once '../config/database.php';
 
@@ -158,8 +155,3 @@ include_once '../templates/sidebar.php';
     </div>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
-
-    <?php
-    // Inclua o arquivo do rodapé
-    include_once '../templates/footer.php';
-    ?>

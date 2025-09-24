@@ -1,7 +1,4 @@
 <?php
-// Inclui o template da barra lateral
-include_once '../templates/sidebar.php';
-
 // Inclui a classe ViaturaDAO
 // Ajuste o caminho se seu ViaturaDAO.php estiver em um diretório diferente
 require_once '../components/DAO/ViaturaDAO.php';
@@ -141,9 +138,3 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 
     </div>
 </div>
-
-<div class="b-example-divider b-example-vr"></div>
-
-<?php
-include_once '../templates/footer.php';
-?>

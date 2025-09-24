@@ -1,7 +1,4 @@
 <?php
-
-include_once '../templates/sidebar.php';
-
 /*
 // Inclua seu arquivo de conexão com o banco de dados
 include_once '../config/database.php'; // Ajuste o caminho conforme necessário
@@ -338,9 +335,3 @@ try {
             }
         });
     </script>
-
-    <?php
-
-    include_once '../templates/footer.php';
-
-    ?>

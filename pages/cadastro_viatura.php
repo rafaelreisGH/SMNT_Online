@@ -30,9 +30,6 @@ unset($_SESSION['validation_errors']);
 // e será preenchido com $_POST em caso de erro de validação para manter os dados preenchidos.
 $display_data = [];
 
-// Agora, e somente agora, inclua o template da barra lateral, que pode conter HTML.
-include_once '../templates/sidebar.php';
-
 // --- Lógica para processar a requisição POST (submissão do formulário) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Copia os dados do POST para um array mutável, que será validado e filtrado
@@ -482,8 +479,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         
     </script>
-
-
-    <?php
-    include_once '../templates/footer.php';
-    ?>

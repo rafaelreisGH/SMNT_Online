@@ -495,7 +495,3 @@ include_once '../templates/sidebar.php';
             }
         });
     </script>
-
-    <?php
-    include_once '../templates/footer.php';
-    ?>

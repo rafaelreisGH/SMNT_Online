@@ -1,7 +1,4 @@
 <?php
-
-include_once '../templates/sidebar.php';
-
 /*
 // Inclua seu arquivo de conexão com o banco de dados
 include_once '../config/database.php'; // Ajuste o caminho conforme necessário
@@ -248,9 +245,3 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-    <?php
-
-    include_once '../templates/footer.php';
-
-    ?>

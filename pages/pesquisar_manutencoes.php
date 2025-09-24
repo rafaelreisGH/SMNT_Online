@@ -1,7 +1,3 @@
-<?php
-include_once '../templates/sidebar.php';
-?>
-
 <!-- Begin Page Content -->
 <div class="container-fluid">
 
@@ -201,9 +197,3 @@ include_once '../templates/sidebar.php';
             }
         });
     </script>
-
-    <?php
-
-    include_once '../templates/footer.php';
-
-    ?>

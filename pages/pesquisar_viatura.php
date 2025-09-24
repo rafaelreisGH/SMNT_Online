@@ -1,6 +1,4 @@
 <?php
-include_once '../templates/sidebar.php';
-
 // Inclua seu arquivo de conexão com o banco de dados
 require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
@@ -392,65 +390,65 @@ try {
                     </div>
                 </div>
             </div>
-            </div>
         </div>
+    </div>
 
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
-        <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Inicializa as tabs do Bootstrap
-                var triggerTabList = [].slice.call(document.querySelectorAll('#viaturaSearchTab button'))
-                triggerTabList.forEach(function(triggerEl) {
-                    var tabTrigger = new bootstrap.Tab(triggerEl)
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializa as tabs do Bootstrap
+            var triggerTabList = [].slice.call(document.querySelectorAll('#viaturaSearchTab button'))
+            triggerTabList.forEach(function(triggerEl) {
+                var tabTrigger = new bootstrap.Tab(triggerEl)
 
-                    triggerEl.addEventListener('click', function(event) {
-                        event.preventDefault()
-                        tabTrigger.show()
-                    })
+                triggerEl.addEventListener('click', function(event) {
+                    event.preventDefault()
+                    tabTrigger.show()
                 })
+            })
 
-                // Opcional: Adicionar formatação para placa
-                const placaInput = document.getElementById('placa');
-                if (placaInput) {
-                    placaInput.addEventListener('input', function(e) {
-                        let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                        if (value.length > 3 && !value.includes('-')) {
-                            value = value.substring(0, 3) + '-' + value.substring(3);
-                        }
-                        e.target.value = value.substring(0, 8); // Limita ao formato AAA-0000
-                    });
+            // Opcional: Adicionar formatação para placa
+            const placaInput = document.getElementById('placa');
+            if (placaInput) {
+                placaInput.addEventListener('input', function(e) {
+                    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    if (value.length > 3 && !value.includes('-')) {
+                        value = value.substring(0, 3) + '-' + value.substring(3);
+                    }
+                    e.target.value = value.substring(0, 8); // Limita ao formato AAA-0000
+                });
+            }
+
+            // NOVA FUNÇÃO para exibir Toasts
+            function showToast(message, type = 'success') {
+                const toastContainer = document.querySelector('.toast-container');
+                if (!toastContainer) {
+                    console.error('Toast container not found! Make sure you have <div class="toast-container"> in your HTML.');
+                    return;
                 }
 
-                // NOVA FUNÇÃO para exibir Toasts
-                function showToast(message, type = 'success') {
-                    const toastContainer = document.querySelector('.toast-container');
-                    if (!toastContainer) {
-                        console.error('Toast container not found! Make sure you have <div class="toast-container"> in your HTML.');
-                        return;
-                    }
+                // Determina as classes de cor do toast baseadas no tipo
+                let bgColorClass = '';
+                let iconClass = '';
+                if (type === 'success') {
+                    bgColorClass = 'text-bg-success';
+                    iconClass = 'bi bi-check-circle-fill'; // Bootstrap Icons
+                } else if (type === 'danger') {
+                    bgColorClass = 'text-bg-danger';
+                    iconClass = 'bi bi-x-circle-fill'; // Bootstrap Icons
+                } else if (type === 'warning') {
+                    bgColorClass = 'text-bg-warning';
+                    iconClass = 'bi bi-exclamation-triangle-fill'; // Bootstrap Icons
+                } else { // default 'info' or any other
+                    bgColorClass = 'text-bg-info';
+                    iconClass = 'bi bi-info-circle-fill'; // Bootstrap Icons
+                }
 
-                    // Determina as classes de cor do toast baseadas no tipo
-                    let bgColorClass = '';
-                    let iconClass = '';
-                    if (type === 'success') {
-                        bgColorClass = 'text-bg-success';
-                        iconClass = 'bi bi-check-circle-fill'; // Bootstrap Icons
-                    } else if (type === 'danger') {
-                        bgColorClass = 'text-bg-danger';
-                        iconClass = 'bi bi-x-circle-fill'; // Bootstrap Icons
-                    } else if (type === 'warning') {
-                        bgColorClass = 'text-bg-warning';
-                        iconClass = 'bi bi-exclamation-triangle-fill'; // Bootstrap Icons
-                    } else { // default 'info' or any other
-                        bgColorClass = 'text-bg-info';
-                        iconClass = 'bi bi-info-circle-fill'; // Bootstrap Icons
-                    }
+                const toastId = `liveToast-${Date.now()}`; // ID único para cada toast
 
-                    const toastId = `liveToast-${Date.now()}`; // ID único para cada toast
-
-                    const toastHtml = `
+                const toastHtml = `
             <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
                     <i class="${iconClass} me-2"></i>
@@ -464,161 +462,155 @@ try {
             </div>
         `;
 
-                    // Adiciona o toast ao contêiner
-                    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                // Adiciona o toast ao contêiner
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
 
-                    // Inicializa e mostra o toast
-                    const toastEl = document.getElementById(toastId);
-                    const toast = new bootstrap.Toast(toastEl, {
-                        autohide: true,
-                        delay: 5000 // Toast some após 5 segundos
-                    });
-                    toast.show();
-
-                    // Opcional: Remove o elemento do DOM após o toast ser escondido para manter o DOM limpo
-                    toastEl.addEventListener('hidden.bs.toast', () => {
-                        toastEl.remove();
-                    });
-                }
-
-                // Lógica para Baixar Viatura
-                document.querySelectorAll('.form-baixa-viatura').forEach(form => {
-                    form.addEventListener('submit', function(event) {
-                        event.preventDefault(); // Impede o envio padrão do formulário
-
-                        const idViatura = this.dataset.idViatura;
-                        const confirmacao = confirm('Tem certeza que deseja baixar esta viatura? Ela será marcada como inoperante.');
-
-                        if (confirmacao) {
-                            const formData = new FormData();
-                            formData.append('id_viatura', idViatura);
-
-                            fetch('../api/processar_baixar_viatura.php', {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error('Erro na rede ou no servidor: ' + response.statusText);
-                                    }
-                                    return response.json();
-                                })
-                                .then(data => {
-                                    if (data.success) {
-                                        // CHAME A NOVA FUNÇÃO showToast AQUI
-                                        showToast('Sucesso: ' + data.message, 'success');
-
-                                        const currentRow = form.closest('tr');
-                                        if (currentRow) {
-                                            const statusCell = currentRow.querySelector('.viatura-status'); // Usa a classe para mais robustez
-                                            if (statusCell) {
-                                                statusCell.textContent = 'Baixada'; // Atualiza para 'Baixada' para consistência
-                                            }
-
-                                            // Desabilita o botão de baixar
-                                            const baixarButton = form.querySelector('button[type="submit"]');
-                                            if (baixarButton) {
-                                                baixarButton.disabled = true;
-                                                baixarButton.classList.remove('btn-outline-danger');
-                                                baixarButton.classList.add('btn-secondary');
-                                            }
-
-                                            // Encontra o formulário de reativação na mesma linha e o habilita
-                                            const reativarForm = currentRow.querySelector('.form-reativa-viatura'); // Usa a classe
-                                            if (reativarForm) {
-                                                const reativarButton = reativarForm.querySelector('button[type="submit"]');
-                                                if (reativarButton) {
-                                                    reativarButton.disabled = false;
-                                                    reativarButton.classList.remove('btn-secondary');
-                                                    reativarButton.classList.add('btn-outline-success');
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
-                                        showToast('Erro: ' + data.message, 'danger');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Erro na requisição AJAX:', error);
-                                    // E AQUI
-                                    showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
-                                });
-                        }
-                    });
+                // Inicializa e mostra o toast
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 5000 // Toast some após 5 segundos
                 });
+                toast.show();
 
-                // Lógica para Reativar Viatura (Novo bloco, semelhante ao de baixa)
-                document.querySelectorAll('.form-reativa-viatura').forEach(form => {
-                    form.addEventListener('submit', function(event) {
-                        event.preventDefault(); // Impede o envio padrão do formulário
+                // Opcional: Remove o elemento do DOM após o toast ser escondido para manter o DOM limpo
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                });
+            }
 
-                        const idViatura = this.dataset.idViatura;
-                        const confirmacao = confirm('Tem certeza que deseja reativar esta viatura? Ela será marcada como operante.');
+            // Lógica para Baixar Viatura
+            document.querySelectorAll('.form-baixa-viatura').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Impede o envio padrão do formulário
 
-                        if (confirmacao) {
-                            const formData = new FormData();
-                            formData.append('id_viatura', idViatura);
+                    const idViatura = this.dataset.idViatura;
+                    const confirmacao = confirm('Tem certeza que deseja baixar esta viatura? Ela será marcada como inoperante.');
 
-                            fetch('../api/processar_reativacao_viatura.php', { // Assumindo este é o endpoint para reativação
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error('Erro na rede ou no servidor: ' + response.statusText);
-                                    }
-                                    return response.json();
-                                })
-                                .then(data => {
-                                    if (data.success) {
-                                        // CHAME A NOVA FUNÇÃO showToast AQUI
-                                        showToast('Sucesso: ' + data.message, 'success');
+                    if (confirmacao) {
+                        const formData = new FormData();
+                        formData.append('id_viatura', idViatura);
 
-                                        const currentRow = form.closest('tr');
-                                        if (currentRow) {
-                                            const statusCell = currentRow.querySelector('.viatura-status');
-                                            if (statusCell) {
-                                                statusCell.textContent = 'Operante'; // Atualiza para 'Operante'
-                                            }
+                        fetch('../api/processar_baixar_viatura.php', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Erro na rede ou no servidor: ' + response.statusText);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    // CHAME A NOVA FUNÇÃO showToast AQUI
+                                    showToast('Sucesso: ' + data.message, 'success');
 
-                                            // Desabilita o botão de reativar
-                                            const reativarButton = form.querySelector('button[type="submit"]');
+                                    const currentRow = form.closest('tr');
+                                    if (currentRow) {
+                                        const statusCell = currentRow.querySelector('.viatura-status'); // Usa a classe para mais robustez
+                                        if (statusCell) {
+                                            statusCell.textContent = 'Baixada'; // Atualiza para 'Baixada' para consistência
+                                        }
+
+                                        // Desabilita o botão de baixar
+                                        const baixarButton = form.querySelector('button[type="submit"]');
+                                        if (baixarButton) {
+                                            baixarButton.disabled = true;
+                                            baixarButton.classList.remove('btn-outline-danger');
+                                            baixarButton.classList.add('btn-secondary');
+                                        }
+
+                                        // Encontra o formulário de reativação na mesma linha e o habilita
+                                        const reativarForm = currentRow.querySelector('.form-reativa-viatura'); // Usa a classe
+                                        if (reativarForm) {
+                                            const reativarButton = reativarForm.querySelector('button[type="submit"]');
                                             if (reativarButton) {
-                                                reativarButton.disabled = true;
-                                                reativarButton.classList.remove('btn-outline-success');
-                                                reativarButton.classList.add('btn-secondary');
-                                            }
-
-                                            // Encontra o formulário de baixa na mesma linha e o habilita
-                                            const baixarForm = currentRow.querySelector('.form-baixa-viatura');
-                                            if (baixarForm) {
-                                                const baixarButton = baixarForm.querySelector('button[type="submit"]');
-                                                if (baixarButton) {
-                                                    baixarButton.disabled = false;
-                                                    baixarButton.classList.remove('btn-secondary');
-                                                    baixarButton.classList.add('btn-outline-danger');
-                                                }
+                                                reativarButton.disabled = false;
+                                                reativarButton.classList.remove('btn-secondary');
+                                                reativarButton.classList.add('btn-outline-success');
                                             }
                                         }
-                                    } else {
-                                        // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
-                                        showToast('Erro: ' + data.message, 'danger');
                                     }
-                                })
-                                .catch(error => {
-                                    console.error('Erro na requisição AJAX:', error);
-                                    // E AQUI
-                                    showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
-                                });
-                        }
-                    });
+                                } else {
+                                    // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
+                                    showToast('Erro: ' + data.message, 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erro na requisição AJAX:', error);
+                                // E AQUI
+                                showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
+                            });
+                    }
                 });
             });
-        </script>
 
-        <?php
+            // Lógica para Reativar Viatura (Novo bloco, semelhante ao de baixa)
+            document.querySelectorAll('.form-reativa-viatura').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Impede o envio padrão do formulário
 
-        include_once '../templates/footer.php';
+                    const idViatura = this.dataset.idViatura;
+                    const confirmacao = confirm('Tem certeza que deseja reativar esta viatura? Ela será marcada como operante.');
 
-        ?>
+                    if (confirmacao) {
+                        const formData = new FormData();
+                        formData.append('id_viatura', idViatura);
+
+                        fetch('../api/processar_reativacao_viatura.php', { // Assumindo este é o endpoint para reativação
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Erro na rede ou no servidor: ' + response.statusText);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    // CHAME A NOVA FUNÇÃO showToast AQUI
+                                    showToast('Sucesso: ' + data.message, 'success');
+
+                                    const currentRow = form.closest('tr');
+                                    if (currentRow) {
+                                        const statusCell = currentRow.querySelector('.viatura-status');
+                                        if (statusCell) {
+                                            statusCell.textContent = 'Operante'; // Atualiza para 'Operante'
+                                        }
+
+                                        // Desabilita o botão de reativar
+                                        const reativarButton = form.querySelector('button[type="submit"]');
+                                        if (reativarButton) {
+                                            reativarButton.disabled = true;
+                                            reativarButton.classList.remove('btn-outline-success');
+                                            reativarButton.classList.add('btn-secondary');
+                                        }
+
+                                        // Encontra o formulário de baixa na mesma linha e o habilita
+                                        const baixarForm = currentRow.querySelector('.form-baixa-viatura');
+                                        if (baixarForm) {
+                                            const baixarButton = baixarForm.querySelector('button[type="submit"]');
+                                            if (baixarButton) {
+                                                baixarButton.disabled = false;
+                                                baixarButton.classList.remove('btn-secondary');
+                                                baixarButton.classList.add('btn-outline-danger');
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
+                                    showToast('Erro: ' + data.message, 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erro na requisição AJAX:', error);
+                                // E AQUI
+                                showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
+                            });
+                    }
+                });
+            });
+        });
+    </script>
