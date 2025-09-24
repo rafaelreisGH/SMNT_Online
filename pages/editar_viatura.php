@@ -121,9 +121,6 @@ else {
     // Preenche $display_data com os dados da viatura recém-buscados para exibição no formulário
     $display_data = $viatura_from_db;
 }
-
-// Inclui o template da barra lateral
-include_once '../templates/sidebar.php';
 ?>
 
 <!-- Begin Page Content -->
