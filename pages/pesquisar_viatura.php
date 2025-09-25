@@ -287,12 +287,12 @@ try {
                                     <div class="col-md-6">
                                         <label for="tipo_aquisicao" class="form-label">Tipo de Aquisição</label>
                                         <select class="form-select" id="tipo_aquisicao" name="tipo_aquisicao">
-                                            <option value="">Todos</option>
+                                            <option value="" <?= (!isset($display_data['tipo_aquisicao']) || $display_data['tipo_aquisicao'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
                                             <?php
                                             $tiposAquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
-                                            foreach ($tiposAquisicao as $aquisicao) {
-                                                $selected = (isset($_POST['tipo_aquisicao']) && $_POST['tipo_aquisicao'] == $aquisicao) ? 'selected' : '';
-                                                echo "<option value=\"$aquisicao\" $selected>$aquisicao</option>";
+                                            foreach ($tiposAquisicao as $tipo) {
+                                                $selected = (isset($display_data['tipo_aquisicao']) && $display_data['tipo_aquisicao'] == $tipo) ? 'selected' : '';
+                                                echo "<option value=\"$tipo\" $selected>$tipo</option>";
                                             }
                                             ?>
                                         </select>
@@ -357,12 +357,17 @@ try {
                                                         <td class="viatura-status"><?= htmlspecialchars($viatura['status_da_viatura']) ?></td>
                                                         <td><?= htmlspecialchars($viatura['unidade_lotacao'] ?? 'Não informada') ?></td>
                                                         <td>
-                                                            <a class="btn btn-outline-info btn-sm" href="detalhes_viatura.php?id=<?= $viatura['id'] ?>" role="button" title="Ver Detalhes da Viatura">
+                                                            <!-- ANTES ERA UM <a>, AGORA É UM <button> -->
+                                                            <button type="button" class="btn btn-outline-info btn-sm"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#detalhesModal"
+                                                                data-viatura-id="<?= $viatura['id'] ?>"
+                                                                title="Ver Detalhes da Viatura">
                                                                 <i class="bi bi-list-check"></i>
-                                                            </a>
+                                                            </button>
                                                         </td>
                                                         <td>
-                                                            <a href="editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
+                                                            <a href="pages/editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
                                                                 <i class="bi bi-pen"></i>
                                                             </a>
                                                         </td>
@@ -407,6 +412,27 @@ try {
 
 <!-- ... Final do seu HTML ... -->
 </div>
+</div>
+
+<!-- Modal Genérico para Detalhes -->
+<div class="modal fade" id="detalhesModal" tabindex="-1" aria-labelledby="detalhesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detalhesModalLabel">Detalhes da Viatura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detalhesModalBody">
+                <!-- O conteúdo será carregado aqui via AJAX -->
+                <div class="text-center p-4">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- SCRIPT CORRIGIDO E COMPLETO PARA A PÁGINA -->
@@ -459,40 +485,40 @@ try {
         function initializePageSpecificActions() {
 
             // Função para exibir Toasts (notificações)
-            function showToast(message, type = 'success') {
-                const toastContainer = document.querySelector('.toast-container');
-                if (!toastContainer) return;
+            // function showToast(message, type = 'success') {
+            //     const toastContainer = document.querySelector('.toast-container');
+            //     if (!toastContainer) return;
 
-                const bgColorClass = {
-                    success: 'text-bg-success',
-                    danger: 'text-bg-danger',
-                    warning: 'text-bg-warning'
-                } [type] || 'text-bg-info';
-                const iconClass = {
-                    success: 'bi-check-circle-fill',
-                    danger: 'bi-x-circle-fill',
-                    warning: 'bi-exclamation-triangle-fill'
-                } [type] || 'bi-info-circle-fill';
-                const toastId = `liveToast-${Date.now()}`;
+            //     const bgColorClass = {
+            //         success: 'text-bg-success',
+            //         danger: 'text-bg-danger',
+            //         warning: 'text-bg-warning'
+            //     } [type] || 'text-bg-info';
+            //     const iconClass = {
+            //         success: 'bi-check-circle-fill',
+            //         danger: 'bi-x-circle-fill',
+            //         warning: 'bi-exclamation-triangle-fill'
+            //     } [type] || 'bi-info-circle-fill';
+            //     const toastId = `liveToast-${Date.now()}`;
 
-                const toastHtml = `
-                    <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="toast-header">
-                            <i class="bi ${iconClass} me-2"></i>
-                            <strong class="me-auto">Notificação</strong>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                        <div class="toast-body">${message}</div>
-                    </div>`;
+            //     const toastHtml = `
+            //         <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
+            //             <div class="toast-header">
+            //                 <i class="bi ${iconClass} me-2"></i>
+            //                 <strong class="me-auto">Notificação</strong>
+            //                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            //             </div>
+            //             <div class="toast-body">${message}</div>
+            //         </div>`;
 
-                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                const toastEl = document.getElementById(toastId);
-                const toast = new bootstrap.Toast(toastEl, {
-                    delay: 5000
-                });
-                toast.show();
-                toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-            }
+            //     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            //     const toastEl = document.getElementById(toastId);
+            //     const toast = new bootstrap.Toast(toastEl, {
+            //         delay: 5000
+            //     });
+            //     toast.show();
+            //     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+            // }
 
             // Lógica para Baixar Viatura
             document.querySelectorAll('.form-baixa-viatura').forEach(form => {
@@ -565,6 +591,31 @@ try {
                         });
                 });
             });
+            // NOVA LÓGICA PARA O MODAL DE DETALHES
+            const detalhesModal = document.getElementById('detalhesModal');
+            if (detalhesModal) {
+                detalhesModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget; // O botão que acionou o modal
+                    const viaturaId = button.getAttribute('data-viatura-id'); // Pega o ID do atributo data
+
+                    const modalBody = detalhesModal.querySelector('#detalhesModalBody');
+
+                    // Mostra o spinner de carregamento
+                    modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
+
+                    // Busca os detalhes da viatura na nossa nova API
+                    fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`)
+                        .then(response => response.text())
+                        .then(html => {
+                            // Preenche o corpo do modal com o HTML recebido
+                            modalBody.innerHTML = html;
+                        })
+                        .catch(error => {
+                            modalBody.innerHTML = '<div class="alert alert-danger">Erro ao carregar os detalhes.</div>';
+                            console.error('Erro ao buscar detalhes da viatura:', error);
+                        });
+                });
+            }
         }
 
         // Chama a função pela primeira vez para os elementos que já estão na página
