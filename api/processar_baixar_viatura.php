@@ -3,7 +3,7 @@
 
 // Inclua seu arquivo de conexão com o banco de dados.
 // Adapte o caminho conforme a sua estrutura de diretórios.
-require_once '../components/ConexaoDB/conexao.php';
+require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
 
 header('Content-Type: application/json'); // Define o cabeçalho para JSON

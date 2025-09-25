@@ -1,11 +1,11 @@
 <?php
-// Define o cabeçalho para indicar que a resposta será em JSON
+// api/processar_reativacao_viatura.php
 header('Content-Type: application/json');
 
 // Inclui o arquivo de conexão com o banco de dados
 // Certifique-se de que o caminho para o arquivo Conexao.php está correto.
 // Se este arquivo estiver em 'api/' e a conexão em 'components/ConexaoDB/', o caminho relativo está ok.
-require_once '../components/ConexaoDB/conexao.php';
+require_once '../components/DAO/ViaturaDAO.php';
 
 // Inicializa a resposta padrão como falha
 $response = ['success' => false, 'message' => ''];

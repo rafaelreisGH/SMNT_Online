@@ -405,19 +405,21 @@ try {
 </div>
 
 
-<!-- DEIXE APENAS ESTE SCRIPT NO FINAL DO ARQUIVO -->
+<!-- ... Final do seu HTML ... -->
+</div>
+</div>
+
+<!-- SCRIPT CORRIGIDO E COMPLETO PARA A PÁGINA -->
 <script>
-    // A função agora fica "solta", pronta para ser chamada pelo nosso main-ajax.js
     function initializePesquisaViaturaScripts() {
-        // 1. LÓGICA DO FORMULÁRIO DE PESQUISA
         const formPesquisa = document.getElementById('form-pesquisa-viatura');
         const areaResultados = document.getElementById('resultado-pesquisa');
 
+        // Adiciona listener ao formulário de pesquisa (se ainda não tiver)
         if (formPesquisa && !formPesquisa.hasAttribute('data-ajax-initialized')) {
-            formPesquisa.setAttribute('data-ajax-initialized', 'true'); // Previne múltiplas inicializações
+            formPesquisa.setAttribute('data-ajax-initialized', 'true');
             formPesquisa.addEventListener('submit', function(event) {
                 event.preventDefault();
-
                 const formData = new FormData(formPesquisa);
                 areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Pesquisando...</div>';
 
@@ -433,34 +435,136 @@ try {
 
                         if (novosResultados) {
                             areaResultados.innerHTML = novosResultados.innerHTML;
-                            // Chama a função que adiciona os listeners aos novos botões da tabela
+                            // Re-inicializa os scripts para a nova tabela de resultados
                             initializePageSpecificActions();
                         } else {
-                            areaResultados.innerHTML = '<div class="alert alert-danger">Erro ao processar a resposta da pesquisa.</div>';
+                            areaResultados.innerHTML = '<div class="alert alert-danger">Erro ao processar a resposta.</div>';
                         }
                     })
-                    .catch(error => {
-                        console.error('Erro na pesquisa AJAX:', error);
-                        areaResultados.innerHTML = '<div class="alert alert-danger">Erro de comunicação ao realizar a pesquisa.</div>';
-                    });
+                    .catch(error => console.error('Erro na pesquisa AJAX:', error));
             });
         }
 
-        // 2. LÓGICA DO BOTÃO DE LIMPAR FILTROS
+        // Adiciona listener ao botão de limpar (se ainda não tiver)
         const btnLimpar = document.getElementById('btn-limpar-filtros');
         if (btnLimpar && !btnLimpar.hasAttribute('data-ajax-initialized')) {
             btnLimpar.setAttribute('data-ajax-initialized', 'true');
-            btnLimpar.addEventListener('click', function() {
-                if (formPesquisa) {
-                    formPesquisa.reset();
-                }
-            });
+            btnLimpar.addEventListener('click', () => formPesquisa?.reset());
         }
 
-        // 3. LÓGICA DAS AÇÕES DA TABELA (BAIXAR, REATIVAR, ETC.)
+        // =======================================================================
+        // AQUI ESTÁ O CÓDIGO QUE FALTAVA
+        // Esta função anexa os listeners para Toasts, Baixar, Reativar, etc.
+        // =======================================================================
         function initializePageSpecificActions() {
-            // ... (Toda a sua lógica de tabs, toasts, baixar e reativar viatura continua aqui, exatamente como antes)
-            // Lembre-se de incluir a função showToast aqui dentro também.
+
+            // Função para exibir Toasts (notificações)
+            function showToast(message, type = 'success') {
+                const toastContainer = document.querySelector('.toast-container');
+                if (!toastContainer) return;
+
+                const bgColorClass = {
+                    success: 'text-bg-success',
+                    danger: 'text-bg-danger',
+                    warning: 'text-bg-warning'
+                } [type] || 'text-bg-info';
+                const iconClass = {
+                    success: 'bi-check-circle-fill',
+                    danger: 'bi-x-circle-fill',
+                    warning: 'bi-exclamation-triangle-fill'
+                } [type] || 'bi-info-circle-fill';
+                const toastId = `liveToast-${Date.now()}`;
+
+                const toastHtml = `
+                    <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <i class="bi ${iconClass} me-2"></i>
+                            <strong class="me-auto">Notificação</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">${message}</div>
+                    </div>`;
+
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: 5000
+                });
+                toast.show();
+                toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+            }
+
+            // Lógica para Baixar Viatura
+            document.querySelectorAll('.form-baixa-viatura').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    if (!confirm('Tem certeza que deseja baixar esta viatura?')) return;
+
+                    const idViatura = this.dataset.idViatura;
+                    const formData = new FormData();
+                    formData.append('id_viatura', idViatura);
+
+                    fetch('../api/processar_baixar_viatura.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast(data.message, 'success');
+                                const row = form.closest('tr');
+                                row.querySelector('.viatura-status').textContent = 'Baixada';
+                                form.querySelector('button').disabled = true;
+                                form.querySelector('button').classList.replace('btn-outline-danger', 'btn-secondary');
+                                const reativarBtn = row.querySelector('.form-reativa-viatura button');
+                                reativarBtn.disabled = false;
+                                reativarBtn.classList.replace('btn-secondary', 'btn-outline-success');
+                            } else {
+                                showToast(data.message, 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro AJAX ao baixar:', error);
+                            showToast('Erro de comunicação ao baixar viatura.', 'danger');
+                        });
+                });
+            });
+
+            // Lógica para Reativar Viatura
+            document.querySelectorAll('.form-reativa-viatura').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    if (!confirm('Tem certeza que deseja reativar esta viatura?')) return;
+
+                    const idViatura = this.dataset.idViatura;
+                    const formData = new FormData();
+                    formData.append('id_viatura', idViatura);
+
+                    fetch('../api/processar_reativacao_viatura.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast(data.message, 'success');
+                                const row = form.closest('tr');
+                                row.querySelector('.viatura-status').textContent = 'Operante';
+                                form.querySelector('button').disabled = true;
+                                form.querySelector('button').classList.replace('btn-outline-success', 'btn-secondary');
+                                const baixarBtn = row.querySelector('.form-baixa-viatura button');
+                                baixarBtn.disabled = false;
+                                baixarBtn.classList.replace('btn-secondary', 'btn-outline-danger');
+                            } else {
+                                showToast(data.message, 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro AJAX ao reativar:', error);
+                            showToast('Erro de comunicação ao reativar viatura.', 'danger');
+                        });
+                });
+            });
         }
 
         // Chama a função pela primeira vez para os elementos que já estão na página
