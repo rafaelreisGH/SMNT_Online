@@ -1,41 +1,72 @@
 document.addEventListener('DOMContentLoaded', function () {
     const mainContentArea = document.getElementById('main-content-area');
-    const sidebarLinks = document.querySelectorAll('#accordionSidebar a.collapse-item');
+    // Alteramos o seletor para pegar TODOS os links que carregam páginas, 
+    // não apenas os 'collapse-item'. Isso inclui "Página Inicial", "Mapa de viaturas", etc.
+    const pageLinks = document.querySelectorAll('#accordionSidebar a[href]:not([href="#"])');
 
-    // Função para carregar o conteúdo via AJAX
+    /**
+     * Função para atualizar a classe 'active' no menu lateral.
+     * @param {HTMLElement} clickedLink - O elemento <a> que foi clicado.
+     */
+    function updateActiveSidebar(clickedLink) {
+        // 1. Remove a classe 'active' de todos os itens de navegação (<li>)
+        document.querySelectorAll('#accordionSidebar .nav-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // 2. Remove a classe 'active' de todos os sub-itens de menu (<a>)
+        document.querySelectorAll('#accordionSidebar .collapse-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // 3. Adiciona a classe 'active' ao <li> pai do link clicado
+        const parentLi = clickedLink.closest('.nav-item');
+        if (parentLi) {
+            parentLi.classList.add('active');
+        }
+
+        // 4. Se o link clicado for um sub-item (dentro de um menu collapse),
+        // adiciona a classe 'active' a ele também para o destaque visual.
+        if (clickedLink.classList.contains('collapse-item')) {
+            clickedLink.classList.add('active');
+        }
+    }
+
+    // Função para carregar o conteúdo via AJAX (sem alterações)
     function loadPage(url) {
-        // Exibe um ícone de carregamento para melhor experiência do usuário
         mainContentArea.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
 
-        // Usa a API Fetch para fazer a requisição AJAX
         fetch(url)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return response.text(); // Recebe o HTML como texto
+                return response.text();
             })
             .then(html => {
-                // Substitui o conteúdo da área principal com o HTML recebido
                 mainContentArea.innerHTML = html;
             })
             .catch(error => {
-                // Exibe uma mensagem de erro em caso de falha
                 mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro ao carregar a página.</div>';
                 console.error('AJAX Load Error:', error);
             });
     }
 
-    // Intercepta os cliques nos links da sidebar
-    sidebarLinks.forEach(link => {
+    // Intercepta os cliques nos links
+    pageLinks.forEach(link => {
         link.addEventListener('click', function (e) {
-            const url = this.getAttribute('href');
+            e.preventDefault(); // Impede o recarregamento completo da página
 
-            // Verifica se é um link de página e não um link de colapso
-            if (url && url !== '#') {
-                e.preventDefault(); // Impede o recarregamento completo da página
-                loadPage(url);
-            }
+            const url = this.getAttribute('href');
+            
+            // Carrega o conteúdo da página via AJAX
+            loadPage(url);
+            
+            // ATUALIZA O MENU: Chama a nova função para atualizar o estado 'active'
+            updateActiveSidebar(this);
         });
     });
+
+    // Opcional: Garante que o item ativo na carga inicial da página esteja correto.
+    // O seu HTML já define "Página Inicial" como ativa, então está tudo bem para o primeiro carregamento.
 });
