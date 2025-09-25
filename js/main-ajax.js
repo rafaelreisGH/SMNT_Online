@@ -1,11 +1,16 @@
-// ARQUIVO: main-ajax.js (VERSÃO CORRIGIDA E COMPLETA)
+// ARQUIVO: main-ajax.js (VERSÃO FINAL CORRIGIDA)
 
-// Torna a função showToast global para que outros scripts possam usá-la
-window.showToast = function(message, type = 'success') {
-    const toastContainer = document.querySelector('.toast-container');
+/**
+ * Torna a função showToast global para que outros scripts possam usá-la.
+ * Assim, qualquer página carregada pode chamar window.showToast(...)
+ */
+window.showToast = function (message, type = 'success') {
+    // Tenta encontrar um container de toast na página. Se não houver, cria um.
+    let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
-        console.error('Toast container not found!');
-        return;
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
     }
 
     const bgColorClass = { success: 'text-bg-success', danger: 'text-bg-danger', warning: 'text-bg-warning' }[type] || 'text-bg-info';
@@ -47,19 +52,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const scripts = containerElement.querySelectorAll('script');
         scripts.forEach(script => {
             const newScript = document.createElement('script');
-            newScript.textContent = script.textContent; // Usar textContent é mais seguro
+            newScript.textContent = script.textContent;
             document.body.appendChild(newScript).parentNode.removeChild(newScript);
         });
     }
 
+    /**
+     * Inicializa componentes do Bootstrap (como Tooltips) em um container específico.
+     * @param {HTMLElement} container O elemento dentro do qual os componentes serão procurados.
+     */
     function initializeBootstrapComponents(container) {
         // Inicializa Tooltips
         const tooltipTriggerList = Array.from(container.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
-        // Inicializa Popovers
-        const popoverTriggerList = Array.from(container.querySelectorAll('[data-bs-toggle="popover"]'));
-        popoverTriggerList.forEach(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl));
+        // Adicione outros inicializadores aqui se precisar (Popovers, etc.)
     }
 
     function loadPage(url) {
@@ -69,10 +76,10 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.ok ? response.text() : Promise.reject(response.statusText))
             .then(html => {
                 mainContentArea.innerHTML = html;
-                
-                // (CHAMADAS CORRIGIDAS E ADICIONADAS)
+
+                // FLUXO CORRETO DE INICIALIZAÇÃO
                 executeScriptsInElement(mainContentArea);
-                initializeBootstrapComponents(mainContentArea); // <-- CHAMADA QUE FALTAVA
+                initializeBootstrapComponents(mainContentArea); // <<-- ADICIONADO AQUI
             })
             .catch(error => {
                 mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro ao carregar a página.</div>';
@@ -80,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
+    // Listener de clique global (Delegação de Eventos)
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
         if (link && link.href && !link.href.endsWith('#') && !link.dataset.bsToggle && link.target !== '_blank') {
@@ -91,6 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // CHAMA A INICIALIZAÇÃO PARA OS COMPONENTES DA PÁGINA PRINCIPAL
-    initializeBootstrapComponents(document.body); // <-- CHAMADA QUE FALTAVA
+    // Inicializa os componentes na página principal quando ela carrega pela primeira vez
+    initializeBootstrapComponents(document.body); // <<-- ADICIONADO AQUI
 });
