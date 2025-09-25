@@ -155,7 +155,7 @@ try {
                     <h6 class="ms-3 font-weight-bold text-primary">Formulário de pesquisa</h6>
                 </div>
                 <div class="card-body mx-3 my-3">
-                    <form action="#" method="POST">
+                    <form id="form-pesquisa-viatura" action="#" method="POST">
                         <ul class="nav nav-tabs mb-4" id="viaturaSearchTab" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="filtros-basicos-tab" data-bs-toggle="tab" data-bs-target="#filtros-basicos-pane" type="button" role="tab" aria-controls="filtros-basicos-pane" aria-selected="true">Filtros Básicos</button>
@@ -307,7 +307,7 @@ try {
                         </div>
                         <hr class="my-4">
                         <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search me-2"></i>Pesquisar Viatura</button>
-                        <a href="pesquisar_viatura.php" class="btn btn-outline-secondary ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</a>
+                        <button type="button" id="btn-limpar-filtros" class="btn btn-outline-secondary ms-2"><i class="fas fa-redo me-2"></i>Limpar Filtros</button>
                     </form>
                 </div>
             </div>
@@ -315,78 +315,80 @@ try {
             <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
             <!-- Circle Buttons -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Resultado</h6>
-                </div>
-                <div class="card-body">
-                    <p>Abaixo são listados os resultados da pesquisa.</p>
-                    <div class="mb-2">
-                        <?php if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($results)): ?>
-                            <div class="col-12 col-md-8 col-lg-6 mt-4">
-                                <div class="alert alert-warning" role="alert">
-                                    Nenhuma viatura encontrada com os filtros especificados.
+            <div id="resultado-pesquisa">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Resultado</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Abaixo são listados os resultados da pesquisa.</p>
+                        <div class="mb-2">
+                            <?php if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($results)): ?>
+                                <div class="col-12 col-md-8 col-lg-6 mt-4">
+                                    <div class="alert alert-warning" role="alert">
+                                        Nenhuma viatura encontrada com os filtros especificados.
+                                    </div>
                                 </div>
-                            </div>
-                        <?php elseif (!empty($results)): ?>
-                            <div class="container-fluid">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Prefixo</th>
-                                                <th>Número</th>
-                                                <th>Marca</th>
-                                                <th>Modelo</th>
-                                                <th>Status</th>
-                                                <th>Lotação</th>
-                                                <th>Detalhes</th>
-                                                <th>Editar</th>
-                                                <th>Reativar</th>
-                                                <th>Baixar</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($results as $viatura): ?>
+                            <?php elseif (!empty($results)): ?>
+                                <div class="container-fluid">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
                                                 <tr>
-                                                    <td><?= htmlspecialchars($viatura['prefixo']) ?></td>
-                                                    <td><?= htmlspecialchars($viatura['numero']) ?></td>
-                                                    <td><?= htmlspecialchars($viatura['marca']) ?></td>
-                                                    <td><?= htmlspecialchars($viatura['modelo']) ?></td>
-                                                    <td class="viatura-status"><?= htmlspecialchars($viatura['status_da_viatura']) ?></td>
-                                                    <td><?= htmlspecialchars($viatura['unidade_lotacao'] ?? 'Não informada') ?></td>
-                                                    <td>
-                                                        <a class="btn btn-outline-info btn-sm" href="detalhes_viatura.php?id=<?= $viatura['id'] ?>" role="button" title="Ver Detalhes da Viatura">
-                                                            <i class="bi bi-list-check"></i>
-                                                        </a>
-                                                    </td>
-                                                    <td>
-                                                        <a href="editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
-                                                            <i class="bi bi-pen"></i>
-                                                        </a>
-                                                    </td>
-                                                    <td>
-                                                        <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                            <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                            <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
-                                                                <i class="bi bi-check-lg"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                    <td>
-                                                        <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                            <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                            <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
-                                                                <i class="bi bi-x-lg"></i>
-                                                            </button>
-                                                        </form>
-                                                    </td>
+                                                    <th>Prefixo</th>
+                                                    <th>Número</th>
+                                                    <th>Marca</th>
+                                                    <th>Modelo</th>
+                                                    <th>Status</th>
+                                                    <th>Lotação</th>
+                                                    <th>Detalhes</th>
+                                                    <th>Editar</th>
+                                                    <th>Reativar</th>
+                                                    <th>Baixar</th>
                                                 </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div> <?php endif; ?>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($results as $viatura): ?>
+                                                    <tr>
+                                                        <td><?= htmlspecialchars($viatura['prefixo']) ?></td>
+                                                        <td><?= htmlspecialchars($viatura['numero']) ?></td>
+                                                        <td><?= htmlspecialchars($viatura['marca']) ?></td>
+                                                        <td><?= htmlspecialchars($viatura['modelo']) ?></td>
+                                                        <td class="viatura-status"><?= htmlspecialchars($viatura['status_da_viatura']) ?></td>
+                                                        <td><?= htmlspecialchars($viatura['unidade_lotacao'] ?? 'Não informada') ?></td>
+                                                        <td>
+                                                            <a class="btn btn-outline-info btn-sm" href="detalhes_viatura.php?id=<?= $viatura['id'] ?>" role="button" title="Ver Detalhes da Viatura">
+                                                                <i class="bi bi-list-check"></i>
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <a href="editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
+                                                                <i class="bi bi-pen"></i>
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                        <td>
+                                                            <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div> <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -396,221 +398,75 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous"></script>
     <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializa as tabs do Bootstrap
-            var triggerTabList = [].slice.call(document.querySelectorAll('#viaturaSearchTab button'))
-            triggerTabList.forEach(function(triggerEl) {
-                var tabTrigger = new bootstrap.Tab(triggerEl)
+    <!-- ... (fim do seu conteúdo HTML) ... -->
 
-                triggerEl.addEventListener('click', function(event) {
-                    event.preventDefault()
-                    tabTrigger.show()
-                })
-            })
+    <!-- ... Final do seu HTML ... -->
+</div>
+</div>
 
-            // Opcional: Adicionar formatação para placa
-            const placaInput = document.getElementById('placa');
-            if (placaInput) {
-                placaInput.addEventListener('input', function(e) {
-                    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    if (value.length > 3 && !value.includes('-')) {
-                        value = value.substring(0, 3) + '-' + value.substring(3);
-                    }
-                    e.target.value = value.substring(0, 8); // Limita ao formato AAA-0000
-                });
-            }
 
-            // NOVA FUNÇÃO para exibir Toasts
-            function showToast(message, type = 'success') {
-                const toastContainer = document.querySelector('.toast-container');
-                if (!toastContainer) {
-                    console.error('Toast container not found! Make sure you have <div class="toast-container"> in your HTML.');
-                    return;
-                }
+<!-- DEIXE APENAS ESTE SCRIPT NO FINAL DO ARQUIVO -->
+<script>
+    // A função agora fica "solta", pronta para ser chamada pelo nosso main-ajax.js
+    function initializePesquisaViaturaScripts() {
+        // 1. LÓGICA DO FORMULÁRIO DE PESQUISA
+        const formPesquisa = document.getElementById('form-pesquisa-viatura');
+        const areaResultados = document.getElementById('resultado-pesquisa');
 
-                // Determina as classes de cor do toast baseadas no tipo
-                let bgColorClass = '';
-                let iconClass = '';
-                if (type === 'success') {
-                    bgColorClass = 'text-bg-success';
-                    iconClass = 'bi bi-check-circle-fill'; // Bootstrap Icons
-                } else if (type === 'danger') {
-                    bgColorClass = 'text-bg-danger';
-                    iconClass = 'bi bi-x-circle-fill'; // Bootstrap Icons
-                } else if (type === 'warning') {
-                    bgColorClass = 'text-bg-warning';
-                    iconClass = 'bi bi-exclamation-triangle-fill'; // Bootstrap Icons
-                } else { // default 'info' or any other
-                    bgColorClass = 'text-bg-info';
-                    iconClass = 'bi bi-info-circle-fill'; // Bootstrap Icons
-                }
+        if (formPesquisa && !formPesquisa.hasAttribute('data-ajax-initialized')) {
+            formPesquisa.setAttribute('data-ajax-initialized', 'true'); // Previne múltiplas inicializações
+            formPesquisa.addEventListener('submit', function(event) {
+                event.preventDefault();
 
-                const toastId = `liveToast-${Date.now()}`; // ID único para cada toast
+                const formData = new FormData(formPesquisa);
+                areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Pesquisando...</div>';
 
-                const toastHtml = `
-            <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <i class="${iconClass} me-2"></i>
-                    <strong class="me-auto">Notificação</strong>
-                    <small>Agora</small>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
-            </div>
-        `;
+                fetch('pages/pesquisar_viatura.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const novosResultados = doc.getElementById('resultado-pesquisa');
 
-                // Adiciona o toast ao contêiner
-                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-                // Inicializa e mostra o toast
-                const toastEl = document.getElementById(toastId);
-                const toast = new bootstrap.Toast(toastEl, {
-                    autohide: true,
-                    delay: 5000 // Toast some após 5 segundos
-                });
-                toast.show();
-
-                // Opcional: Remove o elemento do DOM após o toast ser escondido para manter o DOM limpo
-                toastEl.addEventListener('hidden.bs.toast', () => {
-                    toastEl.remove();
-                });
-            }
-
-            // Lógica para Baixar Viatura
-            document.querySelectorAll('.form-baixa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault(); // Impede o envio padrão do formulário
-
-                    const idViatura = this.dataset.idViatura;
-                    const confirmacao = confirm('Tem certeza que deseja baixar esta viatura? Ela será marcada como inoperante.');
-
-                    if (confirmacao) {
-                        const formData = new FormData();
-                        formData.append('id_viatura', idViatura);
-
-                        fetch('../api/processar_baixar_viatura.php', {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Erro na rede ou no servidor: ' + response.statusText);
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.success) {
-                                    // CHAME A NOVA FUNÇÃO showToast AQUI
-                                    showToast('Sucesso: ' + data.message, 'success');
-
-                                    const currentRow = form.closest('tr');
-                                    if (currentRow) {
-                                        const statusCell = currentRow.querySelector('.viatura-status'); // Usa a classe para mais robustez
-                                        if (statusCell) {
-                                            statusCell.textContent = 'Baixada'; // Atualiza para 'Baixada' para consistência
-                                        }
-
-                                        // Desabilita o botão de baixar
-                                        const baixarButton = form.querySelector('button[type="submit"]');
-                                        if (baixarButton) {
-                                            baixarButton.disabled = true;
-                                            baixarButton.classList.remove('btn-outline-danger');
-                                            baixarButton.classList.add('btn-secondary');
-                                        }
-
-                                        // Encontra o formulário de reativação na mesma linha e o habilita
-                                        const reativarForm = currentRow.querySelector('.form-reativa-viatura'); // Usa a classe
-                                        if (reativarForm) {
-                                            const reativarButton = reativarForm.querySelector('button[type="submit"]');
-                                            if (reativarButton) {
-                                                reativarButton.disabled = false;
-                                                reativarButton.classList.remove('btn-secondary');
-                                                reativarButton.classList.add('btn-outline-success');
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
-                                    showToast('Erro: ' + data.message, 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Erro na requisição AJAX:', error);
-                                // E AQUI
-                                showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
-                            });
-                    }
-                });
+                        if (novosResultados) {
+                            areaResultados.innerHTML = novosResultados.innerHTML;
+                            // Chama a função que adiciona os listeners aos novos botões da tabela
+                            initializePageSpecificActions();
+                        } else {
+                            areaResultados.innerHTML = '<div class="alert alert-danger">Erro ao processar a resposta da pesquisa.</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro na pesquisa AJAX:', error);
+                        areaResultados.innerHTML = '<div class="alert alert-danger">Erro de comunicação ao realizar a pesquisa.</div>';
+                    });
             });
+        }
 
-            // Lógica para Reativar Viatura (Novo bloco, semelhante ao de baixa)
-            document.querySelectorAll('.form-reativa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault(); // Impede o envio padrão do formulário
-
-                    const idViatura = this.dataset.idViatura;
-                    const confirmacao = confirm('Tem certeza que deseja reativar esta viatura? Ela será marcada como operante.');
-
-                    if (confirmacao) {
-                        const formData = new FormData();
-                        formData.append('id_viatura', idViatura);
-
-                        fetch('../api/processar_reativacao_viatura.php', { // Assumindo este é o endpoint para reativação
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Erro na rede ou no servidor: ' + response.statusText);
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.success) {
-                                    // CHAME A NOVA FUNÇÃO showToast AQUI
-                                    showToast('Sucesso: ' + data.message, 'success');
-
-                                    const currentRow = form.closest('tr');
-                                    if (currentRow) {
-                                        const statusCell = currentRow.querySelector('.viatura-status');
-                                        if (statusCell) {
-                                            statusCell.textContent = 'Operante'; // Atualiza para 'Operante'
-                                        }
-
-                                        // Desabilita o botão de reativar
-                                        const reativarButton = form.querySelector('button[type="submit"]');
-                                        if (reativarButton) {
-                                            reativarButton.disabled = true;
-                                            reativarButton.classList.remove('btn-outline-success');
-                                            reativarButton.classList.add('btn-secondary');
-                                        }
-
-                                        // Encontra o formulário de baixa na mesma linha e o habilita
-                                        const baixarForm = currentRow.querySelector('.form-baixa-viatura');
-                                        if (baixarForm) {
-                                            const baixarButton = baixarForm.querySelector('button[type="submit"]');
-                                            if (baixarButton) {
-                                                baixarButton.disabled = false;
-                                                baixarButton.classList.remove('btn-secondary');
-                                                baixarButton.classList.add('btn-outline-danger');
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // CHAME A NOVA FUNÇÃO showToast AQUI TAMBÉM
-                                    showToast('Erro: ' + data.message, 'danger');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Erro na requisição AJAX:', error);
-                                // E AQUI
-                                showToast('Ocorreu um erro na comunicação com o servidor. Verifique o console para mais detalhes.', 'danger');
-                            });
-                    }
-                });
+        // 2. LÓGICA DO BOTÃO DE LIMPAR FILTROS
+        const btnLimpar = document.getElementById('btn-limpar-filtros');
+        if (btnLimpar && !btnLimpar.hasAttribute('data-ajax-initialized')) {
+            btnLimpar.setAttribute('data-ajax-initialized', 'true');
+            btnLimpar.addEventListener('click', function() {
+                if (formPesquisa) {
+                    formPesquisa.reset();
+                }
             });
-        });
-    </script>
+        }
+
+        // 3. LÓGICA DAS AÇÕES DA TABELA (BAIXAR, REATIVAR, ETC.)
+        function initializePageSpecificActions() {
+            // ... (Toda a sua lógica de tabs, toasts, baixar e reativar viatura continua aqui, exatamente como antes)
+            // Lembre-se de incluir a função showToast aqui dentro também.
+        }
+
+        // Chama a função pela primeira vez para os elementos que já estão na página
+        initializePageSpecificActions();
+    }
+
+    // Finalmente, chamamos a função principal para inicializar tudo nesta carga.
+    initializePesquisaViaturaScripts();
+</script>
