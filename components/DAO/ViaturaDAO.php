@@ -1,5 +1,5 @@
 <?php
-// Certifique-se de que o caminho para conexao.php está correto em relação a este arquivo
+// ViaturaDAO.php
 require_once __DIR__ . '/../../components/ConexaoDB/conexao.php'; 
 
 class ViaturaDAO {
