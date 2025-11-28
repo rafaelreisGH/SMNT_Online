@@ -1,5 +1,5 @@
 <?php
-// ../utils/validate_functions_editar_viatura.php
+// ../api/validate_functions_editar_viatura.php
 
 /**
  * Valida os dados de uma viatura.
@@ -129,7 +129,8 @@ function validateViaturaData(array &$data_in): array
 
     // 10. tipo_aquisicao (Obrigatório, Enum)
     $valid_tipos_aquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
-    $data_out['tipo_aquisicao'] = filter_var($data_in['tipo_aquisicao'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    // CORREÇÃO: Aplicar trim() para limpar espaços em branco
+    $data_out['tipo_aquisicao'] = trim(filter_var($data_in['tipo_aquisicao'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
     if (empty($data_out['tipo_aquisicao'])) {
         $errors['tipo_aquisicao'] = "O Tipo de Aquisição é obrigatório.";
     } elseif (!in_array($data_out['tipo_aquisicao'], $valid_tipos_aquisicao)) {
@@ -198,10 +199,10 @@ function validateViaturaData(array &$data_in): array
         $data_out['garantia_fim'] = null;
     }
 
-
     // 18. tipo_cambio (Opcional, Enum)
     $valid_tipos_cambio = ['Manual', 'Automático'];
-    $data_out['tipo_cambio'] = filter_var($data_in['tipo_cambio'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    // CORREÇÃO: Aplicar trim() para limpar espaços em branco
+    $data_out['tipo_cambio'] = trim(filter_var($data_in['tipo_cambio'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
     if (!empty($data_out['tipo_cambio']) && !in_array($data_out['tipo_cambio'], $valid_tipos_cambio)) {
         $errors['tipo_cambio'] = "Tipo de Câmbio inválido.";
     }

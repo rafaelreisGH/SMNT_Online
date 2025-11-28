@@ -1,9 +1,3 @@
-<?php
-
-include_once '../templates/sidebar.php';
-
-?>
-
 <div class="d-flex align-items-center min-vh-100 w-100">
     <div class="row w-100">
         <div class="col-md-5 mx-auto text-center">
@@ -15,10 +9,3 @@ include_once '../templates/sidebar.php';
         </div>
     </div>
 </div>
-<div class="b-example-divider b-example-vr"></div>
-
-<?php
-
-include_once '../templates/footer.php';
-
-?>

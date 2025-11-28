@@ -1,0 +1,18 @@
+{
+    "name": "cbmmt/smnt-online",
+    "description": "Sistema de controle de viaturas do CBMMT.",
+    "type": "project",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Rafael Corrêa dos Reis",
+            "email": "rafael.infosys@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Componentes\\": "components/"
+        }
+    }
+}
