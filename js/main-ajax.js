@@ -90,15 +90,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Listener de clique global (Delegação de Eventos)
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
-        if (link && link.href && !link.href.endsWith('#') && !link.dataset.bsToggle && link.target !== '_blank') {
-            e.preventDefault();
-            if (link.closest('#accordionSidebar')) {
-                updateActiveSidebar(link);
+
+        // A condição 'if' foi ajustada para ser mais precisa
+        if (link && link.getAttribute('href')) { // Apenas verifica se o href existe
+
+            const href = link.getAttribute('href');
+
+            // NOVAS REGRAS: Ignora links que começam com # ou que abrem componentes do Bootstrap
+            if (href.startsWith('#') || link.dataset.bsToggle) {
+                return; // Interrompe a execução e permite o comportamento padrão
             }
-            loadPage(link.getAttribute('href'));
+
+            // Continua a tratar como link SPA apenas se não for um link externo
+            if (link.target !== '_blank') {
+                e.preventDefault();
+                if (link.closest('#accordionSidebar')) {
+                    updateActiveSidebar(link);
+                }
+                loadPage(href);
+            }
         }
     });
-
-    // Inicializa os componentes na página principal quando ela carrega pela primeira vez
-    initializeBootstrapComponents(document.body); // <<-- ADICIONADO AQUI
 });
