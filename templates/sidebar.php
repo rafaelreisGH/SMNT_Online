@@ -94,6 +94,26 @@
                     </div>
                 </div>
             </li>
+            
+            <!-- Nav Item - Utilities Collapse Menu -->
+            <li class="nav-item ">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseRevisao"
+                    aria-expanded="true" aria-controls="collapseRevisao">
+                    <i class="fas fa-fw fa-tasks"></i>
+                    <span>Revisões</span>
+                </a>
+                <div id="collapseRevisao" class="collapse" aria-labelledby="headingRevisao"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Funções de Revisão:</h6>
+                        <a class="collapse-item" href="../pages/pesquisar_revisao.php">Pesquisar</a>
+                        <a class="collapse-item" href="../pages/cadastro_revisao.php">Cadastrar Revisão</a>
+                        <!-- <a class="collapse-item" href="utilities-border.html">Borders</a>
+                        <a class="collapse-item" href="utilities-animation.html">Animations</a>
+                        <a class="collapse-item" href="utilities-other.html">Other</a> -->
+                    </div>
+                </div>
+            </li>
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">

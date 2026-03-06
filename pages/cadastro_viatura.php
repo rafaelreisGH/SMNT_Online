@@ -1,4 +1,5 @@
 <?php
+// pages/cadastro_viatura.php
 // CRÍTICO: session_start() DEVE ser a primeira coisa no arquivo PHP,
 // antes de qualquer HTML ou includes que gerem HTML.
 session_start();

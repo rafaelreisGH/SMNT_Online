@@ -1,12 +1,14 @@
 <?php
 // ViaturaDAO.php
-require_once __DIR__ . '/../../components/ConexaoDB/conexao.php'; 
+require_once __DIR__ . '/../../components/ConexaoDB/conexao.php';
 
-class ViaturaDAO {
+class ViaturaDAO
+{
     private $conn;
     private $table_name = "viaturas"; // Ajuste para o nome real da sua tabela
 
-    public function __construct() {
+    public function __construct()
+    {
         // Usa sua classe Conexao para obter a conexão PDO
         // Se a conexão falhar aqui, Conexao::getConexao() já chama die(), parando o script.
         $this->conn = Conexao::getConexao();
@@ -18,7 +20,8 @@ class ViaturaDAO {
      * @return array|false Retorna os dados da viatura como array associativo ou false se não encontrada.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function getViaturaById($id) {
+    public function getViaturaById($id)
+    {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 0,1";
         try {
             $stmt = $this->conn->prepare($query);
@@ -39,7 +42,8 @@ class ViaturaDAO {
      * @return bool True se a atualização for bem-sucedida, false caso contrário.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function updateViatura(array $data) {
+    public function updateViatura(array $data)
+    {
         // Ajuste esta query com TODOS os campos da sua tabela que você quer atualizar.
         $query = "UPDATE " . $this->table_name . " SET
                             tipo_operacional = :tipo_operacional,
@@ -105,7 +109,8 @@ class ViaturaDAO {
      * @return array|false Retorna um array associativo com os dados detalhados da viatura ou false se não encontrada.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function buscarDetalhesViaturaPorId(int $id) {
+    public function buscarDetalhesViaturaPorId(int $id)
+    {
         $sql = "SELECT
                     v.id,
                     v.placa,
@@ -152,7 +157,8 @@ class ViaturaDAO {
      * @return bool Retorna true em caso de sucesso na inserção, false em caso de falha.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function insertViatura(array $data): bool {
+    public function insertViatura(array $data): bool
+    {
         $sql = "INSERT INTO viaturas (
             tipo_operacional, prefixo, numero, placa, renavam, marca, modelo, ano, pbt,
             tipo_aquisicao, status_da_viatura, lotacao_atual_id, cilindradas,
@@ -195,7 +201,6 @@ class ViaturaDAO {
             $stmt->bindValue(':numero_marchas', $data['numero_marchas'] !== '' ? $data['numero_marchas'] : null, PDO::PARAM_INT);
 
             return $stmt->execute();
-
         } catch (PDOException $e) {
             // Relança uma exceção para ser tratada pela camada superior (cadastro.php)
             throw new Exception("Erro de PDO ao inserir viatura: " . $e->getMessage(), 0, $e);
@@ -212,7 +217,8 @@ class ViaturaDAO {
      * @return bool True se a placa já existe, false caso contrário.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function existsByPlaca(string $placa, ?int $excludeId = null): bool {
+    public function existsByPlaca(string $placa, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE placa = :placa";
         if ($excludeId !== null) {
             $sql .= " AND id != :exclude_id";
@@ -239,7 +245,8 @@ class ViaturaDAO {
      * @return bool True se o renavam já existe, false caso contrário.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool {
+    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE renavam = :renavam";
         if ($excludeId !== null) {
             $sql .= " AND id != :exclude_id";
@@ -266,7 +273,8 @@ class ViaturaDAO {
      * @return bool True se o número já existe, false caso contrário.
      * @throws Exception Se ocorrer um erro no banco de dados.
      */
-    public function existsByNumero(int $numero, ?int $excludeId = null): bool {
+    public function existsByNumero(int $numero, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE numero = :numero";
         if ($excludeId !== null) {
             $sql .= " AND id != :exclude_id";
@@ -283,6 +291,22 @@ class ViaturaDAO {
             throw new Exception("Erro de PDO ao verificar número da viatura: " . $e->getMessage(), 0, $e);
         } catch (Exception $e) {
             throw new Exception("Erro inesperado ao verificar número da viatura: " . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Lista todas as viaturas para preencher combos/selects.
+     * @return array Retorna um array com id, prefixo, modelo e placa.
+     */
+    public function listarTodasParaSelect(): array
+    {
+        $sql = "SELECT id, prefixo, modelo, placa FROM " . $this->table_name . " ORDER BY prefixo ASC";
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao listar viaturas: " . $e->getMessage());
         }
     }
 }
