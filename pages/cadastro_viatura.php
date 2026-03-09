@@ -6,16 +6,12 @@ session_start();
 
 // Inclui os arquivos de dependência. Eles também não devem gerar saída HTML antes de sidebar.php.
 require_once '../components/DAO/ViaturaDAO.php'; // Inclui a classe ViaturaDAO
+require_once '../components/DAO/UnidadeDAO.php'; // Inclui a classe UnidadeDAO para buscar as unidades (se necessário)
 require_once '../api/validate_functions_editar_viatura.php'; // Inclui a função de validação
 
-// Definição das unidades de exemplo (UNIDADES FICTÍCIAS - não são buscadas do banco)
-$unidadesExemplo = [
-    ['id' => 1, 'nome' => '1ª CIBM'],
-    ['id' => 2, 'nome' => '2ª CIBM'],
-    ['id' => 3, 'nome' => 'QCG'],
-    ['id' => 4, 'nome' => '4ª CIBM'],
-    ['id' => 5, 'nome' => '5ª CIBM'],
-];
+// 2. Busca as unidades REAIS do banco de dados
+$unidadeDAO = new UnidadeDAO();
+$unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando(); // Agora temos um array multidimensional agrupado por comando
 
 // Variáveis para mensagens e erros, populadas a partir da sessão (se houver)
 $toast_message = $_SESSION['toast_message'] ?? '';
@@ -170,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-3">
                                         <label for="numero" class="form-label">Número</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['numero']) ? 'is-invalid' : '' ?>" id="numero" name="numero" value="<?= htmlspecialchars($display_data['numero'] ?? '') ?>">
+                                        <input type="number" min="1" class="form-control <?= isset($validation_errors['numero']) ? 'is-invalid' : '' ?>" id="numero" name="numero" value="<?= htmlspecialchars($display_data['numero'] ?? '') ?>">
                                         <?php if (isset($validation_errors['numero'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['numero']) ?>
@@ -215,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-3">
                                         <label for="ano" class="form-label">Ano</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['ano']) ? 'is-invalid' : '' ?>" id="ano" name="ano" min="1900" max="<?= date('Y') + 1 ?>" value="<?= htmlspecialchars($display_data['ano'] ?? '') ?>">
+                                        <input type="number" min="1950" class="form-control <?= isset($validation_errors['ano']) ? 'is-invalid' : '' ?>" id="ano" name="ano" min="1900" max="<?= date('Y') + 1 ?>" value="<?= htmlspecialchars($display_data['ano'] ?? '') ?>">
                                         <?php if (isset($validation_errors['ano'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['ano']) ?>
@@ -224,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-3">
                                         <label for="pbt" class="form-label">PBT (kg)</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['pbt']) ? 'is-invalid' : '' ?>" id="pbt" name="pbt" value="<?= htmlspecialchars($display_data['pbt'] ?? '') ?>">
+                                        <input type="number" min="1" class="form-control <?= isset($validation_errors['pbt']) ? 'is-invalid' : '' ?>" id="pbt" name="pbt" value="<?= htmlspecialchars($display_data['pbt'] ?? '') ?>">
                                         <?php if (isset($validation_errors['pbt'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['pbt']) ?>
@@ -271,14 +267,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
                                         <select class="form-select <?= isset($validation_errors['lotacao_atual_id']) ? 'is-invalid' : '' ?>" id="lotacao_atual_id" name="lotacao_atual_id">
                                             <option value="" <?= (!isset($display_data['lotacao_atual_id']) || $display_data['lotacao_atual_id'] === '') ? 'selected' : '' ?>>Selecione a Unidade</option>
-                                            <?php
-                                            // Usando as unidades fictícias definidas no topo do script PHP
-                                            foreach ($unidadesExemplo as $unidade) {
-                                                $selected = (isset($display_data['lotacao_atual_id']) && $display_data['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
-                                                echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
-                                            }
-                                            ?>
+
+                                            <?php foreach ($unidadesAgrupadas as $comando => $unidades): ?>
+                                                <optgroup label="<?= htmlspecialchars($comando) ?>">
+                                                    <?php foreach ($unidades as $unidade): ?>
+                                                        <?php
+                                                        // Formata o nome: "Nome da Unidade - Município" (se o município existir)
+                                                        $labelUnidade = htmlspecialchars($unidade['unidade_nome']);
+                                                        if (!empty($unidade['municipio_nome'])) {
+                                                            $labelUnidade .= " - " . htmlspecialchars($unidade['municipio_nome']);
+                                                        }
+
+                                                        $selected = (isset($display_data['lotacao_atual_id']) && $display_data['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
+                                                        ?>
+                                                        <option value="<?= $unidade['id'] ?>" <?= $selected ?>>
+                                                            <?= $labelUnidade ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endforeach; ?>
                                         </select>
+
                                         <?php if (isset($validation_errors['lotacao_atual_id'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['lotacao_atual_id']) ?>
@@ -318,7 +327,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['cilindradas']) ? 'is-invalid' : '' ?>" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($display_data['cilindradas'] ?? '') ?>">
+                                        <input type="number" min="1" class="form-control <?= isset($validation_errors['cilindradas']) ? 'is-invalid' : '' ?>" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($display_data['cilindradas'] ?? '') ?>">
                                         <?php if (isset($validation_errors['cilindradas'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['cilindradas']) ?>
@@ -327,7 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-6">
                                         <label for="cavalos_forca" class="form-label">Cavalos de Força (cv)</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['cavalos_forca']) ? 'is-invalid' : '' ?>" id="cavalos_forca" name="cavalos_forca" value="<?= htmlspecialchars($display_data['cavalos_forca'] ?? '') ?>">
+                                        <input type="number" min="1" class="form-control <?= isset($validation_errors['cavalos_forca']) ? 'is-invalid' : '' ?>" id="cavalos_forca" name="cavalos_forca" value="<?= htmlspecialchars($display_data['cavalos_forca'] ?? '') ?>">
                                         <?php if (isset($validation_errors['cavalos_forca'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['cavalos_forca']) ?>
@@ -363,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-6">
                                         <label for="numero_marchas" class="form-label">Número de Marchas</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['numero_marchas']) ? 'is-invalid' : '' ?>" id="numero_marchas" name="numero_marchas" min="0" value="<?= htmlspecialchars($display_data['numero_marchas'] ?? '') ?>">
+                                        <input type="number" class="form-control <?= isset($validation_errors['numero_marchas']) ? 'is-invalid' : '' ?>" id="numero_marchas" name="numero_marchas" min="1" value="<?= htmlspecialchars($display_data['numero_marchas'] ?? '') ?>">
                                         <?php if (isset($validation_errors['numero_marchas'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['numero_marchas']) ?>
@@ -377,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="quilometragem" class="form-label">Quilometragem (km)</label>
-                                        <input type="number" class="form-control <?= isset($validation_errors['quilometragem']) ? 'is-invalid' : '' ?>" id="quilometragem" name="quilometragem" value="<?= htmlspecialchars($display_data['quilometragem'] ?? '') ?>">
+                                        <input type="number" min="0" class="form-control <?= isset($validation_errors['quilometragem']) ? 'is-invalid' : '' ?>" id="quilometragem" name="quilometragem" value="<?= htmlspecialchars($display_data['quilometragem'] ?? '') ?>">
                                         <?php if (isset($validation_errors['quilometragem'])): ?>
                                             <div class="invalid-feedback">
                                                 <?= htmlspecialchars($validation_errors['quilometragem']) ?>
@@ -400,7 +409,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <hr class="my-4">
                         <button class="btn btn-outline-success" type="submit"><i class="fas fa-plus-circle me-2"></i>Cadastrar Viatura</button>
                         <!-- Botão para limpar o formulário (recarrega a página) -->
-                        <a href="cadastro_viatura.php" class="btn btn-outline-secondary ms-2"><i class="fas fa-redo me-2"></i>Limpar Formulário</a>
+                        <button type="button" onclick="limparFormulario()" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-redo me-2"></i>Limpar Formulário
+                        </button>
                     </form>
                 </div>
             </div>
@@ -478,5 +489,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         <?php endif; ?>
 
-        
+        function limparFormulario() {
+            // Seleciona o formulário pelo ID
+            const form = document.getElementById('cadastrarViaturaForm');
+
+            // Reseta todos os campos para o valor inicial
+            form.reset();
+
+            // Opcional: Remove as classes de erro (is-invalid) se houver
+            const invalidInputs = form.querySelectorAll('.is-invalid');
+            invalidInputs.forEach(input => input.classList.remove('is-invalid'));
+
+            // Opcional: Esconde as mensagens de feedback de erro
+            const feedbacks = form.querySelectorAll('.invalid-feedback');
+            feedbacks.forEach(div => div.style.display = 'none');
+
+            // Opcional: Focar no primeiro campo
+            document.getElementById('tipo_operacional').focus();
+        }
     </script>

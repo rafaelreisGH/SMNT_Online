@@ -38,10 +38,10 @@ function validateViaturaData(array &$data_in): array
         $errors['prefixo'] = "O Prefixo não pode ter mais de 5 caracteres.";
     }
 
-    // 3. numero (Obrigatório, Inteiro)
-    $data_out['numero'] = filter_var($data_in['numero'] ?? '', FILTER_VALIDATE_INT);
+    // 3. número (Obrigatório, deve ser maior que 0)
+    $data_out['numero'] = filter_var($data_in['numero'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($data_out['numero'] === false || $data_out['numero'] === null) {
-        $errors['numero'] = "O Número é obrigatório e deve ser um número inteiro.";
+        $errors['numero'] = "O Número é obrigatório e deve ser um número inteiro positivo.";
     } else {
         // VERIFICAÇÃO DE UNICIDADE PARA NÚMERO
         try {
@@ -121,10 +121,10 @@ function validateViaturaData(array &$data_in): array
         $errors['ano'] = "O Ano é obrigatório e deve ser um número válido.";
     }
 
-    // 9. pbt (Obrigatório, Inteiro)
-    $data_out['pbt'] = filter_var($data_in['pbt'] ?? '', FILTER_VALIDATE_INT);
+    // 9. pbt (Obrigatório, deve ser maior que 0)
+    $data_out['pbt'] = filter_var($data_in['pbt'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($data_out['pbt'] === false || $data_out['pbt'] === null) {
-        $errors['pbt'] = "O PBT é obrigatório e deve ser um número inteiro.";
+        $errors['pbt'] = "O PBT é obrigatório e deve ser um número inteiro positivo.";
     }
 
     // 10. tipo_aquisicao (Obrigatório, Enum)
@@ -152,21 +152,22 @@ function validateViaturaData(array &$data_in): array
         $errors['lotacao_atual_id'] = "A Lotação Atual é obrigatória e deve ser um número inteiro (ID da unidade).";
     }
 
-    // 13. cilindradas (Opcional, Inteiro)
-    $data_out['cilindradas'] = filter_var($data_in['cilindradas'] ?? '', FILTER_VALIDATE_INT);
+    // 13. cilindradas (Opcional, deve ser maior que 0)
+    $data_out['cilindradas'] = filter_var($data_in['cilindradas'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($data_out['cilindradas'] === false && ($data_in['cilindradas'] ?? '') !== '') {
-        $errors['cilindradas'] = "Cilindradas deve ser um número inteiro válido ou vazio.";
+        $errors['cilindradas'] = "Cilindradas deve ser um número inteiro positivo ou vazio.";
     }
+
     // Converter para null se for vazio (o filter_var com '' resulta em false)
     if (($data_in['cilindradas'] ?? '') === '') {
         $data_out['cilindradas'] = null;
     }
 
 
-    // 14. cavalos_forca (Opcional, Inteiro)
-    $data_out['cavalos_forca'] = filter_var($data_in['cavalos_forca'] ?? '', FILTER_VALIDATE_INT);
+    // 14. cavalos_forca (Opcional, deve ser maior que 0)
+    $data_out['cavalos_forca'] = filter_var($data_in['cavalos_forca'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($data_out['cavalos_forca'] === false && ($data_in['cavalos_forca'] ?? '') !== '') {
-        $errors['cavalos_forca'] = "Cavalos de Força deve ser um número inteiro válido ou vazio.";
+        $errors['cavalos_forca'] = "Cavalos de Força deve ser um número inteiro positivo ou vazio.";
     }
     if (($data_in['cavalos_forca'] ?? '') === '') {
         $data_out['cavalos_forca'] = null;
@@ -181,10 +182,10 @@ function validateViaturaData(array &$data_in): array
         $data_out['torque'] = null;
     }
 
-    // 16. quilometragem (Opcional, Inteiro)
-    $data_out['quilometragem'] = filter_var($data_in['quilometragem'] ?? '', FILTER_VALIDATE_INT);
+    // 16. quilometragem (Opcional, deve ser 0 ou maior)
+    $data_out['quilometragem'] = filter_var($data_in['quilometragem'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
     if ($data_out['quilometragem'] === false && ($data_in['quilometragem'] ?? '') !== '') {
-        $errors['quilometragem'] = "Quilometragem deve ser um número inteiro válido ou vazio.";
+        $errors['quilometragem'] = "Quilometragem não pode ser negativa.";
     }
     if (($data_in['quilometragem'] ?? '') === '') {
         $data_out['quilometragem'] = null;
