@@ -1,4 +1,5 @@
 <?php
+// pages/pesquisar_viatura.php
 // Inclua seu arquivo de conexão com o banco de dados
 require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
@@ -128,15 +129,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Para popular os selects de Unidades
-$unidades = [];
+// 1. Inclui o DAO de Unidades
+require_once '../components/DAO/UnidadeDAO.php';
 
-try {
-    $stmtUnidades = $conn->query('SELECT id, nome FROM controle_viaturas.unidades ORDER BY nome');
-    $unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    echo "<div class='alert alert-danger'>Erro ao carregar dados para os filtros: " . $e->getMessage() . "</div>";
-}
+// 2. Busca as unidades AGRUPADAS (como no cadastro)
+$unidadeDAO = new UnidadeDAO();
+$unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
 
 ?>
 
@@ -229,16 +227,26 @@ try {
                                         <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
                                         <select class="form-select" id="lotacao_atual_id" name="lotacao_atual_id">
                                             <option value="">Todas as Unidades</option>
-                                            <?php
-                                            // Assume que $unidades está carregado do banco de dados ou similar
-                                            // $unidades = [...];
-                                            if (isset($unidades) && is_array($unidades)) {
-                                                foreach ($unidades as $unidade) {
-                                                    $selected = (isset($_POST['lotacao_atual_id']) && $_POST['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
-                                                    echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
-                                                }
-                                            }
-                                            ?>
+
+                                            <?php foreach ($unidadesAgrupadas as $comando => $unidades_do_grupo): ?>
+                                                <optgroup label="<?= htmlspecialchars($comando) ?>">
+                                                    <?php foreach ($unidades_do_grupo as $unidade): ?>
+                                                        <?php
+                                                        // Formata o nome: "Unidade - Município"
+                                                        $labelUnidade = htmlspecialchars($unidade['unidade_nome']);
+                                                        if (!empty($unidade['municipio_nome'])) {
+                                                            $labelUnidade .= " - " . htmlspecialchars($unidade['municipio_nome']);
+                                                        }
+
+                                                        // Verifica se esta unidade foi a selecionada na pesquisa anterior
+                                                        $selected = (isset($_POST['lotacao_atual_id']) && $_POST['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
+                                                        ?>
+                                                        <option value="<?= $unidade['id'] ?>" <?= $selected ?>>
+                                                            <?= $labelUnidade ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                 </div>

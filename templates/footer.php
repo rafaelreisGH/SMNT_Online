@@ -62,6 +62,7 @@
 <!-- script para exibir tudo da index -->
 <script src="../js/main-ajax.js"></script>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 
 </html>
