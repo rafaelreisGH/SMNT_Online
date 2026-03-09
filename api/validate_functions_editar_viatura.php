@@ -21,8 +21,11 @@ function validateViaturaData(array &$data_in): array
     // A validação de ID como obrigatório é responsabilidade da lógica em editar_viatura.php.
 
     // 1. tipo_operacional (Obrigatório, Enum)
-    $valid_tipos_operacionais = ['Operacional Geral', 'Combate a incendio', 'Administrativa'];
+    // Ajustado para bater exatamente com o ENUM do Banco de Dados
+    $valid_tipos_operacionais = ['Operacional', 'Administrativo'];
+
     $data_out['tipo_operacional'] = filter_var($data_in['tipo_operacional'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+
     if (empty($data_out['tipo_operacional'])) {
         $errors['tipo_operacional'] = "O Tipo Operacional é obrigatório.";
     } elseif (!in_array($data_out['tipo_operacional'], $valid_tipos_operacionais)) {
@@ -129,12 +132,17 @@ function validateViaturaData(array &$data_in): array
 
     // 10. tipo_aquisicao (Obrigatório, Enum)
     $valid_tipos_aquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
-    // CORREÇÃO: Aplicar trim() para limpar espaços em branco
-    $data_out['tipo_aquisicao'] = trim(filter_var($data_in['tipo_aquisicao'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
-    if (empty($data_out['tipo_aquisicao'])) {
+
+    // Use apenas trim e strip_tags para remover qualquer sujeira, mas manter os acentos reais
+    $valor_recebido = isset($data_in['tipo_aquisicao']) ? trim($data_in['tipo_aquisicao']) : '';
+
+    if (empty($valor_recebido)) {
         $errors['tipo_aquisicao'] = "O Tipo de Aquisição é obrigatório.";
-    } elseif (!in_array($data_out['tipo_aquisicao'], $valid_tipos_aquisicao)) {
+    } elseif (!in_array($valor_recebido, $valid_tipos_aquisicao)) {
+        // Se cair aqui, é porque o texto enviado pelo HTML é diferente do array acima
         $errors['tipo_aquisicao'] = "Tipo de Aquisição inválido.";
+    } else {
+        $data_out['tipo_aquisicao'] = $valor_recebido;
     }
 
     // 11. status_da_viatura (Obrigatório, Enum)
