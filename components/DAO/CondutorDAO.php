@@ -14,6 +14,23 @@ class CondutorDAO
     }
 
     /**
+     * Lista apenas condutores ativos para popular campos de seleção (dropdowns).
+     * @return array Lista de condutores ativos.
+     */
+    public function listarAtivos(): array
+    {
+        $sql = "SELECT id, nome FROM " . $this->table_name . " WHERE status = 'ativo' ORDER BY nome ASC";
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro no CondutorDAO (listarAtivos): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Insere um novo condutor no banco de dados.
      * @param array $data Um array associativo com os dados do condutor.
      * @return bool True em caso de sucesso, false em caso de falha.
@@ -46,17 +63,12 @@ class CondutorDAO
 
             return $stmt->execute();
         } catch (PDOException $e) {
-            // Relança uma exceção para ser tratada pela API
             throw new Exception("Erro de PDO ao inserir condutor: " . $e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Verifica se um CPF já existe, opcionalmente excluindo um ID (para edição).
-     * @param string $cpf
-     * @param int|null $excludeId
-     * @return bool
-     * @throws Exception
      */
     public function existsByCpf(string $cpf, ?int $excludeId = null): bool
     {
@@ -79,13 +91,9 @@ class CondutorDAO
 
     /**
      * Busca condutores com base em um array de filtros.
-     * @param array $filters Filtros como ['nome' => 'João', 'status' => 'ativo'].
-     * @return array Retorna uma lista de condutores.
-     * @throws Exception
      */
     public function buscarCondutores(array $filters = []): array
     {
-        // A query base junta a tabela de condutores com a de unidades
         $sql = "SELECT
                 c.id, c.nome, c.cpf, c.numero_cnh, c.categoria_cnh, 
                 c.data_validade_cnh, c.anotacao_ear, c.posto_grad, c.status,
@@ -98,13 +106,11 @@ class CondutorDAO
 
         $params = [];
 
-        // Mapeia os filtros para as cláusulas SQL
         if (!empty($filters['nome'])) {
             $sql .= " AND c.nome LIKE :nome";
             $params[':nome'] = '%' . $filters['nome'] . '%';
         }
         if (!empty($filters['cpf'])) {
-            // Remove a máscara do CPF antes de buscar
             $sql .= " AND c.cpf = :cpf";
             $params[':cpf'] = preg_replace('/\D/', '', $filters['cpf']);
         }
@@ -112,8 +118,6 @@ class CondutorDAO
             $sql .= " AND c.numero_cnh LIKE :numero_cnh";
             $params[':numero_cnh'] = '%' . $filters['numero_cnh'] . '%';
         }
-        // Adicione outros filtros aqui conforme a necessidade...
-        // Exemplo:
         if (!empty($filters['status'])) {
             $sql .= " AND c.status = :status";
             $params[':status'] = $filters['status'];
@@ -132,13 +136,9 @@ class CondutorDAO
 
     /**
      * Busca um condutor pelo seu ID.
-     * @param int $id O ID do condutor.
-     * @return array|false Retorna os dados do condutor ou false se não for encontrado.
-     * @throws Exception
      */
     public function getCondutorById(int $id)
     {
-        // A query agora faz um JOIN com a tabela de unidades para pegar o nome da lotação
         $query = "SELECT c.*, u.nome as nome_unidade 
               FROM " . $this->table_name . " c
               LEFT JOIN unidades u ON c.ubm_id = u.id
@@ -155,9 +155,6 @@ class CondutorDAO
 
     /**
      * Atualiza os dados de um condutor no banco de dados.
-     * @param array $data Um array associativo com os dados a serem atualizados.
-     * @return bool True em caso de sucesso, false caso contrário.
-     * @throws Exception
      */
     public function updateCondutor(array $data): bool
     {
@@ -177,9 +174,8 @@ class CondutorDAO
         try {
             $stmt = $this->conn->prepare($sql);
 
-            // Vinculação de parâmetros
             $stmt->bindValue(':nome', $data['nome'] ?? null);
-            $stmt->bindValue(':cpf', preg_replace('/\D/', '', $data['cpf'] ?? '')); // Remove máscara do CPF
+            $stmt->bindValue(':cpf', preg_replace('/\D/', '', $data['cpf'] ?? ''));
             $stmt->bindValue(':numero_cnh', $data['numero_cnh'] ?? null);
             $stmt->bindValue(':categoria_cnh', $data['categoria_cnh'] ?? null);
             $stmt->bindValue(':data_validade_cnh', $data['data_validade_cnh'] ?: null);

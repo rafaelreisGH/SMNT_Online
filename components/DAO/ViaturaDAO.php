@@ -300,7 +300,8 @@ class ViaturaDAO
      */
     public function listarTodasParaSelect(): array
     {
-        $sql = "SELECT id, prefixo, modelo, placa FROM " . $this->table_name . " ORDER BY prefixo ASC";
+        // Adicionado o campo 'numero' na seleção
+        $sql = "SELECT id, prefixo, numero, modelo, placa FROM " . $this->table_name . " ORDER BY prefixo ASC";
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute();
