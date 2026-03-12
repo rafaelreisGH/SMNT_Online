@@ -92,6 +92,7 @@
                         <h6 class="collapse-header">Funções de manutenção:</h6>
                         <a class="collapse-item" href="../pages/pesquisar_manutencoes.php">Pesquisar</a>
                         <a class="collapse-item" href="../pages/registrar_avaria.php">Registrar Avaria</a>
+                        <a class="collapse-item" href="../pages/pesquisar_avaria.php">Pesquisar Avaria</a>
                         <!--<a class="collapse-item" href="utilities-animation.html">Animations</a>
                         <a class="collapse-item" href="utilities-other.html">Other</a> -->
                     </div>
