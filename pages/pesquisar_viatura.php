@@ -461,6 +461,10 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
 
                 fetch('pages/pesquisar_viatura.php', {
                         method: 'POST',
+                        headers: {
+                            // ADICIONE ESTA LINHA:
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        },
                         body: formData
                     })
                     .then(response => response.text())
@@ -493,42 +497,6 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
         // Esta função anexa os listeners para Toasts, Baixar, Reativar, etc.
         // =======================================================================
         function initializePageSpecificActions() {
-
-            // Função para exibir Toasts (notificações)
-            // function showToast(message, type = 'success') {
-            //     const toastContainer = document.querySelector('.toast-container');
-            //     if (!toastContainer) return;
-
-            //     const bgColorClass = {
-            //         success: 'text-bg-success',
-            //         danger: 'text-bg-danger',
-            //         warning: 'text-bg-warning'
-            //     } [type] || 'text-bg-info';
-            //     const iconClass = {
-            //         success: 'bi-check-circle-fill',
-            //         danger: 'bi-x-circle-fill',
-            //         warning: 'bi-exclamation-triangle-fill'
-            //     } [type] || 'bi-info-circle-fill';
-            //     const toastId = `liveToast-${Date.now()}`;
-
-            //     const toastHtml = `
-            //         <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
-            //             <div class="toast-header">
-            //                 <i class="bi ${iconClass} me-2"></i>
-            //                 <strong class="me-auto">Notificação</strong>
-            //                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            //             </div>
-            //             <div class="toast-body">${message}</div>
-            //         </div>`;
-
-            //     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            //     const toastEl = document.getElementById(toastId);
-            //     const toast = new bootstrap.Toast(toastEl, {
-            //         delay: 5000
-            //     });
-            //     toast.show();
-            //     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-            // }
 
             // Lógica para Baixar Viatura
             document.querySelectorAll('.form-baixa-viatura').forEach(form => {

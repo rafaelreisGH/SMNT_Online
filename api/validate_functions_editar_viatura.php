@@ -2,6 +2,11 @@
 // ../api/validate_functions_editar_viatura.php
 
 require_once 'middleware_auth.php';
+
+require_once '../components/DAO/PlanoManutencaoDAO.php';
+$pDAO = new PlanoManutencaoDAO();
+$listaPlanos = $pDAO->listarTodos(); // Busca os planos criados pelo Gestor Central
+
 /**
  * Valida os dados de uma viatura.
  *
@@ -16,6 +21,7 @@ function validateViaturaData(array &$data_in): array
     $viaturaDAO = new ViaturaDAO();
 
     $data_out['id'] = filter_var($data_in['id'] ?? null, FILTER_VALIDATE_INT);
+    $data_out['plano_id'] = filter_var($data_in['plano_id'] ?? null, FILTER_VALIDATE_INT) ?: null;
 
     // 1. tipo_operacional
     $valid_tipos_operacionais = ['Operacional', 'Administrativo'];

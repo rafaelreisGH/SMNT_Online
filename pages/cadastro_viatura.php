@@ -6,8 +6,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Carrega a autenticação primeiro para habilitar o RBAC no DAO
 require_once '../api/middleware_auth.php';
-require_once '../components/DAO/ViaturaDAO.php'; 
-require_once '../components/DAO/UnidadeDAO.php'; 
+require_once '../components/DAO/ViaturaDAO.php';
+require_once '../components/DAO/UnidadeDAO.php';
 require_once '../api/validate_functions_editar_viatura.php';
 
 // Busca as unidades REAIS do banco de dados para o select
@@ -131,6 +131,18 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                                         </select>
                                         <div class="invalid-feedback" id="error-lotacao_atual_id"></div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label for="plano_id" class="form-label">Plano de Manutenção Preventiva</label>
+                                        <select class="form-select" id="plano_id" name="plano_id">
+                                            <option value="">Nenhum plano associado</option>
+                                            <?php foreach ($listaPlanos as $plano): ?>
+                                                <option value="<?= $plano['id'] ?>">
+                                                    <?= htmlspecialchars($plano['descricao']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small class="text-muted">Define as regras de troca de óleo, revisão de bomba, etc.</small>
+                                    </div>
                                 </div>
                             </div>
 
@@ -211,34 +223,34 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
             btn.disabled = true;
 
             fetch('api/processar_cadastro_viatura.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                    form.reset(); // Limpa o formulário após sucesso
-                } else {
-                    showToast(data.message, 'danger');
-                    if (data.errors) {
-                        // Mapeia os erros retornados pela API para os campos do formulário
-                        Object.keys(data.errors).forEach(key => {
-                            const input = form.querySelector(`[name="${key}"]`);
-                            const errorDiv = document.getElementById(`error-${key}`);
-                            if (input) input.classList.add('is-invalid');
-                            if (errorDiv) errorDiv.textContent = data.errors[key];
-                        });
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        form.reset(); // Limpa o formulário após sucesso
+                    } else {
+                        showToast(data.message, 'danger');
+                        if (data.errors) {
+                            // Mapeia os erros retornados pela API para os campos do formulário
+                            Object.keys(data.errors).forEach(key => {
+                                const input = form.querySelector(`[name="${key}"]`);
+                                const errorDiv = document.getElementById(`error-${key}`);
+                                if (input) input.classList.add('is-invalid');
+                                if (errorDiv) errorDiv.textContent = data.errors[key];
+                            });
+                        }
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                showToast('Erro na comunicação com o servidor.', 'danger');
-            })
-            .finally(() => {
-                btn.disabled = false;
-            });
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    showToast('Erro na comunicação com o servidor.', 'danger');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                });
         });
 
         function limparFormulario() {
@@ -265,7 +277,9 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
 
             container.insertAdjacentHTML('beforeend', html);
             const toastEl = document.getElementById(id);
-            const bsToast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            const bsToast = new bootstrap.Toast(toastEl, {
+                delay: 5000
+            });
             bsToast.show();
             toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
         }

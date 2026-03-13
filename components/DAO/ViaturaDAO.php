@@ -114,6 +114,7 @@ class ViaturaDAO
             $stmt->bindValue(':quilometragem', $data['quilometragem'] ?: null, PDO::PARAM_INT);
             $stmt->bindValue(':garantia_fim', $data['garantia_fim'] ?: null);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':plano_id', !empty($data['plano_id']) ? $data['plano_id'] : null, PDO::PARAM_INT);
 
             foreach ($rbac['params'] as $key => $value) {
                 $stmt->bindValue($key, $value, PDO::PARAM_INT);
@@ -196,6 +197,7 @@ class ViaturaDAO
             $stmt->bindValue(':garantia_fim', $data['garantia_fim'] ?: null);
             $stmt->bindValue(':tipo_cambio', $data['tipo_cambio'] ?: null);
             $stmt->bindValue(':numero_marchas', $data['numero_marchas'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':plano_id', !empty($data['plano_id']) ? $data['plano_id'] : null, PDO::PARAM_INT);
 
             return $stmt->execute();
         } catch (PDOException $e) {

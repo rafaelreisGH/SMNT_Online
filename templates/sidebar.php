@@ -121,6 +121,22 @@
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePlanos"
+                    aria-expanded="true" aria-controls="collapsePlanos">
+                    <i class="fas fa-fw fa-business-time"></i>
+                    <span>Planos de Manutenção</span>
+                </a>
+                <div id="collapsePlanos" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Opções de planos:</h6>
+                        <a class="collapse-item" href="../pages/cadastro_plano_manutencao.php">Cadastrar Plano</a>
+                        <a class="collapse-item" href="../pages/cadastro_itens_preventiva.php">Cadastrar Itens</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Pages Collapse Menu -->
+            <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-users"></i>

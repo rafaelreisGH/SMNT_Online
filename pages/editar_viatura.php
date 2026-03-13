@@ -7,6 +7,9 @@ require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/UnidadeDAO.php'; // ADICIONADO
 require_once '../api/validate_functions_editar_viatura.php';
+require_once '../components/DAO/PlanoManutencaoDAO.php';
+$pDAO = new PlanoManutencaoDAO();
+$listaPlanos = $pDAO->listarTodos();
 
 // --- Lógica para processar a requisição POST (AJAX) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,7 +50,7 @@ if (!$id_viatura_get) {
 try {
     $viaturaDAO = new ViaturaDAO();
     $unidadeDAO = new UnidadeDAO(); // INSTANCIADO
-    
+
     $display_data = $viaturaDAO->getViaturaById($id_viatura_get);
     $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando(); // BUSCA REAL DO BD
 
@@ -143,7 +146,7 @@ try {
                                                 <?php
                                                 $tipos = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
                                                 foreach ($tipos as $t) {
-                                                    echo "<option value='$t' ".($display_data['tipo_aquisicao']==$t?'selected':'').">$t</option>";
+                                                    echo "<option value='$t' " . ($display_data['tipo_aquisicao'] == $t ? 'selected' : '') . ">$t</option>";
                                                 }
                                                 ?>
                                             </select>
@@ -154,7 +157,7 @@ try {
                                                 <?php
                                                 $status = ['Operante', 'Baixada', 'Descarregada', 'Indisponível', 'Em fabricação', 'Reserva', 'Senasp'];
                                                 foreach ($status as $s) {
-                                                    echo "<option value='$s' ".($display_data['status_da_viatura']==$s?'selected':'').">$s</option>";
+                                                    echo "<option value='$s' " . ($display_data['status_da_viatura'] == $s ? 'selected' : '') . ">$s</option>";
                                                 }
                                                 ?>
                                             </select>
@@ -229,7 +232,17 @@ try {
                                         </div>
                                     </div>
                                 </div>
-
+                                <div class="col-md-6">
+                                    <label for="plano_id" class="form-label">Plano de Manutenção Preventiva</label>
+                                    <select class="form-select" id="plano_id" name="plano_id">
+                                        <option value="">Nenhum plano associado</option>
+                                        <?php foreach ($listaPlanos as $plano): ?>
+                                            <option value="<?= $plano['id'] ?>" <?= ($display_data['plano_id'] == $plano['id']) ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($plano['descricao']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
                             <hr class="my-4">
                             <button class="btn btn-outline-success" type="submit" id="btnSalvar">
@@ -257,27 +270,30 @@ try {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Atualizando...';
 
-                fetch('pages/editar_viatura.php', { method: 'POST', body: formData })
-                .then(response => response.json())
-                .then(data => {
-                    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                    } else {
-                        showToast(data.message, 'danger');
-                        if (data.errors) {
-                            for (const field in data.errors) {
-                                const input = form.querySelector(`[name="${field}"]`);
-                                if (input) input.classList.add('is-invalid');
+                fetch('pages/editar_viatura.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                        } else {
+                            showToast(data.message, 'danger');
+                            if (data.errors) {
+                                for (const field in data.errors) {
+                                    const input = form.querySelector(`[name="${field}"]`);
+                                    if (input) input.classList.add('is-invalid');
+                                }
                             }
                         }
-                    }
-                })
-                .catch(() => showToast('Erro de conexão.', 'danger'))
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Viatura';
-                });
+                    })
+                    .catch(() => showToast('Erro de conexão.', 'danger'))
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Viatura';
+                    });
             });
         }
 
@@ -295,7 +311,9 @@ try {
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
             const toastEl = container.lastElementChild;
-            new bootstrap.Toast(toastEl, { delay: 4000 }).show();
+            new bootstrap.Toast(toastEl, {
+                delay: 4000
+            }).show();
             toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
         }
 
