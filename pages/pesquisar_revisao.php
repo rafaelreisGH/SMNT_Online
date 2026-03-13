@@ -1,5 +1,7 @@
 <?php
 // pages/pesquisar_revisao.php
+
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/RevisaoDAO.php';
 require_once '../components/DAO/ViaturaDAO.php';
 

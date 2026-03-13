@@ -1,6 +1,7 @@
 <?php
 // api/processar_registro_avaria.php
 header('Content-Type: application/json');
+require_once 'middleware_auth.php';
 require_once '../components/DAO/RegistroAvariaDAO.php';
 
 $response = ['success' => false, 'message' => '', 'errors' => []];

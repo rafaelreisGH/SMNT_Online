@@ -1,6 +1,8 @@
 <?php
 // pages/pesquisar_viatura.php
 // Inclua seu arquivo de conexão com o banco de dados
+
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
 

@@ -2,6 +2,7 @@
 // api/get_detalhes_avaria.php
 
 // 1. Inclui as classes necessárias
+require_once 'middleware_auth.php';
 require_once '../components/DAO/RegistroAvariaDAO.php';
 
 // Verifica se o ID da avaria foi passado via GET

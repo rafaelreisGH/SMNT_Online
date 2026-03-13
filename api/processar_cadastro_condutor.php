@@ -2,6 +2,7 @@
 // api/processar_cadastro_condutor.php
 
 // Inclui as dependências
+require_once 'middleware_auth.php';
 require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/DAO/CondutorDAO.php'; // <<-- Você precisará criar este arquivo!
 

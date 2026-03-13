@@ -1,5 +1,7 @@
 <?php
 // pages/pesquisar_avaria.php
+
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/CondutorDAO.php';
 require_once '../components/DAO/RegistroAvariaDAO.php';

@@ -1,8 +1,9 @@
 <?php
 // api/processar_cadastro_viatura.php
 header('Content-Type: application/json');
-session_start();
 
+// O Middleware deve vir primeiro para validar o Token
+require_once 'middleware_auth.php'; 
 require_once '../components/DAO/ViaturaDAO.php';
 require_once 'validate_functions_editar_viatura.php';
 

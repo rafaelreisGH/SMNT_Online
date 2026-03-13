@@ -2,52 +2,7 @@
 // Conexão com o banco de dados (descomente e configure conforme necessário)
 // include_once '../config/database.php';
 
-// Lógica de pesquisa (comentada, pois o foco é o layout visual)
-// $results = [];
-// if ($_SERVER["REQUEST_METHOD"] == "POST") {
-//     $data_inicial = $_POST['data_inicial'] ?? '';
-//     $data_final = $_POST['data_final'] ?? '';
-//     $viatura_id = $_POST['viatura_id'] ?? '';
-//     // $observacoes = $_POST['observacoes'] ?? ''; // Removido
-
-//     $sql = "SELECT h.id, v.placa, h.data_registro, h.quilometragem // , h.observacoes // Removido
-//             FROM historico_pneus h
-//             JOIN viaturas v ON h.viatura_id = v.id
-//             WHERE 1=1";
-//     $params = [];
-
-//     if (!empty($data_inicial)) {
-//         $sql .= " AND h.data_registro >= :data_inicial";
-//         $params[':data_inicial'] = $data_inicial;
-//     }
-//     if (!empty($data_final)) {
-//         $sql .= " AND h.data_registro <= :data_final";
-//         $params[':data_final'] = $data_final;
-//     }
-//     if (!empty($viatura_id)) {
-//         $sql .= " AND h.viatura_id = :viatura_id";
-//         $params[':viatura_id'] = $viatura_id;
-//     }
-//     // if (!empty($observacoes)) { // Removido
-//     //     $sql .= " AND h.observacoes LIKE :observacoes";
-//     //     $params[':observacoes'] = '%' . $observacoes . '%';
-//     // }
-
-//     try {
-//         $stmt = $pdo->prepare($sql);
-//         $stmt->execute($params);
-//         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-//     } catch (PDOException $e) {
-//         echo "<div class='alert alert-danger'>Erro ao consultar o banco de dados: " . $e->getMessage() . "</div>";
-//     }
-// }
-
-// // Simulação de dados para viaturas (substituir por consulta real ao BD)
-// $viaturas = [
-//     ['id' => 1, 'placa' => 'ABC1234'],
-//     ['id' => 2, 'placa' => 'DEF5678'],
-//     ['id' => 3, 'placa' => 'GHI9012'],
-// ];
+require_once '../api/middleware_auth.php';
 ?>
 
 

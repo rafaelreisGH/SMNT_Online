@@ -1,5 +1,7 @@
     <?php
     // pages/pesquisar_condutor.php
+
+    require_once '../api/middleware_auth.php';
     require_once '../components/DAO/CondutorDAO.php'; // Usa o DAO
 
     $results = [];

@@ -1,11 +1,9 @@
-// ARQUIVO: main-ajax.js (VERSÃO FINAL CORRIGIDA)
+// ARQUIVO: main-ajax.js (VERSÃO COM SUPORTE A JWT E RBAC)
 
 /**
  * Torna a função showToast global para que outros scripts possam usá-la.
- * Assim, qualquer página carregada pode chamar window.showToast(...)
  */
 window.showToast = function (message, type = 'success') {
-    // Tenta encontrar um container de toast na página. Se não houver, cria um.
     let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
@@ -36,7 +34,6 @@ window.showToast = function (message, type = 'success') {
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 }
 
-
 document.addEventListener('DOMContentLoaded', function () {
     const mainContentArea = document.getElementById('main-content-area');
 
@@ -57,32 +54,49 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /**
-     * Inicializa componentes do Bootstrap (como Tooltips) em um container específico.
-     * @param {HTMLElement} container O elemento dentro do qual os componentes serão procurados.
-     */
     function initializeBootstrapComponents(container) {
-        // Inicializa Tooltips
         const tooltipTriggerList = Array.from(container.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-        // Adicione outros inicializadores aqui se precisar (Popovers, etc.)
     }
 
+    /**
+     * Carrega uma página via AJAX enviando o Token JWT no cabeçalho
+     */
     function loadPage(url) {
+        // 1. Recupera o token do localStorage
+        const token = localStorage.getItem('smnt_token');
+
         mainContentArea.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
 
-        fetch(url)
-            .then(response => response.ok ? response.text() : Promise.reject(response.statusText))
-            .then(html => {
-                mainContentArea.innerHTML = html;
+        // 2. Faz a requisição com o Header de Autorização
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                // 3. Verifica se o servidor barrou o acesso (Token inválido/ausente)
+                if (response.status === 401) {
+                    console.warn('Acesso não autorizado. Redirecionando para o login.');
+                    localStorage.clear(); // Limpa tokens antigos
+                    window.location.href = 'login.php'; // Redireciona para a raiz
+                    return;
+                }
 
-                // FLUXO CORRETO DE INICIALIZAÇÃO
+                if (!response.ok) throw new Error(response.statusText);
+                return response.text();
+            })
+            .then(html => {
+                if (!html) return; // Caso tenha redirecionado
+
+                mainContentArea.innerHTML = html;
                 executeScriptsInElement(mainContentArea);
-                initializeBootstrapComponents(mainContentArea); // <<-- ADICIONADO AQUI
+                initializeBootstrapComponents(mainContentArea);
             })
             .catch(error => {
-                mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro ao carregar a página.</div>';
+                mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro ao carregar a página. Verifique sua conexão ou faça login novamente.</div>';
                 console.error('AJAX Load Error:', error);
             });
     }
@@ -91,17 +105,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
 
-        // A condição 'if' foi ajustada para ser mais precisa
-        if (link && link.getAttribute('href')) { // Apenas verifica se o href existe
-
+        if (link && link.getAttribute('href')) {
             const href = link.getAttribute('href');
 
-            // NOVAS REGRAS: Ignora links que começam com # ou que abrem componentes do Bootstrap
-            if (href.startsWith('#') || link.dataset.bsToggle) {
-                return; // Interrompe a execução e permite o comportamento padrão
+            // Ignora links de âncora ou componentes Bootstrap (como o collapse do menu)
+            if (href.startsWith('#') || link.dataset.toggle === 'collapse' || link.dataset.bsToggle) {
+                return;
             }
 
-            // Continua a tratar como link SPA apenas se não for um link externo
+            // Trata como link SPA apenas se não for link externo
             if (link.target !== '_blank') {
                 e.preventDefault();
                 if (link.closest('#accordionSidebar')) {
@@ -111,4 +123,34 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+});
+
+/**
+ * Item 2: Atualiza o nome do usuário no Topbar
+ */
+function updateUIUserInfo() {
+    const nome = localStorage.getItem('user_nome');
+    const perfil = localStorage.getItem('user_perfil');
+    const displayElement = document.getElementById('user-name-display');
+
+    if (displayElement && nome) {
+        // Exibe apenas o primeiro nome para não quebrar o layout, seguido do perfil
+        const primeiroNome = nome.split(' ')[0];
+        displayElement.innerText = `${primeiroNome} (${perfil})`;
+    }
+}
+
+/**
+ * Item 3: Função de Logout
+ */
+window.handleLogout = function () {
+    // Apaga tudo do localStorage (Token, nome, perfil)
+    localStorage.clear();
+    // Redireciona para o login que está na raiz
+    window.location.href = '../login.php';
+};
+
+// Executa a atualização do nome assim que o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function () {
+    updateUIUserInfo();
 });

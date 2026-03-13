@@ -36,7 +36,8 @@
             <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                <a class="btn btn-primary" href="login.html">Logout</a>
+                <!-- Chamamos a função handleLogout() que criaremos no JS -->
+                <a class="btn btn-primary" href="javascript:void(0)" onclick="handleLogout()">Sair</a>
             </div>
         </div>
     </div>

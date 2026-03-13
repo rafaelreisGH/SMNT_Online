@@ -1,5 +1,7 @@
 <?php
 // pages/pesquisar_manutencoes.php
+
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ManutencaoDAO.php';
 
 $results = [];

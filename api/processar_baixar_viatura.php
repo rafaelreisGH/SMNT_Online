@@ -3,6 +3,7 @@
 
 // Inclua seu arquivo de conexão com o banco de dados.
 // Adapte o caminho conforme a sua estrutura de diretórios.
+require_once 'middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
 

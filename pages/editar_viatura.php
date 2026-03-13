@@ -2,6 +2,7 @@
 // pages/editar_viatura.php
 
 // Inclui os arquivos de dependência
+require_once '../api/middleware_auth.php';
 require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/UnidadeDAO.php'; // ADICIONADO

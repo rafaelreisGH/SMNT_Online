@@ -1,5 +1,7 @@
 <?php
 // pages/registrar_avaria.php
+
+require_once '../api/middleware_auth.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

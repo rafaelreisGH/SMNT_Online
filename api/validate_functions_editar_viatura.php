@@ -1,6 +1,7 @@
 <?php
 // ../api/validate_functions_editar_viatura.php
 
+require_once 'middleware_auth.php';
 /**
  * Valida os dados de uma viatura.
  *

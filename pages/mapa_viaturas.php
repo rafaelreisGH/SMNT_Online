@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 
 $viaturas_para_mapa = [];

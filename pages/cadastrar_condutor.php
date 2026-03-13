@@ -1,5 +1,7 @@
 <?php
 // pages/cadastrar_condutor.php
+
+require_once '../api/middleware_auth.php';
 ?>
 <!-- Begin Page Content -->
 <div class="container-fluid">

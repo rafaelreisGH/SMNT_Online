@@ -4,9 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Carrega a autenticação primeiro para habilitar o RBAC no DAO
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php'; 
 require_once '../components/DAO/UnidadeDAO.php'; 
-require_once '../api/validate_functions_editar_viatura.php'; 
+require_once '../api/validate_functions_editar_viatura.php';
 
 // Busca as unidades REAIS do banco de dados para o select
 $unidadeDAO = new UnidadeDAO();

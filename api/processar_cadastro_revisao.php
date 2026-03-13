@@ -2,6 +2,7 @@
 // api/processar_cadastro_revisao.php
 
 header('Content-Type: application/json');
+require_once 'middleware_auth.php';
 require_once '../components/DAO/RevisaoDAO.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
