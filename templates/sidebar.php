@@ -90,9 +90,11 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Funções de manutenção:</h6>
-                        <a class="collapse-item" href="../pages/pesquisar_manutencoes.php">Pesquisar</a>
-                        <a class="collapse-item" href="../pages/registrar_avaria.php">Registrar Avaria</a>
-                        <a class="collapse-item" href="../pages/pesquisar_avaria.php">Pesquisar Avaria</a>
+                        <a class="collapse-item" href="../pages/pesquisar_manutencoes.php"><i class="fas fa-search me-2"></i>&nbsp;Pesquisar</a>
+                        <a class="collapse-item" href="../pages/registrar_manutencao.php"><i class="fas fa-plus-circle me-2"></i>&nbsp;Registrar</a>
+                        <h6 class="collapse-header">Funções de avarias:</h6>
+                        <a class="collapse-item" href="../pages/pesquisar_avaria.php"><i class="fas fa-search me-2"></i>&nbsp;Pesquisar</a>
+                        <a class="collapse-item" href="../pages/registrar_avaria.php"><i class="fas fa-plus-circle me-2"></i>&nbsp;Registrar</a>
                         <!--<a class="collapse-item" href="utilities-animation.html">Animations</a>
                         <a class="collapse-item" href="utilities-other.html">Other</a> -->
                     </div>
