@@ -36,7 +36,7 @@ try {
                 <div class="card-body">
                     <form id="formManutencao">
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Viatura</label>
                                 <select class="form-select" name="viatura_id" required>
                                     <option value="">Selecione a viatura...</option>
@@ -46,7 +46,7 @@ try {
                                 </select>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Oficina</label>
                                 <select class="form-select" name="oficina_id" required>
                                     <option value="">Selecione a oficina...</option>
@@ -55,6 +55,12 @@ try {
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Nº da OS (Prime)</label>
+                                <input type="number" name="ordem_de_servico" class="form-control" placeholder="Ex: 1234">
+                            </div>
+
 
                             <div class="col-md-4">
                                 <label class="form-label">KM / Horas de Entrada</label>

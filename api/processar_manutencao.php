@@ -8,6 +8,8 @@ $response = ['success' => false, 'message' => ''];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST;
 
+    $data['ordem_de_servico'] = filter_var($data['ordem_de_servico'] ?? null, FILTER_VALIDATE_INT) ?: null;
+
     // Validação de entrada obrigatória para métricas
     if (empty($data['viatura_id']) || empty($data['quilometragem']) || empty($data['oficina_id'])) {
         $response['message'] = "Viatura, KM e Oficina são obrigatórios para abrir a manutenção.";

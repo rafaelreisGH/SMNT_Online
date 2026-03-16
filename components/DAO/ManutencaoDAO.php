@@ -40,10 +40,10 @@ class ManutencaoDAO
     {
         $sql = "INSERT INTO " . $this->table_name . " (
                 viatura_id, avaria_id, item_preventiva_id, data_entrada, tipo_manutencao, 
-                quilometragem, status, descricao_problema, oficina_id, registrado_por_usuario_id
+                quilometragem, status, descricao_problema, oficina_id, ordem_de_servico, registrado_por_usuario_id
             ) VALUES (
                 :viatura_id, :avaria_id, :item_preventiva_id, :data_entrada, :tipo_manutencao, 
-                :quilometragem, :status, :descricao_problema, :oficina_id, :registrado_por_usuario_id
+                :quilometragem, :status, :descricao_problema, :oficina_id, :ordem_de_servico, :registrado_por_usuario_id
             )";
 
         try {
@@ -58,6 +58,7 @@ class ManutencaoDAO
             $stmt->bindValue(':status', $data['status'] ?? 'Pendente');
             $stmt->bindValue(':descricao_problema', $data['descricao_problema'] ?? null);
             $stmt->bindValue(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':ordem_de_servico', !empty($data['ordem_de_servico']) ? $data['ordem_de_servico'] : null, PDO::PARAM_INT);
             $stmt->bindValue(':registrado_por_usuario_id', defined('USER_AUTH') ? USER_AUTH['id'] : null, PDO::PARAM_INT);
 
             return $stmt->execute();
@@ -71,7 +72,7 @@ class ManutencaoDAO
         $rbac = $this->aplicarEscopoRBAC();
 
         $sql = "SELECT
-            m.id, m.data_entrada, m.data_saida, m.tipo_manutencao, m.custo, m.status,
+            m.id, m.ordem_de_servico, m.data_entrada, m.data_saida, m.tipo_manutencao, m.custo, m.status,
             v.prefixo as viatura_prefixo, v.numero as viatura_numero, v.placa as viatura_placa,
             o.nome_fantasia as oficina_nome -- CORREÇÃO: era o.nome
         FROM
