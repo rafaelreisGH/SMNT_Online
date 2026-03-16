@@ -171,7 +171,7 @@
                 <div id="collapseOficina" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Opções para oficinas:</h6>
-                        <a class="collapse-item" href="../pages/cadastrar_oficina.php">Cadastrar</a>
+                        <a class="collapse-item" href="../pages/cadastro_oficina.php">Cadastrar</a>
                         <!-- <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
