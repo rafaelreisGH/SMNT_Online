@@ -146,4 +146,50 @@ class ManutencaoDAO
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function updateManutencao(array $data): bool
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $sql = "UPDATE " . $this->table_name . " m
+            INNER JOIN viaturas v ON m.viatura_id = v.id
+            INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+            SET 
+                m.viatura_id = :viatura_id,
+                m.avaria_id = :avaria_id,
+                m.item_preventiva_id = :item_preventiva_id,
+                m.oficina_id = :oficina_id,
+                m.ordem_de_servico = :ordem_de_servico,
+                m.data_entrada = :data_entrada,
+                m.tipo_manutencao = :tipo_manutencao,
+                m.quilometragem = :quilometragem,
+                m.status = :status,
+                m.descricao_problema = :descricao_problema
+            WHERE m.id = :id {$rbac['sql']}";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+
+            $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':avaria_id', !empty($data['avaria_id']) ? $data['avaria_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':item_preventiva_id', !empty($data['item_preventiva_id']) ? $data['item_preventiva_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':ordem_de_servico', !empty($data['ordem_de_servico']) ? $data['ordem_de_servico'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':data_entrada', $data['data_entrada']);
+            $stmt->bindValue(':tipo_manutencao', $data['tipo_manutencao']);
+            $stmt->bindValue(':quilometragem', $data['quilometragem'], PDO::PARAM_INT);
+            $stmt->bindValue(':status', $data['status']);
+            $stmt->bindValue(':descricao_problema', $data['descricao_problema']);
+            $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
+
+            // Binds do RBAC
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao atualizar manutenção: " . $e->getMessage());
+        }
+    }
 }

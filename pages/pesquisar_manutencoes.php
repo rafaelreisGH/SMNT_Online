@@ -80,17 +80,23 @@ $viaturas = $vDAO->listarTodasParaSelect();
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
+                                                <th>O.S.</th>
                                                 <th>Viatura</th>
                                                 <th>Entrada</th>
                                                 <th>Tipo</th>
                                                 <th>Oficina</th>
                                                 <th>Status</th>
-                                                <th>Ações</th>
+                                                <th class="text-center">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php foreach ($results as $m): ?>
                                                 <tr>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">
+                                                            <?= htmlspecialchars($m['ordem_de_servico'] ?? 'N/A') ?>
+                                                        </span>
+                                                    </td>
                                                     <td><strong><?= htmlspecialchars($m['viatura_prefixo'] . ' ' . $m['viatura_numero']) ?></strong></td>
                                                     <td><?= date('d/m/Y', strtotime($m['data_entrada'])) ?></td>
                                                     <td><?= $m['tipo_manutencao'] ?></td>
@@ -100,7 +106,7 @@ $viaturas = $vDAO->listarTodasParaSelect();
                                                             <?= $m['status'] ?>
                                                         </span>
                                                     </td>
-                                                    <td>
+                                                    <td class="text-center">
                                                         <button class="btn btn-sm btn-outline-info"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#modalDetalhesManutencao"
@@ -108,6 +114,10 @@ $viaturas = $vDAO->listarTodasParaSelect();
                                                             title="Detalhes">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
+                                                        <!-- Botão de Edição (Lápis) -->
+                                                        <a href="pages/editar_manutencao.php?id=<?= $m['id'] ?>" class="btn btn-sm btn-outline-warning" title="Editar Manutenção">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
