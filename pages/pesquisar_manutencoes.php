@@ -118,6 +118,11 @@ $viaturas = $vDAO->listarTodasParaSelect();
                                                         <a href="pages/editar_manutencao.php?id=<?= $m['id'] ?>" class="btn btn-sm btn-outline-warning" title="Editar Manutenção">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
+                                                        <?php if ($m['status'] != 'Concluída'): ?>
+                                                            <a href="pages/finalizar_manutencao.php?id=<?= $m['id'] ?>" class="btn btn-sm btn-outline-success" title="Finalizar Manutenção">
+                                                                <i class="fas fa-check"></i>
+                                                            </a>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

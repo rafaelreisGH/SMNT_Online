@@ -192,4 +192,76 @@ class ManutencaoDAO
             throw new Exception("Erro ao atualizar manutenção: " . $e->getMessage());
         }
     }
+
+    /**
+     * Busca uma manutenção específica com detalhes da viatura e oficina
+     */
+    public function getManutencaoById(int $id)
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $query = "SELECT m.*, 
+                     v.prefixo as viatura_prefixo, v.numero as viatura_numero, v.placa as viatura_placa,
+                     o.nome_fantasia as oficina_nome
+              FROM " . $this->table_name . " m
+              JOIN viaturas v ON m.viatura_id = v.id
+              JOIN unidades u ON v.lotacao_atual_id = u.id 
+              LEFT JOIN oficinas o ON m.oficina_id = o.id
+              WHERE m.id = :id {$rbac['sql']}";
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+
+            // Binds do RBAC
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao buscar manutenção: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Método de finalização atualizado: 
+     * A data de saída vem do formulário (:data_saida), não do sistema.
+     */
+    public function finalizarManutencao(array $data): bool
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        // Cálculo do tempo de oficina baseado na data informada pelo usuário
+        $sql = "UPDATE " . $this->table_name . " m
+            INNER JOIN viaturas v ON m.viatura_id = v.id
+            INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+            SET 
+                m.data_saida = :data_saida,
+                m.servico_realizado = :servico_realizado,
+                m.custo = :custo,
+                m.observacoes = :observacoes,
+                m.status = 'Concluída',
+                -- Calcula a diferença em dias (com decimais para horas)
+                m.tempo_oficina = TIMESTAMPDIFF(MINUTE, m.data_entrada, :data_saida_calc) / 1440
+            WHERE m.id = :id {$rbac['sql']}";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':data_saida', $data['data_saida']);
+            $stmt->bindValue(':data_saida_calc', $data['data_saida']);
+            $stmt->bindValue(':servico_realizado', $data['servico_realizado']);
+            $stmt->bindValue(':custo', $data['custo']);
+            $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
+            $stmt->bindValue(':id', $id = $data['id'], PDO::PARAM_INT);
+
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao finalizar manutenção: " . $e->getMessage());
+        }
+    }
 }
