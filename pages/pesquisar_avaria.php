@@ -1,78 +1,20 @@
 <?php
 // pages/pesquisar_avaria.php
+require_once __DIR__ . '/../api/middleware_auth.php';
+require_once __DIR__ . '/../components/DAO/ViaturaDAO.php';
+require_once __DIR__ . '/../components/DAO/CondutorDAO.php';
+require_once __DIR__ . '/../components/DAO/RegistroAvariaDAO.php';
 
-require_once '../api/middleware_auth.php';
-require_once '../components/DAO/ViaturaDAO.php';
-require_once '../components/DAO/CondutorDAO.php';
-require_once '../components/DAO/RegistroAvariaDAO.php';
-
-$conn = Conexao::getConexao();
-
-// Lógica de pesquisa AJAX
-$results = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $viatura_id = $_POST['viatura_id'] ?? '';
-    $condutor_id = $_POST['condutor_id'] ?? '';
-    $tipo_avaria_id = $_POST['tipo_avaria_id'] ?? '';
-    $data_inicio = $_POST['data_inicio'] ?? '';
-    $data_fim = $_POST['data_fim'] ?? '';
-
-    $sql = "SELECT 
-                ra.id, 
-                ra.data_registro, 
-                ra.observacoes_avaria,
-                v.prefixo, 
-                v.numero, 
-                ta.nome_componente, 
-                ta.categoria,
-                c.nome AS nome_condutor,
-                m.status AS status_manutencao
-            FROM registro_avaria ra
-            JOIN viaturas v ON ra.viatura_id = v.id
-            JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
-            JOIN condutor c ON ra.condutor_id = c.id
-            LEFT JOIN manutencoes m ON m.avaria_id = ra.id
-            WHERE 1=1";
-
-    $params = [];
-
-    if (!empty($viatura_id)) {
-        $sql .= " AND ra.viatura_id = :viatura_id";
-        $params[':viatura_id'] = $viatura_id;
-    }
-    if (!empty($condutor_id)) {
-        $sql .= " AND ra.condutor_id = :condutor_id";
-        $params[':condutor_id'] = $condutor_id;
-    }
-    if (!empty($tipo_avaria_id)) {
-        $sql .= " AND ra.tipo_avaria_id = :tipo_avaria_id";
-        $params[':tipo_avaria_id'] = $tipo_avaria_id;
-    }
-    if (!empty($data_inicio)) {
-        $sql .= " AND ra.data_registro >= :data_inicio";
-        $params[':data_inicio'] = $data_inicio . " 00:00:00";
-    }
-    if (!empty($data_fim)) {
-        $sql .= " AND ra.data_registro <= :data_fim";
-        $params[':data_fim'] = $data_fim . " 23:59:59";
-    }
-
-    $sql .= " ORDER BY ra.data_registro DESC";
-
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log($e->getMessage());
-    }
-}
-
-// Carregamento inicial de filtros via DAOs
 $vDAO = new ViaturaDAO();
 $cDAO = new CondutorDAO();
 $aDAO = new RegistroAvariaDAO();
 
+$results = [];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $results = $aDAO->buscarAvarias($_POST);
+}
+
+// Filtros respeitando o RBAC (métodos já ajustados anteriormente)
 $viaturas = $vDAO->listarTodasParaSelect();
 $condutores = $cDAO->listarAtivos();
 $tiposAvaria = $aDAO->listarTiposAvaria();
@@ -243,7 +185,8 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
         const form = document.getElementById('form-pesquisa-avaria');
         const areaResultados = document.getElementById('resultado-pesquisa');
 
-        if (!form) return;
+        if (!form || form.hasAttribute('data-initialized')) return;
+        form.setAttribute('data-initialized', 'true');
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -252,38 +195,51 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
 
             fetch('pages/pesquisar_avaria.php', {
                     method: 'POST',
+                    headers: {
+                        // CORREÇÃO CRÍTICA: Enviar o Token para não dar erro 401
+                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                    },
                     body: formData
                 })
-                .then(r => r.text())
+                .then(r => {
+                    if (r.status === 401) {
+                        window.location.href = 'login.php';
+                        return;
+                    }
+                    return r.text();
+                })
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    areaResultados.innerHTML = doc.getElementById('resultado-pesquisa').innerHTML;
-                    attachModalListener();
+                    const novoConteudo = doc.getElementById('resultado-pesquisa');
+                    if (novoConteudo) {
+                        areaResultados.innerHTML = novoConteudo.innerHTML;
+                    }
+                })
+                .catch(err => {
+                    areaResultados.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
                 });
         });
 
-        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-            form.reset();
-        });
-
-        function attachModalListener() {
-            const modal = document.getElementById('modalDetalhesAvaria');
+        // Função para Detalhes (Modal) - Corrigida para enviar Token
+        const modal = document.getElementById('modalDetalhesAvaria');
+        if (modal) {
             modal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const id = button.getAttribute('data-id');
+                const id = event.relatedTarget.getAttribute('data-id');
                 const body = document.getElementById('conteudo-modal-avaria');
+                body.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i></div>';
 
-                body.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-
-                fetch(`api/get_detalhes_avaria.php?id=${id}`)
+                fetch(`api/get_detalhes_avaria.php?id=${id}`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        }
+                    })
                     .then(r => r.text())
                     .then(html => body.innerHTML = html);
             });
         }
-
-        attachModalListener();
     }
 
+    // Inicializa imediatamente
     initializePesquisaAvaria();
 </script>

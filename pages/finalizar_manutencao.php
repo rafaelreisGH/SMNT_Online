@@ -1,13 +1,15 @@
 <?php
+// /pages/finalizar_manutencao.php
+
 require_once __DIR__ . '/../api/middleware_auth.php';
 require_once __DIR__ . '/../components/DAO/ManutencaoDAO.php';
 
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$id_manutencao = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $mDAO = new ManutencaoDAO();
-$m = $mDAO->getManutencaoById($id);
+$m = $mDAO->getManutencaoById($id_manutencao); // Agora está correto
 
-if (!$m || $m['status'] == 'Concluída') {
-    echo "<div class='alert alert-warning'>Manutenção já finalizada ou não encontrada.</div>";
+if (!$m) {
+    echo "<div class='alert alert-danger'>Erro: Manutenção não encontrada ou acesso negado.</div>";
     exit;
 }
 ?>

@@ -63,7 +63,7 @@ $viaturas = $vDAO->listarTodasParaSelect();
                             </div>
                         </div>
                         <div class="mt-3">
-                            <button class="btn btn-primary" type="submit"><i class="fas fa-search me-1"></i> Pesquisar</button>
+                            <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search me-1"></i> Pesquisar</button>
                         </div>
                     </form>
                 </div>

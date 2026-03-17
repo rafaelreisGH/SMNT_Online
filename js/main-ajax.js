@@ -99,6 +99,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro ao carregar a página. Verifique sua conexão ou faça login novamente.</div>';
                 console.error('AJAX Load Error:', error);
             });
+
+        // Definindo como window.loadPage ela fica visível para os "onclick" do HTML
+        window.loadPage = function (url) {
+            const token = localStorage.getItem('smnt_token');
+            const mainContentArea = document.getElementById('main-content-area'); // Certifique-se que o ID está correto
+
+            mainContentArea.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (response.status === 401) {
+                        localStorage.clear();
+                        window.location.href = 'login.php';
+                        return;
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    if (!html) return;
+                    mainContentArea.innerHTML = html;
+
+                    // Re-executa os scripts da página carregada
+                    const scripts = mainContentArea.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript).parentNode.removeChild(newScript);
+                    });
+                })
+                .catch(error => {
+                    mainContentArea.innerHTML = '<div class="alert alert-danger">Erro ao carregar a página.</div>';
+                    console.error('Erro:', error);
+                });
+        };
     }
 
     // Listener de clique global (Delegação de Eventos)
@@ -154,3 +194,29 @@ window.handleLogout = function () {
 document.addEventListener('DOMContentLoaded', function () {
     updateUIUserInfo();
 });
+
+/**
+ * Atualiza o contador de notificações (Sino) no Topbar
+ */
+function atualizarNotificacoesSino() {
+    const token = localStorage.getItem('smnt_token');
+    const badgeSino = document.querySelector('#alertsDropdown .badge-counter');
+
+    fetch('api/get_notificacoes_sino.php', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.total > 0) {
+                badgeSino.innerText = data.total > 9 ? '9+' : data.total;
+                badgeSino.classList.remove('d-none');
+            } else {
+                badgeSino.classList.add('d-none');
+            }
+        })
+        .catch(err => console.error("Erro ao carregar notificações"));
+}
+
+// Chama a cada 5 minutos ou ao trocar de página
+setInterval(atualizarNotificacoesSino, 300000);
+atualizarNotificacoesSino();

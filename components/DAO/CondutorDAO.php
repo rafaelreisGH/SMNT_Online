@@ -140,4 +140,29 @@ class CondutorDAO
             throw new Exception("Erro ao buscar condutores.");
         }
     }
+
+    /**
+     * Lista apenas condutores ativos respeitando o RBAC
+     */
+    public function listarAtivos(): array
+    {
+        $rbac = $this->aplicarEscopoRBAC(); // Importante para manter a segurança
+        $sql = "SELECT c.id, c.nome 
+            FROM " . $this->table_name . " c
+            LEFT JOIN unidades u ON c.ubm_id = u.id
+            WHERE c.status = 'ativo' {$rbac['sql']} 
+            ORDER BY c.nome ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro no CondutorDAO (listarAtivos): " . $e->getMessage());
+            return [];
+        }
+    }
 }

@@ -1,15 +1,17 @@
 <?php
 // pages/registrar_avaria.php
 
-require_once '../api/middleware_auth.php';
+// 1. Caminho robusto para o middleware e proteção da página
+require_once __DIR__ . '/../api/middleware_auth.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 // Inclui as dependências necessárias
-require_once '../components/DAO/ViaturaDAO.php';
-require_once '../components/DAO/CondutorDAO.php';
-require_once '../components/DAO/RegistroAvariaDAO.php';
+require_once __DIR__ . '/../components/DAO/ViaturaDAO.php';
+require_once __DIR__ . '/../components/DAO/CondutorDAO.php';
+require_once __DIR__ . '/../components/DAO/RegistroAvariaDAO.php';
 
 // Instancia os DAOs
 $vDAO = new ViaturaDAO();
@@ -47,7 +49,6 @@ try {
                                 <select class="form-select" name="viatura_id" id="viatura_id">
                                     <option value="">Selecione a viatura...</option>
                                     <?php foreach ($viaturas as $v): ?>
-                                        <!-- Exibe apenas Prefixo e Número -->
                                         <option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['prefixo'] . ' ' . $v['numero']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -60,7 +61,7 @@ try {
                                 <select class="form-select" name="condutor_id" id="condutor_id">
                                     <option value="">Selecione o condutor...</option>
                                     <?php foreach ($condutores as $c): ?>
-                                        <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nome']) ?></option>
+                                        <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nome'] ?? '') ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="invalid-feedback" id="error-condutor_id"></div>
@@ -80,7 +81,7 @@ try {
                                             echo "<optgroup label='" . htmlspecialchars($catAtual) . "'>";
                                         endif;
                                     ?>
-                                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['nome_componente']) ?></option>
+                                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['nome_componente'] ?? '') ?></option>
                                     <?php endforeach;
                                     echo "</optgroup>"; ?>
                                 </select>
@@ -116,38 +117,42 @@ try {
 </div>
 
 <script>
-    // Função para limpar o formulário e resetar estados de erro
     function limparFormulario() {
         const form = document.getElementById('formRegistrarAvaria');
         form.reset();
-
-        // Remove as classes de validação do Bootstrap
         form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-
-        // Foca no primeiro campo (Viatura)
         document.getElementById('viatura_id').focus();
     }
 
-    // Listener para submissão do formulário
     document.getElementById('formRegistrarAvaria').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSalvarAvaria');
         const formData = new FormData(this);
 
-        // Limpa erros antes de enviar
         this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         btn.disabled = true;
 
+        // CORREÇÃO: Adicionado o header Authorization no fetch
         fetch('api/processar_registro_avaria.php', {
                 method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                },
                 body: formData
             })
-            .then(r => r.json())
+            .then(r => {
+                if (r.status === 401) {
+                    showToast("Sessão expirada. Faça login novamente.", "danger");
+                    window.location.href = 'login.php';
+                    return;
+                }
+                return r.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     showToast(data.message, 'success');
-                    limparFormulario(); // Chama a função de limpar em caso de sucesso
-                } else {
+                    limparFormulario();
+                } else if (data) {
                     showToast(data.message, 'danger');
                     if (data.errors) {
                         Object.keys(data.errors).forEach(key => {

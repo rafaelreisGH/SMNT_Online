@@ -50,7 +50,7 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
-                <a class="nav-link" href="../pages/home.php">
+                <a class="nav-link" href="../pages/dashboard.php">
                     <i class="fas fa-fw fa-home"></i>
                     <span>Página inicial</span></a>
             </li>

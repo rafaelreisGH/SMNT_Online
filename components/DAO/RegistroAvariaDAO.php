@@ -11,10 +11,73 @@ class RegistroAvariaDAO
         $this->conn = Conexao::getConexao();
     }
 
+    // Helper para restrição de visualização por perfil
+    private function aplicarEscopoRBAC(string $aliasViatura = 'v', string $aliasUnidade = 'u'): array
+    {
+        $sql = "";
+        $params = [];
+        if (defined('USER_AUTH')) {
+            $user = USER_AUTH;
+            switch ($user['perfil']) {
+                case 'Gestor Local':
+                    $sql = " AND {$aliasViatura}.lotacao_atual_id = :rbac_unidade_id";
+                    $params[':rbac_unidade_id'] = $user['unidade_id'];
+                    break;
+                case 'Gestor Regional':
+                    $sql = " AND {$aliasUnidade}.comando_regional_id = :rbac_crbm_id";
+                    $params[':rbac_crbm_id'] = $user['comando_regional_id'];
+                    break;
+            }
+        }
+        return ['sql' => $sql, 'params' => $params];
+    }
+
     public function listarTiposAvaria()
     {
         $sql = "SELECT id, nome_componente, categoria FROM tipo_avaria ORDER BY categoria, nome_componente";
         return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function buscarAvarias(array $filters): array
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $sql = "SELECT ra.*, v.prefixo, v.numero, ta.nome_componente, c.nome AS nome_condutor, m.status AS status_manutencao
+                FROM registro_avaria ra
+                JOIN viaturas v ON ra.viatura_id = v.id
+                JOIN unidades u ON v.lotacao_atual_id = u.id
+                JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
+                JOIN condutor c ON ra.condutor_id = c.id
+                LEFT JOIN manutencoes m ON m.avaria_id = ra.id
+                WHERE 1=1 {$rbac['sql']}";
+
+        $params = $rbac['params'];
+
+        if (!empty($filters['viatura_id'])) {
+            $sql .= " AND ra.viatura_id = :v_id";
+            $params[':v_id'] = $filters['viatura_id'];
+        }
+        if (!empty($filters['condutor_id'])) {
+            $sql .= " AND ra.condutor_id = :c_id";
+            $params[':c_id'] = $filters['condutor_id'];
+        }
+        if (!empty($filters['tipo_avaria_id'])) {
+            $sql .= " AND ra.tipo_avaria_id = :ta_id";
+            $params[':ta_id'] = $filters['tipo_avaria_id'];
+        }
+        if (!empty($filters['data_inicio'])) {
+            $sql .= " AND ra.data_registro >= :d_ini";
+            $params[':d_ini'] = $filters['data_inicio'] . " 00:00:00";
+        }
+        if (!empty($filters['data_fim'])) {
+            $sql .= " AND ra.data_registro <= :d_fim";
+            $params[':d_fim'] = $filters['data_fim'] . " 23:59:59";
+        }
+
+        $sql .= " ORDER BY ra.data_registro DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function inserir(array $data)

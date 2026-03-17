@@ -1,26 +1,31 @@
 <?php
+// pages/registrar_manutencao.php
 require_once __DIR__ . '/../api/middleware_auth.php';
 require_once __DIR__ . '/../components/DAO/ViaturaDAO.php';
 require_once __DIR__ . '/../components/DAO/ManutencaoDAO.php';
 require_once __DIR__ . '/../components/DAO/ItemPreventivaDAO.php';
+require_once __DIR__ . '/../components/DAO/RegistroAvariaDAO.php'; // NOVO: Para buscar dados da avaria
 
 $vDAO = new ViaturaDAO();
 $mDAO = new ManutencaoDAO();
 $iDAO = new ItemPreventivaDAO();
+$aDAO = new RegistroAvariaDAO();
+
+// --- LÓGICA DE CAPTURA DA AVARIA (Dashboard) ---
+$avaria_pre_id = filter_input(INPUT_GET, 'avaria_id', FILTER_VALIDATE_INT);
+$dados_avaria = null;
+
+if ($avaria_pre_id) {
+    // Busca os detalhes da avaria para preencher o form
+    $dados_avaria = $aDAO->buscarDetalhesPorId($avaria_pre_id);
+}
 
 try {
-    // Carrega apenas o que o usuário pode ver (RBAC aplicado nos métodos)
     $viaturas = $vDAO->listarTodasParaSelect();
-
-    // CORREÇÃO: Agora chamando via DAO em vez de variável $conn inexistente
     $oficinas = $mDAO->listarOficinasAtivas();
-
     $itensPrev = $iDAO->listarTodos();
 } catch (Exception $e) {
-    error_log("Erro ao carregar dados de manutenção: " . $e->getMessage());
-    $viaturas = [];
-    $oficinas = [];
-    $itensPrev = [];
+    error_log($e->getMessage());
 }
 ?>
 
@@ -34,14 +39,19 @@ try {
                     <h6 class="m-0 font-weight-bold text-primary">Entrada em Oficina</h6>
                 </div>
                 <div class="card-body">
-                    <form id="formManutencao">
+                    <form id="formManutencao" novalidate>
+                        <!-- CAMPO OCULTO: Muito importante para vincular a manutenção à avaria -->
+                        <input type="hidden" name="avaria_id" value="<?= $avaria_pre_id ?? '' ?>">
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Viatura</label>
                                 <select class="form-select" name="viatura_id" required>
                                     <option value="">Selecione a viatura...</option>
                                     <?php foreach ($viaturas as $v): ?>
-                                        <option value="<?= $v['id'] ?>"><?= $v['prefixo'] . ' ' . $v['numero'] ?></option>
+                                        <!-- Se viermos do dashboard, seleciona a viatura automaticamente -->
+                                        <option value="<?= $v['id'] ?>" <?= ($dados_avaria && $dados_avaria['viatura_id'] == $v['id']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($v['prefixo'] . ' ' . $v['numero']) ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -102,7 +112,11 @@ try {
 
                             <div class="col-12">
                                 <label class="form-label">Descrição do Problema / Observações de Entrada</label>
-                                <textarea class="form-control" name="descricao_problema" rows="3"></textarea>
+                                <textarea class="form-control" name="descricao_problema" rows="3"><?php
+                                                                                                    if ($dados_avaria) {
+                                                                                                        echo "RELATO DE AVARIA (#" . $dados_avaria['id'] . "): " . $dados_avaria['nome_componente'] . " - " . $dados_avaria['observacoes_avaria'];
+                                                                                                    }
+                                                                                                    ?></textarea>
                             </div>
                         </div>
 
