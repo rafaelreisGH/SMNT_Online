@@ -220,3 +220,63 @@ function atualizarNotificacoesSino() {
 // Chama a cada 5 minutos ou ao trocar de página
 setInterval(atualizarNotificacoesSino, 300000);
 atualizarNotificacoesSino();
+
+window.atualizarNotificacoes = function () {
+    const token = localStorage.getItem('smnt_token');
+    if (!token) return;
+
+    fetch('api/get_notificacoes.php', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    })
+        .then(r => r.json())
+        .then(data => {
+            const contador = document.getElementById('notificacao-contador');
+            const container = document.getElementById('container-notificacoes-itens');
+
+            if (data.total > 0) {
+                contador.innerText = data.total > 9 ? '9+' : data.total;
+                contador.classList.remove('d-none');
+
+                let html = '';
+                data.notificacoes.forEach(n => {
+                    const iconClass = n.tipo === 'avaria' ? 'bg-danger' : 'bg-warning';
+                    const icon = n.tipo === 'avaria' ? 'fa-exclamation-triangle' : 'fa-wrench';
+
+                    html += `
+                <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="clicarNotificacao(${n.id}, '${n.link_id}')">
+                    <div class="mr-3">
+                        <div class="icon-circle ${iconClass} text-white"><i class="fas ${icon}"></i></div>
+                    </div>
+                    <div>
+                        <div class="small text-gray-500">${new Date(n.criada_em).toLocaleString()}</div>
+                        <span class="font-weight-bold">${n.titulo}</span>
+                        <div class="small text-truncate" style="max-width: 200px;">${n.mensagem}</div>
+                    </div>
+                </a>`;
+                });
+                container.innerHTML = html;
+            } else {
+                contador.classList.add('d-none');
+                container.innerHTML = '<p class="small text-center p-3 text-muted">Nenhuma notificação nova.</p>';
+            }
+        });
+};
+
+window.clicarNotificacao = function (id, link) {
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('marcar_lida', 1);
+
+    fetch('api/get_notificacoes.php', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') },
+        body: fd
+    }).then(() => {
+        if (link) loadPage(link);
+        atualizarNotificacoes();
+    });
+};
+
+// Inicia o pooling (ex: a cada 2 minutos)
+setInterval(atualizarNotificacoes, 120000);
+document.addEventListener('DOMContentLoaded', atualizarNotificacoes);

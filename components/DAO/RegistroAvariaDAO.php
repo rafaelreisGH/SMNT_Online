@@ -1,6 +1,7 @@
 <?php
 // components/DAO/RegistroAvariaDAO.php
 require_once __DIR__ . '/../../components/ConexaoDB/conexao.php';
+require_once __DIR__ . '/NotificacaoDAO.php';
 
 class RegistroAvariaDAO
 {
@@ -83,16 +84,43 @@ class RegistroAvariaDAO
     public function inserir(array $data)
     {
         $sql = "INSERT INTO registro_avaria (viatura_id, tipo_avaria_id, condutor_id, data_registro, observacoes_avaria) 
-                VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :data_registro, :observacoes)";
+            VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :data_registro, :observacoes)";
 
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
-        $stmt->bindValue(':tipo_avaria_id', $data['tipo_avaria_id'], PDO::PARAM_INT);
-        $stmt->bindValue(':condutor_id', $data['condutor_id'], PDO::PARAM_INT);
-        $stmt->bindValue(':data_registro', $data['data_registro']);
-        $stmt->bindValue(':observacoes', $data['observacoes_avaria'], PDO::PARAM_STR);
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':tipo_avaria_id', $data['tipo_avaria_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':condutor_id', $data['condutor_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':data_registro', $data['data_registro']);
+            $stmt->bindValue(':observacoes', $data['observacoes_avaria'], PDO::PARAM_STR);
 
-        return $stmt->execute();
+            // 1. Executa a inserção da avaria primeiro
+            $res = $stmt->execute();
+
+            // 2. Se salvou no banco, agora disparamos a notificação
+            if ($res) {
+                // Buscamos os dados da viatura para a mensagem não ficar "vazia"
+                $vDAO = new ViaturaDAO();
+                $v = $vDAO->getViaturaById($data['viatura_id']);
+
+                // Instanciamos o NotificacaoDAO para enviar os alertas
+                require_once __DIR__ . '/NotificacaoDAO.php';
+                $nDAO = new NotificacaoDAO();
+
+                $nDAO->dispararEvento(
+                    (int)$v['lotacao_atual_id'],
+                    "Nova Avaria Relatada",
+                    "A viatura {$v['prefixo']} {$v['numero']} apresenta um problema.",
+                    "avaria",
+                    "pages/pesquisar_avaria.php"
+                );
+            }
+
+            // 3. Só agora retornamos o resultado para a API
+            return $res;
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao registrar avaria: " . $e->getMessage());
+        }
     }
 
     public function buscarDetalhesPorId(int $id)
