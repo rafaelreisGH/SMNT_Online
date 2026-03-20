@@ -582,15 +582,20 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                     modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
 
                     // Busca os detalhes da viatura na nossa nova API
-                    fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`)
-                        .then(response => response.text())
-                        .then(html => {
-                            // Preenche o corpo do modal com o HTML recebido
-                            modalBody.innerHTML = html;
+                    fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`, {
+                            headers: {
+                                // ESSA LINHA RESOLVE O ERRO DA IMAGEM:
+                                'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                            }
                         })
-                        .catch(error => {
-                            modalBody.innerHTML = '<div class="alert alert-danger">Erro ao carregar os detalhes.</div>';
-                            console.error('Erro ao buscar detalhes da viatura:', error);
+                        .then(response => {
+                            // Se o middleware barrar, response.text() retornará o JSON de erro.
+                            // O ideal é tratar isso:
+                            if (response.status === 401) return "Sessão expirada. Faça login novamente.";
+                            return response.text();
+                        })
+                        .then(html => {
+                            modalBody.innerHTML = html;
                         });
                 });
             }

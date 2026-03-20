@@ -4,15 +4,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Carrega a autenticação primeiro para habilitar o RBAC no DAO
+// 1. Proteção e Dependências
 require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/UnidadeDAO.php';
+require_once '../components/DAO/PlanoManutencaoDAO.php'; // ADICIONADO
 require_once '../api/validate_functions_editar_viatura.php';
 
-// Busca as unidades REAIS do banco de dados para o select
+// 2. Busca de dados para os Selects
 $unidadeDAO = new UnidadeDAO();
 $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
+
+$pDAO = new PlanoManutencaoDAO();
+$listaPlanos = $pDAO->listarTodos(); // ADICIONADO: Agora os planos aparecerão no select
 ?>
 
 <div class="container-fluid">
@@ -25,7 +29,6 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                     <h6 class="ms-3 font-weight-bold text-primary">Formulário de cadastro</h6>
                 </div>
                 <div class="card-body mx-3 my-3">
-                    <!-- Removido o 'action', pois o processamento será via JS -->
                     <form id="cadastrarViaturaForm" novalidate>
 
                         <ul class="nav nav-tabs mb-4" id="viaturaTab" role="tablist">
@@ -132,8 +135,8 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                                         <div class="invalid-feedback" id="error-lotacao_atual_id"></div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="plano_id" class="form-label">Plano de Manutenção Preventiva</label>
-                                        <select class="form-select" id="plano_id" name="plano_id">
+                                        <label for="plano_id" class="form-label text-primary fw-bold">Plano de Manutenção Preventiva</label>
+                                        <select class="form-select border-primary" id="plano_id" name="plano_id">
                                             <option value="">Nenhum plano associado</option>
                                             <?php foreach ($listaPlanos as $plano): ?>
                                                 <option value="<?= $plano['id'] ?>">
@@ -141,7 +144,7 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
-                                        <small class="text-muted">Define as regras de troca de óleo, revisão de bomba, etc.</small>
+                                        <small class="text-muted">Define as regras de trocas e revisões para este modelo.</small>
                                     </div>
                                 </div>
                             </div>
@@ -210,78 +213,148 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
     </div>
 
     <script>
-        // Função para submissão via AJAX
-        document.getElementById('cadastrarViaturaForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const form = this;
-            const btn = document.getElementById('btnSalvar');
-            const formData = new FormData(form);
-
-            // Limpa estados de erro anteriores
-            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-            btn.disabled = true;
-
-            fetch('api/processar_cadastro_viatura.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                        form.reset(); // Limpa o formulário após sucesso
-                    } else {
-                        showToast(data.message, 'danger');
-                        if (data.errors) {
-                            // Mapeia os erros retornados pela API para os campos do formulário
-                            Object.keys(data.errors).forEach(key => {
-                                const input = form.querySelector(`[name="${key}"]`);
-                                const errorDiv = document.getElementById(`error-${key}`);
-                                if (input) input.classList.add('is-invalid');
-                                if (errorDiv) errorDiv.textContent = data.errors[key];
-                            });
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    showToast('Erro na comunicação com o servidor.', 'danger');
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                });
-        });
-
-        function limparFormulario() {
+        (function() {
             const form = document.getElementById('cadastrarViaturaForm');
-            form.reset();
-            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-            document.getElementById('tipo_operacional').focus();
-        }
+            const btn = document.getElementById('btnSalvar');
 
-        function showToast(message, type = 'success') {
-            const container = document.querySelector('.toast-container');
-            const bgColor = type === 'success' ? 'text-bg-success' : 'text-bg-danger';
-            const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-times-circle';
-            const id = `toast-${Date.now()}`;
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
 
-            const html = `
-                <div id="${id}" class="toast ${bgColor}" role="alert">
-                    <div class="toast-header">
-                        <i class="${icon} me-2"></i><strong class="me-auto">Sistema</strong>
-                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">${message}</div>
-                </div>`;
+                // 1. Reset visual inicial
+                form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                form.querySelectorAll('.nav-link').forEach(el => el.classList.remove('text-danger'));
 
-            container.insertAdjacentHTML('beforeend', html);
-            const toastEl = document.getElementById(id);
-            const bsToast = new bootstrap.Toast(toastEl, {
-                delay: 5000
+                // Feedback visual de carregamento
+                btn.disabled = true;
+                const originalBtnContent = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando...';
+
+                const formData = new FormData(form);
+
+                fetch('api/processar_cadastro_viatura.php', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        },
+                        body: formData
+                    })
+                    .then(async response => {
+                        // Tratamento para Sessão Expirada
+                        if (response.status === 401) {
+                            window.location.href = 'login.php';
+                            return;
+                        }
+
+                        // Tenta ler como texto primeiro para diagnosticar erros do PHP
+                        const text = await response.text();
+                        try {
+                            return JSON.parse(text);
+                        } catch (err) {
+                            console.error("Resposta do servidor não é um JSON válido:", text);
+                            throw new Error("Erro crítico no servidor. Verifique o console (F12).");
+                        }
+                    })
+                    .then(data => {
+                        if (!data) return;
+
+                        if (data.success) {
+                            // CASO DE SUCESSO
+                            showToast(data.message, 'success');
+                            form.reset();
+                            // Volta para a primeira aba
+                            const firstTabEl = document.querySelector('#viaturaTab button:first-child');
+                            const firstTab = new bootstrap.Tab(firstTabEl);
+                            firstTab.show();
+                        } else {
+                            // CASO DE ERRO DE VALIDAÇÃO OU BANCO
+                            showToast(data.message || "Houve erros no preenchimento.", 'danger');
+
+                            if (data.errors) {
+                                let primeiraAbaComErro = null;
+
+                                Object.keys(data.errors).forEach(key => {
+                                    // Tenta encontrar o campo (por ID ou Name)
+                                    const input = document.getElementById(key) || form.querySelector(`[name="${key}"]`);
+                                    const errorDiv = document.getElementById(`error-${key}`);
+
+                                    if (input) {
+                                        input.classList.add('is-invalid');
+
+                                        // Identifica a aba onde o erro está
+                                        const tabPane = input.closest('.tab-pane');
+                                        if (tabPane) {
+                                            const tabId = tabPane.id;
+                                            const tabButton = document.querySelector(`button[data-bs-target="#${tabId}"]`);
+                                            if (tabButton) {
+                                                tabButton.classList.add('text-danger');
+                                                if (!primeiraAbaComErro) primeiraAbaComErro = tabButton;
+                                            }
+                                        }
+                                    }
+
+                                    if (errorDiv) {
+                                        errorDiv.textContent = data.errors[key];
+                                        errorDiv.style.display = 'block';
+                                    }
+                                });
+
+                                // Se houver erro em uma aba escondida, pula para a primeira delas
+                                if (primeiraAbaComErro) {
+                                    const tab = new bootstrap.Tab(primeiraAbaComErro);
+                                    tab.show();
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro AJAX:', error);
+                        showToast(error.message, 'danger');
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnContent;
+                    });
             });
-            bsToast.show();
-            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-        }
+
+            // Função de Limpar Formulário
+            window.limparFormulario = function() {
+                if (!confirm("Deseja realmente limpar todos os campos?")) return;
+                form.reset();
+                form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                form.querySelectorAll('.nav-link').forEach(el => el.classList.remove('text-danger'));
+                document.getElementById('tipo_operacional').focus();
+            };
+
+            // Função de Toast local
+            function showToast(message, type = 'success') {
+                if (window.showToast) {
+                    window.showToast(message, type);
+                    return;
+                }
+                const container = document.querySelector('.toast-container');
+                if (!container) return;
+
+                const bgColor = type === 'success' ? 'text-bg-success' : 'text-bg-danger';
+                const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-times-circle';
+                const id = `toast-${Date.now()}`;
+                const html = `
+                <div id="${id}" class="toast ${bgColor} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="${icon} me-2"></i> ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+                const toastEl = document.getElementById(id);
+                const bsToast = new bootstrap.Toast(toastEl, {
+                    delay: 5000
+                });
+                bsToast.show();
+                toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+            }
+        })();
     </script>
-</div>

@@ -1,7 +1,7 @@
-// ARQUIVO: main-ajax.js (VERSÃO FINAL AJUSTADA)
+// ARQUIVO: main-ajax.js
 
 /**
- * Sistema Global de Toasts
+ * Sistema Global de Toasts (Versão Minimalista)
  */
 window.showToast = function (message, type = 'success') {
     let toastContainer = document.querySelector('.toast-container');
@@ -11,15 +11,22 @@ window.showToast = function (message, type = 'success') {
         document.body.appendChild(toastContainer);
     }
 
-    const bgColorClass = { success: 'text-bg-success', danger: 'text-bg-danger', warning: 'text-bg-warning' }[type] || 'text-bg-info';
-    const iconClass = { success: 'bi-check-circle-fill', danger: 'bi-x-circle-fill', warning: 'bi-exclamation-triangle-fill' }[type] || 'bi-info-circle-fill';
-    const toastId = `liveToast-${Date.now()}`;
+    // Define a cor de fundo e garante contraste do texto (text-bg-*)
+    const bgColorClass = {
+        success: 'text-bg-success',
+        danger: 'text-bg-danger',
+        warning: 'text-bg-warning',
+        info: 'text-bg-info'
+    }[type] || 'text-bg-primary';
 
+    const toastId = `toast-${Date.now()}`;
+
+    // Estrutura simplificada: Texto à esquerda e botão de fechar à direita, sem ícones.
     const toastHtml = `
-        <div id="${toastId}" class="toast ${bgColorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="${toastId}" class="toast align-items-center ${bgColorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">
-                    <i class="bi ${iconClass} me-2"></i> ${message}
+                    ${message}
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -27,10 +34,41 @@ window.showToast = function (message, type = 'success') {
 
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
     const toastEl = document.getElementById(toastId);
+
     const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
     toast.show();
+
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 }
+
+/**
+ * Função para atualizar visualmente o Menu Lateral (Sidebar)
+ */
+window.updateActiveSidebar = function (url) {
+    document.querySelectorAll('#accordionSidebar .nav-item').forEach(li => li.classList.remove('active'));
+    document.querySelectorAll('#accordionSidebar .collapse-item').forEach(a => a.classList.remove('active'));
+
+    const cleanUrl = url.split('?')[0];
+
+    document.querySelectorAll('#accordionSidebar a').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(cleanUrl)) {
+            if (link.classList.contains('collapse-item')) {
+                link.classList.add('active');
+                const collapseDiv = link.closest('.collapse');
+                if (collapseDiv) {
+                    const bsCollapse = new bootstrap.Collapse(collapseDiv, { toggle: false });
+                    bsCollapse.show();
+                    const parentLi = collapseDiv.closest('.nav-item');
+                    if (parentLi) parentLi.classList.add('active');
+                }
+            } else {
+                const parentLi = link.closest('.nav-item');
+                if (parentLi) parentLi.classList.add('active');
+            }
+        }
+    });
+};
 
 /**
  * Função de Navegação Global (SPA)
@@ -40,6 +78,8 @@ window.loadPage = function (url) {
     const mainContentArea = document.getElementById('main-content-area');
 
     if (!mainContentArea) return;
+
+    window.updateActiveSidebar(url);
 
     mainContentArea.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-danger"></i><br><small>Carregando...</small></div>';
 
@@ -76,43 +116,12 @@ window.loadPage = function (url) {
 };
 
 /**
- * Item 2: Atualiza o nome e a foto do usuário no Topbar (FUNÇÃO GLOBAL)
- */
-window.updateUIUserInfo = function () {
-    const nome = localStorage.getItem('user_nome');
-    const perfil = localStorage.getItem('user_perfil');
-    const foto = localStorage.getItem('user_foto');
-
-    const displayNome = document.getElementById('user-name-display');
-    const displayFoto = document.getElementById('user-img-topbar');
-
-    // 1. Atualiza o Texto (Nome e Perfil)
-    if (displayNome && nome) {
-        const primeiroNome = nome.split(' ')[0];
-        displayNome.innerText = `${primeiroNome} (${perfil})`;
-    }
-
-    // 2. Atualiza a Miniatura (Foto)
-    if (displayFoto) {
-        // Se houver foto no localStorage e não for nula/vazia
-        if (foto && foto !== 'null' && foto !== '' && foto !== 'undraw_profile.svg') {
-            // Caminho para fotos enviadas pelo usuário
-            displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
-        } else {
-            // Caminho para a sua imagem padrão SVG conforme sua estrutura
-            displayFoto.src = `assets/uploads/perfil/undraw_profile.svg`;
-        }
-    }
-}
-
-/**
  * Atualiza o ícone do SINO (Notificações de Sistema)
  */
 window.atualizarNotificacoes = function () {
     const token = localStorage.getItem('smnt_token');
     const contador = document.getElementById('notificacao-contador');
     const container = document.getElementById('container-notificacoes-itens');
-
     if (!token || !contador || !container) return;
 
     fetch('api/get_notificacoes.php', {
@@ -123,7 +132,6 @@ window.atualizarNotificacoes = function () {
             if (data.total > 0) {
                 contador.innerText = data.total > 9 ? '9+' : data.total;
                 contador.classList.remove('d-none');
-
                 let html = '';
                 data.notificacoes.forEach(n => {
                     const iconClass = n.tipo === 'avaria' ? 'bg-danger' : 'bg-warning';
@@ -148,7 +156,6 @@ window.atualizarMensagensTopbar = function () {
     const token = localStorage.getItem('smnt_token');
     const contador = document.getElementById('msg-contador');
     const container = document.getElementById('container-mensagens-itens');
-
     if (!token || !contador || !container) return;
 
     fetch('api/processar_mensagens.php?acao=listar&lida=0&pasta=entrada', {
@@ -158,19 +165,15 @@ window.atualizarMensagensTopbar = function () {
         .then(data => {
             const mensagens = data.mensagens || [];
             const total = mensagens.length;
-
             if (total > 0) {
                 contador.innerText = total > 9 ? '9+' : total;
                 contador.classList.remove('d-none');
-
                 let html = '';
                 mensagens.slice(0, 4).forEach(m => {
                     html += `
                 <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="window.loadPage('pages/mensagens.php?id=${m.id}')">
                     <div class="dropdown-list-image mr-3">
-                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width:40px; height:40px">
-                            <i class="fas fa-user"></i>
-                        </div>
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width:40px; height:40px"><i class="fas fa-user"></i></div>
                     </div>
                     <div class="font-weight-bold">
                         <div class="text-truncate">${m.assunto || '(Sem assunto)'}</div>
@@ -183,75 +186,49 @@ window.atualizarMensagensTopbar = function () {
                 contador.classList.add('d-none');
                 container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhuma mensagem nova.</p>';
             }
-        })
-        .catch(() => {
-            if (contador) contador.classList.add('d-none');
         });
 };
 
+window.clicarNotificacao = function (id, link) {
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('marcar_lida', 1);
+
+    fetch('api/get_notificacoes.php', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') },
+        body: fd
+    }).then(() => {
+        if (link) window.loadPage(link);
+        atualizarNotificacoes();
+    });
+};
+
 /**
- * Lógica da Busca Global Inteligente
+ * Item 2: Atualiza o nome e a foto do usuário no Topbar
  */
-function initGlobalSearch() {
-    const searchInput = document.getElementById('globalSearchInput');
-    const resultsDiv = document.getElementById('globalSearchResults');
-    let debounceTimer;
+window.updateUIUserInfo = function () {
+    const nome = localStorage.getItem('user_nome');
+    const perfil = localStorage.getItem('user_perfil');
+    const foto = localStorage.getItem('user_foto');
 
-    if (!searchInput || !resultsDiv) return;
+    const displayNome = document.getElementById('user-name-display');
+    const displayFoto = document.getElementById('user-img-topbar');
 
-    searchInput.addEventListener('input', function () {
-        const query = this.value.trim();
-        clearTimeout(debounceTimer);
-        if (query.length < 2) {
-            resultsDiv.style.display = 'none';
-            return;
+    if (displayNome && nome) {
+        const primeiroNome = nome.split(' ')[0];
+        displayNome.innerText = `${primeiroNome} (${perfil})`;
+    }
+
+    if (displayFoto) {
+        if (foto && foto !== 'null' && foto !== '' && foto !== 'undraw_profile.svg') {
+            displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
+        } else {
+            displayFoto.src = `assets/uploads/perfil/undraw_profile.svg`;
         }
-
-        debounceTimer = setTimeout(() => {
-            fetch(`api/search_global.php?q=${encodeURIComponent(query)}`, {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') }
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        let html = '';
-                        data.forEach(item => {
-                            html += `
-                        <a class="dropdown-item d-flex align-items-center py-2" href="javascript:void(0)" 
-                           onclick="window.loadPage('${item.link}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';" 
-                           style="border-bottom: 1px solid #f8f9fc;">
-                            <div class="mr-3">
-                                <div class="icon-circle ${item.cor} bg-light p-2 rounded-circle text-center" style="width:35px; height:35px">
-                                    <i class="${item.icone}"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="small text-gray-500 text-uppercase" style="font-size: 0.65rem;">${item.subtitulo}</div>
-                                <span class="font-weight-bold" style="font-size: 0.85rem;">${item.titulo}</span>
-                            </div>
-                        </a>`;
-                        });
-                        resultsDiv.innerHTML = html;
-                        resultsDiv.style.display = 'block';
-                    } else {
-                        resultsDiv.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhum resultado encontrado.</p>';
-                        resultsDiv.style.display = 'block';
-                    }
-                });
-        }, 400);
-    });
-
-    document.addEventListener('click', function (e) {
-        const form = document.getElementById('globalSearchForm');
-        if (form && !form.contains(e.target)) {
-            resultsDiv.style.display = 'none';
-        }
-    });
+    }
 }
 
-/**
- * Função de Logout
- */
 window.handleLogout = function () {
     localStorage.clear();
     window.location.href = 'login.php';
@@ -261,12 +238,10 @@ window.handleLogout = function () {
  * Inicialização ao carregar o DOM
  */
 document.addEventListener('DOMContentLoaded', function () {
-    // Agora chama a função global
     window.updateUIUserInfo();
-
     atualizarNotificacoes();
     atualizarMensagensTopbar();
-    initGlobalSearch();
+    if (typeof initGlobalSearch === 'function') initGlobalSearch();
 
     setInterval(atualizarNotificacoes, 120000);
     setInterval(atualizarMensagensTopbar, 120000);

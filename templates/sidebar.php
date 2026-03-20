@@ -152,6 +152,22 @@
                     </div>
                 </div>
             </li>
+            
+            <!-- Nav Item - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMovimento"
+                    aria-expanded="true" aria-controls="collapseMovimento">
+                    <i class="fas fa-fw fa-random"></i>
+                    <span>Movimentação</span>
+                </a>
+                <div id="collapseMovimento" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Opções de movimentação:</h6>
+                        <a class="collapse-item" href="../pages/transferir_viatura.php">Transferir Viatura</a>
+                        <a class="collapse-item" href="../pages/confirmar_recebimento.php">Confirmar Recebimento</a>
+                    </div>
+                </div>
+            </li>
 
             <!-- Divider -->
             <hr class="sidebar-divider">

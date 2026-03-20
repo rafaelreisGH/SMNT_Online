@@ -32,7 +32,7 @@ class ViaturaDAO
                     $sql = " AND {$aliasUnidade}.comando_regional_id = :rbac_crbm_id";
                     $params[':rbac_crbm_id'] = $user['comando_regional_id'];
                     break;
-                // Admin e Gestor Central não recebem filtros (vêem tudo)
+                    // Admin e Gestor Central não recebem filtros (vêem tudo)
             }
         }
         return ['sql' => $sql, 'params' => $params];
@@ -44,7 +44,7 @@ class ViaturaDAO
     public function getViaturaById($id)
     {
         $rbac = $this->aplicarEscopoRBAC();
-        
+
         $query = "SELECT v.* FROM {$this->table_name} v
                   JOIN unidades u ON v.lotacao_atual_id = u.id
                   WHERE v.id = :id {$rbac['sql']} LIMIT 1";
@@ -132,7 +132,7 @@ class ViaturaDAO
     public function buscarDetalhesViaturaPorId(int $id)
     {
         $rbac = $this->aplicarEscopoRBAC();
-        
+
         $sql = "SELECT v.*, u.nome as unidade_nome 
                 FROM viaturas v
                 JOIN unidades u ON v.lotacao_atual_id = u.id
@@ -206,7 +206,8 @@ class ViaturaDAO
     }
 
     // Métodos de checagem de unicidade (Globais, sem filtro de unidade por segurança de dados)
-    public function existsByPlaca(string $placa, ?int $excludeId = null): bool {
+    public function existsByPlaca(string $placa, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM viaturas WHERE placa = :placa" . ($excludeId ? " AND id != :ex" : "");
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':placa', $placa);
@@ -215,7 +216,8 @@ class ViaturaDAO
         return $stmt->fetchColumn() > 0;
     }
 
-    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool {
+    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM viaturas WHERE renavam = :renavam" . ($excludeId ? " AND id != :ex" : "");
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':renavam', $renavam);
@@ -224,7 +226,8 @@ class ViaturaDAO
         return $stmt->fetchColumn() > 0;
     }
 
-    public function existsByNumero(int $numero, ?int $excludeId = null): bool {
+    public function existsByNumero(int $numero, ?int $excludeId = null): bool
+    {
         $sql = "SELECT COUNT(*) FROM viaturas WHERE numero = :numero" . ($excludeId ? " AND id != :ex" : "");
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':numero', $numero, PDO::PARAM_INT);
@@ -239,12 +242,13 @@ class ViaturaDAO
     public function listarTodasParaSelect(): array
     {
         $rbac = $this->aplicarEscopoRBAC();
-        
-        $sql = "SELECT v.id, v.prefixo, v.numero, v.modelo, v.placa 
-                FROM viaturas v
-                JOIN unidades u ON v.lotacao_atual_id = u.id
-                WHERE 1=1 {$rbac['sql']}
-                ORDER BY v.prefixo ASC, v.numero ASC";
+
+        // ADICIONADO: lotacao_atual_id na consulta
+        $sql = "SELECT v.id, v.prefixo, v.numero, v.modelo, v.placa, v.lotacao_atual_id 
+            FROM viaturas v
+            JOIN unidades u ON v.lotacao_atual_id = u.id
+            WHERE 1=1 {$rbac['sql']}
+            ORDER BY v.prefixo ASC, v.numero ASC";
 
         try {
             $stmt = $this->conn->prepare($sql);
