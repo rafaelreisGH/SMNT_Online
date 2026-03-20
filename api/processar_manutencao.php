@@ -2,6 +2,7 @@
 header('Content-Type: application/json');
 require_once 'middleware_auth.php'; // Proteção JWT
 require_once '../components/DAO/ManutencaoDAO.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => ''];
 
@@ -17,6 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $mDAO = new ManutencaoDAO();
             if ($mDAO->inserirManutencao($data)) {
+                LoggerService::registrar("Abriu ordem de manutenção", "manutencoes");
+
                 $response['success'] = true;
                 $response['message'] = "Ordem de Manutenção aberta com sucesso!";
             }

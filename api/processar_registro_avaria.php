@@ -3,6 +3,7 @@
 header('Content-Type: application/json');
 require_once 'middleware_auth.php';
 require_once '../components/DAO/RegistroAvariaDAO.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => '', 'errors' => []];
 
@@ -19,6 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $dao = new RegistroAvariaDAO();
             if ($dao->inserir($data)) {
+                LoggerService::registrar("Registrou avaria na viatura ID " . $data['viatura_id'], "registro_avaria");
+
                 $response['success'] = true;
                 $response['message'] = "Avaria registrada com sucesso! A viatura agora pode ser encaminhada para manutenção.";
             }

@@ -5,6 +5,8 @@
 // Adapte o caminho conforme a sua estrutura de diretórios.
 require_once 'middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
+require_once '../components/Log/LoggerService.php';
+
 $conn = Conexao::getConexao(); // Use $conn para a conexão PDO
 
 header('Content-Type: application/json'); // Define o cabeçalho para JSON

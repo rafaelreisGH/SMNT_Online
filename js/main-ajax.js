@@ -1,4 +1,4 @@
-// ARQUIVO: main-ajax.js
+// ARQUIVO: main-ajax.js (VERSÃO FINAL AJUSTADA)
 
 /**
  * Sistema Global de Toasts
@@ -62,7 +62,6 @@ window.loadPage = function (url) {
             if (!html) return;
             mainContentArea.innerHTML = html;
 
-            // Re-executa os scripts das páginas carregadas
             const scripts = mainContentArea.querySelectorAll('script');
             scripts.forEach(script => {
                 const newScript = document.createElement('script');
@@ -75,6 +74,36 @@ window.loadPage = function (url) {
             mainContentArea.innerHTML = '<div class="alert alert-danger p-4">Erro de rede ao carregar a página.</div>';
         });
 };
+
+/**
+ * Item 2: Atualiza o nome e a foto do usuário no Topbar (FUNÇÃO GLOBAL)
+ */
+window.updateUIUserInfo = function () {
+    const nome = localStorage.getItem('user_nome');
+    const perfil = localStorage.getItem('user_perfil');
+    const foto = localStorage.getItem('user_foto');
+
+    const displayNome = document.getElementById('user-name-display');
+    const displayFoto = document.getElementById('user-img-topbar');
+
+    // 1. Atualiza o Texto (Nome e Perfil)
+    if (displayNome && nome) {
+        const primeiroNome = nome.split(' ')[0];
+        displayNome.innerText = `${primeiroNome} (${perfil})`;
+    }
+
+    // 2. Atualiza a Miniatura (Foto)
+    if (displayFoto) {
+        // Se houver foto no localStorage e não for nula/vazia
+        if (foto && foto !== 'null' && foto !== '' && foto !== 'undraw_profile.svg') {
+            // Caminho para fotos enviadas pelo usuário
+            displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
+        } else {
+            // Caminho para a sua imagem padrão SVG conforme sua estrutura
+            displayFoto.src = `assets/uploads/perfil/undraw_profile.svg`;
+        }
+    }
+}
 
 /**
  * Atualiza o ícone do SINO (Notificações de Sistema)
@@ -172,7 +201,6 @@ function initGlobalSearch() {
 
     searchInput.addEventListener('input', function () {
         const query = this.value.trim();
-
         clearTimeout(debounceTimer);
         if (query.length < 2) {
             resultsDiv.style.display = 'none';
@@ -222,21 +250,7 @@ function initGlobalSearch() {
 }
 
 /**
- * Item 2: Atualiza o nome do usuário no Topbar
- */
-function updateUIUserInfo() {
-    const nome = localStorage.getItem('user_nome');
-    const perfil = localStorage.getItem('user_perfil');
-    const displayElement = document.getElementById('user-name-display');
-
-    if (displayElement && nome) {
-        const primeiroNome = nome.split(' ')[0];
-        displayElement.innerText = `${primeiroNome} (${perfil})`;
-    }
-}
-
-/**
- * Item 3: Função de Logout
+ * Função de Logout
  */
 window.handleLogout = function () {
     localStorage.clear();
@@ -247,7 +261,9 @@ window.handleLogout = function () {
  * Inicialização ao carregar o DOM
  */
 document.addEventListener('DOMContentLoaded', function () {
-    updateUIUserInfo();
+    // Agora chama a função global
+    window.updateUIUserInfo();
+
     atualizarNotificacoes();
     atualizarMensagensTopbar();
     initGlobalSearch();

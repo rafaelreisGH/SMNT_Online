@@ -3,6 +3,7 @@
 header('Content-Type: application/json');
 require_once 'middleware_auth.php'; // Protegido!
 require_once '../components/DAO/UsuarioDAO.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => ''];
 
@@ -19,6 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userDAO = new UsuarioDAO();
             // USER_AUTH vem do middleware_auth.php (dados extraídos do JWT)
             if ($userDAO->atualizarSenha(USER_AUTH['id'], $novaSenha)) {
+                LoggerService::registrar("Alterou a própria senha de acesso", "usuarios", USER_AUTH['id']);
+
                 $response['success'] = true;
                 $response['message'] = "Senha atualizada com sucesso!";
             }

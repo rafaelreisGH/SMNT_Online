@@ -3,6 +3,7 @@
 header('Content-Type: application/json');
 require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/Auth/JwtHandler.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => ''];
 
@@ -15,8 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $db = Conexao::getConexao();
-            // AJUSTE 1: Adicionado u.trocar_senha na consulta SQL
-            $sql = "SELECT u.id, u.nome, u.senha_hash, u.unidade_id, u.trocar_senha,
+            $sql = "SELECT u.id, u.nome, u.senha_hash, u.unidade_id, u.trocar_senha, u.foto,
                            p.id as perfil_id, p.nome as perfil_nome,
                            un.comando_regional_id
                     FROM usuarios u
@@ -30,18 +30,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // AJUSTE 2: Limpeza do bloco duplicado
                 if (password_verify($senha, $user['senha_hash'])) {
                     $jwt = new JwtHandler();
                     $token = $jwt->gerarToken($user);
 
+                    LoggerService::registrar("Realizou login no sistema", "usuarios", $user['id']);
+
                     $response['success'] = true;
                     $response['token'] = $token;
                     // Informa ao frontend se o usuário deve ser enviado para trocar senha
-                    $response['require_new_password'] = (bool)$user['trocar_senha']; 
+                    $response['require_new_password'] = (bool)$user['trocar_senha'];
                     $response['user'] = [
                         'nome' => $user['nome'],
-                        'perfil' => $user['perfil_nome']
+                        'perfil' => $user['perfil_nome'],
+                        'foto' => $user['foto']
                     ];
                 } else {
                     error_log("Falha de senha para o CPF: " . $cpf);

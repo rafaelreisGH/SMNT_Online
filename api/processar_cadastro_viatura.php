@@ -3,9 +3,10 @@
 header('Content-Type: application/json');
 
 // O Middleware deve vir primeiro para validar o Token
-require_once 'middleware_auth.php'; 
+require_once 'middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once 'validate_functions_editar_viatura.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => '', 'errors' => []];
 
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // No cadastro, o ID não é necessário
     unset($validation_errors['id']);
-    
+
     // Remove campos que não pertencem ao schema da tabela conforme sua regra
     unset($data_from_form['tipo_carroceria']);
     unset($data_from_form['equipamentos_especificos']);
@@ -32,6 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($data_from_form['id']);
 
             if ($viaturaDAO->insertViatura($data_from_form)) {
+                // Registra o LOG
+                LoggerService::registrar("Cadastrou nova viatura: " . $data_from_form['prefixo'], "viaturas");
+
                 $response['success'] = true;
                 $response['message'] = "Viatura cadastrada com sucesso!";
             } else {

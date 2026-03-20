@@ -3,6 +3,7 @@
 header('Content-Type: application/json');
 require_once 'middleware_auth.php';
 require_once '../components/DAO/CondutorDAO.php';
+require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => ''];
 $acao = $_GET['acao'] ?? '';
@@ -16,6 +17,9 @@ try {
         $status = $_POST['status'] ?? null;
         if ($id && $status) {
             if ($dao->alterarStatus($id, $status)) {
+                // Registra o LOG
+                LoggerService::registrar("Alterou status do condutor ID $id para $status", "condutor", $id);
+
                 $response['success'] = true;
                 $response['message'] = "Status atualizado com sucesso!";
             }
@@ -43,6 +47,8 @@ try {
             ];
 
             if ($dao->inserirCondutor($condutorData)) {
+                LoggerService::registrar("Cadastrou novo condutor: " . $condutorData['nome'], "condutor");
+
                 $response['success'] = true;
                 $response['message'] = "Condutor cadastrado com sucesso!";
             }
