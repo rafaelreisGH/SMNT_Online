@@ -31,11 +31,16 @@ class UsuarioDAO
     // Usado pelo usuário no primeiro acesso ou troca voluntária
     public function atualizarSenha($usuarioId, $novaSenha)
     {
+        // Atualiza o hash e garante que trocar_senha seja 0 (falso)
         $sql = "UPDATE usuarios SET senha_hash = :hash, trocar_senha = 0 WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':hash', password_hash($novaSenha, PASSWORD_DEFAULT));
-        $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
-        return $stmt->execute();
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':hash', password_hash($novaSenha, PASSWORD_DEFAULT));
+            $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao atualizar senha no banco: " . $e->getMessage());
+        }
     }
 
     /**

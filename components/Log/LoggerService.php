@@ -24,7 +24,7 @@ class MySQLHandler extends AbstractProcessingHandler
         $c = $record->context;
 
         $sql = "INSERT INTO logs_atividades (usuario_id, acao, tabela, registro_id, detalhes, ip) 
-                VALUES (:u_id, :acao, :tab, :reg, :det, :ip)";
+        VALUES (:u_id, :acao, :tab, :reg, :det, :ip)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
