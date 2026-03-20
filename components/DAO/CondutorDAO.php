@@ -59,41 +59,41 @@ class CondutorDAO
      */
     public function updateCondutor(array $data): bool
     {
-        $sql = "UPDATE " . $this->table_name . " SET 
-                    nome = :nome, 
-                    cpf = :cpf, 
-                    numero_cnh = :numero_cnh, 
-                    categoria_cnh = :categoria_cnh, 
-                    data_validade_cnh = :data_validade_cnh, 
-                    anotacao_ear = :anotacao_ear, 
-                    rg_militar = :rg_militar, 
-                    posto_grad = :posto_grad, 
-                    ubm_id = :ubm_id, 
-                    status = :status 
-                WHERE id = :id";
+        $sql = "UPDATE " . $this->table_name . " SET
+            nome = :nome,
+            cpf = :cpf,
+            numero_cnh = :numero_cnh,
+            categoria_cnh = :categoria_cnh,
+            data_validade_cnh = :data_validade_cnh,
+            anotacao_ear = :anotacao_ear,
+            rg_militar = :rg_militar,
+            posto_grad = :posto_grad,
+            ubm_id = :ubm_id,
+            status = :status
+        WHERE id = :id";
 
         try {
             $stmt = $this->conn->prepare($sql);
 
-            $stmt->bindValue(':nome', $data['nome'] ?? null);
-            $stmt->bindValue(':cpf', $data['cpf'] ?? null);
+            $stmt->bindValue(':nome', trim($data['nome']));
+            $stmt->bindValue(':cpf', preg_replace('/\D/', '', $data['cpf']));
             $stmt->bindValue(':numero_cnh', $data['numero_cnh'] ?? null);
             $stmt->bindValue(':categoria_cnh', $data['categoria_cnh'] ?? null);
             $stmt->bindValue(':data_validade_cnh', !empty($data['data_validade_cnh']) ? $data['data_validade_cnh'] : null);
-
-            // Tratamento para checkbox (anotacao_ear)
             $stmt->bindValue(':anotacao_ear', isset($data['anotacao_ear']) ? 1 : 0, PDO::PARAM_INT);
-
             $stmt->bindValue(':rg_militar', $data['rg_militar'] ?? null);
             $stmt->bindValue(':posto_grad', $data['posto_grad'] ?? null);
-            $stmt->bindValue(':ubm_id', !empty($data['ubm_id']) ? $data['ubm_id'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':status', $data['status'] ?? 'ativo');
+            $stmt->bindValue(':ubm_id', $data['ubm_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':status', $data['status']);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
 
-            return $stmt->execute();
+            $stmt->execute();
+
+            // Retorna TRUE apenas se o banco de dados sofreu alteração (dados diferentes)
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            if ($e->getCode() == '23000') throw new Exception("Erro: CPF, CNH ou RG já vinculados a outro condutor.");
-            throw new Exception("Erro ao atualizar condutor no banco de dados.");
+            if ($e->getCode() == '23000') throw new Exception("CPF ou CNH já vinculados a outro condutor.");
+            throw new Exception("Erro ao atualizar condutor.");
         }
     }
 

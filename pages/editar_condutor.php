@@ -1,66 +1,23 @@
 <?php
 // pages/editar_condutor.php
-
-require_once '../api/middleware_auth.php';
-require_once '../components/DAO/CondutorDAO.php';
-require_once '../components/DAO/UnidadeDAO.php'; // Adicionado para carregar unidades reais
+require_once __DIR__ . '/../api/middleware_auth.php';
+require_once __DIR__ . '/../components/DAO/CondutorDAO.php';
+require_once __DIR__ . '/../components/DAO/UnidadeDAO.php';
 
 $condutorDAO = new CondutorDAO();
 $unidadeDAO = new UnidadeDAO();
 
-// --- LÓGICA POST (API PARA ATUALIZAÇÃO) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json');
-    $response = ['success' => false, 'message' => '', 'errors' => []];
-    $data = $_POST;
-
-    // --- Validação Server-Side ---
-    if (empty(trim($data['nome']))) $response['errors']['nome'] = "O nome é obrigatório.";
-    if (empty(trim($data['cpf']))) $response['errors']['cpf'] = "O CPF é obrigatório.";
-    if (empty(trim($data['numero_cnh']))) $response['errors']['numero_cnh'] = "A CNH é obrigatória.";
-
-    if (!empty($response['errors'])) {
-        $response['message'] = "Por favor, preencha os campos obrigatórios.";
-        echo json_encode($response);
-        exit();
-    }
-
-    try {
-        // Sanitização básica antes de enviar ao DAO
-        $data['cpf'] = preg_replace('/\D/', '', $data['cpf']);
-
-        if ($condutorDAO->updateCondutor($data)) {
-            $response['success'] = true;
-            $response['message'] = "Dados do condutor atualizados com sucesso!";
-        } else {
-            $response['message'] = "Nenhuma alteração foi realizada (os dados podem ser os mesmos).";
-        }
-    } catch (Exception $e) {
-        error_log("Erro ao atualizar condutor: " . $e->getMessage());
-        $response['message'] = "Erro: " . $e->getMessage();
-    }
-
-    echo json_encode($response);
-    exit();
-}
-
-// --- LÓGICA GET (EXIBIÇÃO DO FORMULÁRIO) ---
 $id_condutor = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$id_condutor) {
-    echo "<div class='container-fluid'><div class='alert alert-danger'>ID de condutor inválido.</div></div>";
+    echo "<div class='container-fluid'><div class='alert alert-danger'>ID inválido.</div></div>";
     exit();
 }
 
-try {
-    $condutorData = $condutorDAO->getCondutorById($id_condutor);
-    $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando(); // Unidades reais
+$condutorData = $condutorDAO->getCondutorById($id_condutor);
+$unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
 
-    if (!$condutorData) {
-        echo "<div class='container-fluid'><div class='alert alert-warning'>Condutor não encontrado.</div></div>";
-        exit();
-    }
-} catch (Exception $e) {
-    echo "<div class='container-fluid'><div class='alert alert-danger'>Erro ao buscar dados.</div></div>";
+if (!$condutorData) {
+    echo "<div class='container-fluid'><div class='alert alert-warning'>Condutor não encontrado.</div></div>";
     exit();
 }
 ?>
@@ -84,6 +41,7 @@ try {
                         </ul>
 
                         <div class="tab-content" id="condutorEditTabContent">
+                            <!-- Aba Pessoais -->
                             <div class="tab-pane fade show active" id="edit-pessoais-pane" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-8">
@@ -97,6 +55,7 @@ try {
                                 </div>
                             </div>
 
+                            <!-- Aba CNH -->
                             <div class="tab-pane fade" id="edit-cnh-pane" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -104,14 +63,14 @@ try {
                                         <input type="text" class="form-control" name="numero_cnh" value="<?= htmlspecialchars($condutorData['numero_cnh'] ?? '') ?>" required>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label">Categoria CNH</label>
+                                        <label class="form-label">Categoria</label>
                                         <input type="text" class="form-control" name="categoria_cnh" value="<?= htmlspecialchars($condutorData['categoria_cnh'] ?? '') ?>" required>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label">Validade CNH</label>
+                                        <label class="form-label">Validade</label>
                                         <input type="date" class="form-control" name="data_validade_cnh" value="<?= htmlspecialchars($condutorData['data_validade_cnh'] ?? '') ?>" required>
                                     </div>
-                                    <div class="col-md-6 d-flex align-items-end">
+                                    <div class="col-md-6 d-flex align-items-end pb-1">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" value="1" name="anotacao_ear" id="ear" <?= (!empty($condutorData['anotacao_ear'])) ? 'checked' : '' ?>>
                                             <label class="form-check-label" for="ear">Possui EAR?</label>
@@ -120,10 +79,11 @@ try {
                                 </div>
                             </div>
 
+                            <!-- Aba Militares -->
                             <div class="tab-pane fade" id="edit-militares-pane" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">Identidade Militar (RG)</label>
+                                        <label class="form-label">RG Militar</label>
                                         <input type="text" class="form-control" name="rg_militar" value="<?= htmlspecialchars($condutorData['rg_militar'] ?? '') ?>">
                                     </div>
                                     <div class="col-md-6">
@@ -131,9 +91,9 @@ try {
                                         <select class="form-select" name="posto_grad">
                                             <?php
                                             $postos = ['Soldado', 'Cabo', 'Sargento', 'Subtenente', 'Tenente', 'Capitão', 'Major', 'Tenente-Coronel', 'Coronel'];
-                                            foreach ($postos as $posto) {
-                                                $sel = ($condutorData['posto_grad'] == $posto) ? 'selected' : '';
-                                                echo "<option value=\"$posto\" $sel>$posto</option>";
+                                            foreach ($postos as $p) {
+                                                $sel = ($condutorData['posto_grad'] == $p) ? 'selected' : '';
+                                                echo "<option value=\"$p\" $sel>$p</option>";
                                             }
                                             ?>
                                         </select>
@@ -167,7 +127,6 @@ try {
                         <hr class="my-4">
                         <div class="d-flex justify-content-between">
                             <button class="btn btn-outline-success" type="submit" id="btnSalvar"><i class="fas fa-save me-2"></i>Salvar Alterações</button>
-                            <!-- Alterado para <a> seguindo o padrão que funcionou nas Avarias -->
                             <a href="pages/pesquisar_condutor.php" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
                             </a>
@@ -197,17 +156,21 @@ try {
             const btn = document.getElementById('btnSalvar');
             btn.disabled = true;
 
-            fetch('pages/editar_condutor.php', {
+            // APONTANDO PARA A NOVA API
+            fetch('api/processar_edicao_condutor.php', {
                     method: 'POST',
                     headers: {
-                        // CORREÇÃO: Enviando o Token JWT
                         'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
                     },
                     body: new FormData(this)
                 })
                 .then(r => r.json())
                 .then(data => {
-                    showToast(data.message, data.success ? 'success' : 'danger');
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.message, 'danger');
+                    }
                 })
                 .catch(err => showToast("Erro de comunicação", "danger"))
                 .finally(() => btn.disabled = false);
