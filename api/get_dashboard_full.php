@@ -12,7 +12,8 @@ try {
         'resumo'    => $dao->getResumoStatus(),      // Cards numéricos
         'vencidos'  => $dao->getAlertasVencidos(),   // Garantias/Planos expirados
         'avarias'   => $dao->getAvariasPendentes(),  // Avarias sem OS ainda
-        'andamento' => $dao->getManutencoesAndamento() // Manutenções em curso
+        'andamento' => $dao->getManutencoesAndamento(), // Manutenções em curso
+        'transito'  => $dao->getTransferenciasEmTransito()
     ];
 
     echo json_encode($response);

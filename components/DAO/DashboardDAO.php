@@ -91,4 +91,37 @@ class DashboardDAO
             ORDER BY m.data_entrada ASC";
         return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getTransferenciasEmTransito()
+    {
+        $sql = "SELECT m.*, v.prefixo, v.numero, 
+                   uo.nome as unidade_origem, 
+                   ud.nome as unidade_destino
+            FROM movimentacoes_lotacao m
+            JOIN viaturas v ON m.viatura_id = v.id
+            JOIN unidades uo ON m.unidade_origem_id = uo.id
+            JOIN unidades ud ON m.unidade_destino_id = ud.id
+            WHERE m.status = 'Em Trânsito'";
+
+        $params = [];
+
+        if (defined('USER_AUTH')) {
+            $user = USER_AUTH;
+            if ($user['perfil'] === 'Gestor Local') {
+                // Vê se for origem OU se for destino
+                $sql .= " AND (m.unidade_origem_id = :u_id OR m.unidade_destino_id = :u_id)";
+                $params[':u_id'] = $user['unidade_id'];
+            } elseif ($user['perfil'] === 'Gestor Regional') {
+                // Vê se a origem ou destino pertencem ao seu Comando Regional
+                $sql .= " AND (uo.comando_regional_id = :crbm OR ud.comando_regional_id = :crbm)";
+                $params[':crbm'] = $user['comando_regional_id'];
+            }
+        }
+
+        $sql .= " ORDER BY m.data_movimentacao DESC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
