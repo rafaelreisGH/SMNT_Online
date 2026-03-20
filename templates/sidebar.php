@@ -354,7 +354,7 @@
                                 </a>
                                 <a class="dropdown-item" href="/pages/configuracoes.php">
                                     <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Configurações
+                                    Alterar senha
                                 </a>
                                 <a class="dropdown-item" href="/pages/logs_atividades.php">
                                     <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>

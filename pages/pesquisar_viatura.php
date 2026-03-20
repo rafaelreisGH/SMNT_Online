@@ -450,161 +450,151 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
     function initializePesquisaViaturaScripts() {
         const formPesquisa = document.getElementById('form-pesquisa-viatura');
         const areaResultados = document.getElementById('resultado-pesquisa');
+        const token = localStorage.getItem('smnt_token');
 
-        // Adiciona listener ao formulário de pesquisa (se ainda não tiver)
-        if (formPesquisa && !formPesquisa.hasAttribute('data-ajax-initialized')) {
+        if (!formPesquisa) return;
+
+        // --- FUNÇÃO PARA EXECUTAR A PESQUISA (Sem risco de recarregar) ---
+        const executarPesquisa = () => {
+            const formData = new FormData(formPesquisa);
+            areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Atualizando resultados...</div>';
+
+            fetch('pages/pesquisar_viatura.php', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: formData
+                })
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const novosResultados = doc.getElementById('resultado-pesquisa');
+                    if (novosResultados) {
+                        areaResultados.innerHTML = novosResultados.innerHTML;
+                        initializePageSpecificActions(); // Re-vincula os botões da nova tabela
+                    }
+                })
+                .catch(err => console.error("Erro na atualização:", err));
+        };
+
+        // Adiciona listener ao formulário de pesquisa (Prevenindo o redirect de vez)
+        if (!formPesquisa.hasAttribute('data-ajax-initialized')) {
             formPesquisa.setAttribute('data-ajax-initialized', 'true');
             formPesquisa.addEventListener('submit', function(event) {
-                event.preventDefault();
-                const formData = new FormData(formPesquisa);
-                areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Pesquisando...</div>';
-
-                fetch('pages/pesquisar_viatura.php', {
-                        method: 'POST',
-                        headers: {
-                            // ADICIONE ESTA LINHA:
-                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
-                        },
-                        body: formData
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const novosResultados = doc.getElementById('resultado-pesquisa');
-
-                        if (novosResultados) {
-                            areaResultados.innerHTML = novosResultados.innerHTML;
-                            // Re-inicializa os scripts para a nova tabela de resultados
-                            initializePageSpecificActions();
-                        } else {
-                            areaResultados.innerHTML = '<div class="alert alert-danger">Erro ao processar a resposta.</div>';
-                        }
-                    })
-                    .catch(error => console.error('Erro na pesquisa AJAX:', error));
+                event.preventDefault(); // CANCELA o envio real do navegador
+                event.stopPropagation();
+                executarPesquisa();
             });
         }
 
-        // Adiciona listener ao botão de limpar (se ainda não tiver)
         const btnLimpar = document.getElementById('btn-limpar-filtros');
         if (btnLimpar && !btnLimpar.hasAttribute('data-ajax-initialized')) {
             btnLimpar.setAttribute('data-ajax-initialized', 'true');
-            btnLimpar.addEventListener('click', () => formPesquisa?.reset());
+            btnLimpar.addEventListener('click', () => {
+                formPesquisa.reset();
+                areaResultados.innerHTML = '';
+            });
         }
 
-        // =======================================================================
-        // AQUI ESTÁ O CÓDIGO QUE FALTAVA
-        // Esta função anexa os listeners para Toasts, Baixar, Reativar, etc.
-        // =======================================================================
         function initializePageSpecificActions() {
-
             // Lógica para Baixar Viatura
             document.querySelectorAll('.form-baixa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
+                form.onsubmit = function(event) {
                     event.preventDefault();
-                    if (!confirm('Tem certeza que deseja baixar esta viatura?')) return;
+                    if (!confirm('Deseja BAIXAR esta viatura?')) return;
 
-                    const idViatura = this.dataset.idViatura;
-                    const formData = new FormData();
-                    formData.append('id_viatura', idViatura);
+                    const formData = new FormData(this);
+                    const token = localStorage.getItem('smnt_token');
 
-                    fetch('../api/processar_baixar_viatura.php', {
+                    fetch('api/processar_status_viatura.php?acao=baixar', {
                             method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token
+                            },
                             body: formData
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                showToast(data.message, 'success');
-                                const row = form.closest('tr');
-                                row.querySelector('.viatura-status').textContent = 'Baixada';
-                                form.querySelector('button').disabled = true;
-                                form.querySelector('button').classList.replace('btn-outline-danger', 'btn-secondary');
-                                const reativarBtn = row.querySelector('.form-reativa-viatura button');
-                                reativarBtn.disabled = false;
-                                reativarBtn.classList.replace('btn-secondary', 'btn-outline-success');
-                            } else {
-                                showToast(data.message, 'danger');
+                        .then(async res => {
+                            const text = await res.text();
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                throw new Error("Erro no servidor: " + text);
                             }
                         })
-                        .catch(error => {
-                            console.error('Erro AJAX ao baixar:', error);
-                            showToast('Erro de comunicação ao baixar viatura.', 'danger');
-                        });
-                });
+                        .then(data => {
+                            showToast(data.message, data.success ? 'success' : 'danger');
+                            if (data.success) executarPesquisa();
+                        })
+                        .catch(err => showToast(err.message, 'danger'));
+                };
             });
 
             // Lógica para Reativar Viatura
             document.querySelectorAll('.form-reativa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
+                form.onsubmit = function(event) {
                     event.preventDefault();
-                    if (!confirm('Tem certeza que deseja reativar esta viatura?')) return;
+                    if (!confirm('Deseja REATIVAR esta viatura?')) return;
 
-                    const idViatura = this.dataset.idViatura;
-                    const formData = new FormData();
-                    formData.append('id_viatura', idViatura);
+                    const formData = new FormData(this);
+                    const token = localStorage.getItem('smnt_token');
 
-                    fetch('../api/processar_reativacao_viatura.php', {
+                    // VERIFIQUE SE O CAMINHO ESTÁ EXATAMENTE IGUAL AO DE BAIXAR
+                    fetch('api/processar_status_viatura.php?acao=reativar', {
                             method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token
+                            },
                             body: formData
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                showToast(data.message, 'success');
-                                const row = form.closest('tr');
-                                row.querySelector('.viatura-status').textContent = 'Operante';
-                                form.querySelector('button').disabled = true;
-                                form.querySelector('button').classList.replace('btn-outline-success', 'btn-secondary');
-                                const baixarBtn = row.querySelector('.form-baixa-viatura button');
-                                baixarBtn.disabled = false;
-                                baixarBtn.classList.replace('btn-secondary', 'btn-outline-danger');
-                            } else {
-                                showToast(data.message, 'danger');
+                        .then(async res => {
+                            const text = await res.text();
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                throw new Error("Erro no servidor: " + text);
                             }
                         })
-                        .catch(error => {
-                            console.error('Erro AJAX ao reativar:', error);
-                            showToast('Erro de comunicação ao reativar viatura.', 'danger');
-                        });
-                });
+                        .then(data => {
+                            showToast(data.message, data.success ? 'success' : 'danger');
+                            if (data.success) executarPesquisa();
+                        })
+                        .catch(err => showToast(err.message, 'danger'));
+                };
             });
-            // NOVA LÓGICA PARA O MODAL DE DETALHES
+
+            // Lógica do Modal (Blindada contra duplicação de eventos)
             const detalhesModal = document.getElementById('detalhesModal');
-            if (detalhesModal) {
+            if (detalhesModal && !detalhesModal.hasAttribute('data-modal-ready')) {
+                detalhesModal.setAttribute('data-modal-ready', 'true');
                 detalhesModal.addEventListener('show.bs.modal', function(event) {
-                    const button = event.relatedTarget; // O botão que acionou o modal
-                    const viaturaId = button.getAttribute('data-viatura-id'); // Pega o ID do atributo data
+                    const button = event.relatedTarget;
+                    const viaturaId = button.getAttribute('data-viatura-id');
+                    const modalBody = document.getElementById('detalhesModalBody');
 
-                    const modalBody = detalhesModal.querySelector('#detalhesModalBody');
+                    modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Carregando...</div>';
 
-                    // Mostra o spinner de carregamento
-                    modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
-
-                    // Busca os detalhes da viatura na nossa nova API
                     fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`, {
                             headers: {
-                                // ESSA LINHA RESOLVE O ERRO DA IMAGEM:
-                                'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                                'Authorization': 'Bearer ' + token
                             }
                         })
-                        .then(response => {
-                            // Se o middleware barrar, response.text() retornará o JSON de erro.
-                            // O ideal é tratar isso:
-                            if (response.status === 401) return "Sessão expirada. Faça login novamente.";
-                            return response.text();
-                        })
+                        .then(res => res.text())
                         .then(html => {
-                            modalBody.innerHTML = html;
+                            if (html.trim().startsWith('{')) {
+                                const err = JSON.parse(html);
+                                modalBody.innerHTML = `<div class='alert alert-danger'>${err.message}</div>`;
+                            } else {
+                                modalBody.innerHTML = html;
+                            }
                         });
                 });
             }
         }
 
-        // Chama a função pela primeira vez para os elementos que já estão na página
         initializePageSpecificActions();
     }
 
-    // Finalmente, chamamos a função principal para inicializar tudo nesta carga.
     initializePesquisaViaturaScripts();
 </script>
