@@ -232,16 +232,18 @@ try {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label for="plano_id" class="form-label">Plano de Manutenção Preventiva</label>
-                                    <select class="form-select" id="plano_id" name="plano_id">
-                                        <option value="">Nenhum plano associado</option>
-                                        <?php foreach ($listaPlanos as $plano): ?>
-                                            <option value="<?= $plano['id'] ?>" <?= ($display_data['plano_id'] == $plano['id']) ? 'selected' : '' ?>>
-                                                <?= htmlspecialchars($plano['descricao']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="plano_id" class="form-label">Plano de Manutenção Preventiva</label>
+                                        <select class="form-select" id="plano_id" name="plano_id">
+                                            <option value="">Nenhum plano associado</option>
+                                            <?php foreach ($listaPlanos as $plano): ?>
+                                                <option value="<?= $plano['id'] ?>" <?= ($display_data['plano_id'] == $plano['id']) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($plano['descricao']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <hr class="my-4">

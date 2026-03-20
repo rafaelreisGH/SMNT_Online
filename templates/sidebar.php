@@ -191,6 +191,11 @@
 
             <!-- Nav Item - Tables -->
             <li class="nav-item">
+                <a class="nav-link" href="../pages/mensagens.php">
+                    <i class="fas fa-fw fa-envelope"></i>
+                    <span>Mensagens</span></a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="../pages/mapa_viaturas.php">
                     <i class="fas fa-fw fa-map"></i>
                     <span>Mapa de viaturas</span></a>
@@ -229,15 +234,20 @@
                     </button>
 
                     <!-- Topbar Search -->
-                    <form
-                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-                        <div class="input-group">
-                            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
-                                aria-label="Search" aria-describedby="basic-addon2">
+                    <!-- Topbar Search -->
+                    <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search" id="globalSearchForm" autocomplete="off">
+                        <div class="input-group" style="position: relative;"> <!-- position relative é importante! -->
+                            <input type="text" class="form-control bg-light border-0 small" id="globalSearchInput"
+                                placeholder="Buscar viatura ou condutor..." aria-label="Search">
                             <div class="input-group-append">
                                 <button class="btn btn-danger" type="button">
                                     <i class="fas fa-search fa-sm"></i>
                                 </button>
+                            </div>
+
+                            <!-- CONTAINER PARA OS RESULTADOS DA BUSCA -->
+                            <div id="globalSearchResults" class="dropdown-menu shadow w-100 mt-1" style="display: none; position: absolute; top: 100%; z-index: 1050;">
+                                <!-- JS preencherá aqui -->
                             </div>
                         </div>
                     </form>

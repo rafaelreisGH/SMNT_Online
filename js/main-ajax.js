@@ -84,7 +84,7 @@ window.atualizarNotificacoes = function () {
     const contador = document.getElementById('notificacao-contador');
     const container = document.getElementById('container-notificacoes-itens');
 
-    if (!token || !contador) return;
+    if (!token || !contador || !container) return;
 
     fetch('api/get_notificacoes.php', {
         headers: { 'Authorization': 'Bearer ' + token }
@@ -107,7 +107,7 @@ window.atualizarNotificacoes = function () {
                 container.innerHTML = html;
             } else {
                 contador.classList.add('d-none');
-                container.innerHTML = '<p class="small text-center p-3 text-muted">Sem notificações.</p>';
+                container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Sem notificações.</p>';
             }
         });
 };
@@ -136,7 +136,6 @@ window.atualizarMensagensTopbar = function () {
 
                 let html = '';
                 mensagens.slice(0, 4).forEach(m => {
-                    // ALTERAÇÃO AQUI: Passamos o ID na URL para a página mensagens.php
                     html += `
                 <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="window.loadPage('pages/mensagens.php?id=${m.id}')">
                     <div class="dropdown-list-image mr-3">
@@ -161,28 +160,101 @@ window.atualizarMensagensTopbar = function () {
         });
 };
 
+/**
+ * Lógica da Busca Global Inteligente
+ */
+function initGlobalSearch() {
+    const searchInput = document.getElementById('globalSearchInput');
+    const resultsDiv = document.getElementById('globalSearchResults');
+    let debounceTimer;
+
+    if (!searchInput || !resultsDiv) return;
+
+    searchInput.addEventListener('input', function () {
+        const query = this.value.trim();
+
+        clearTimeout(debounceTimer);
+        if (query.length < 2) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`api/search_global.php?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let html = '';
+                        data.forEach(item => {
+                            html += `
+                        <a class="dropdown-item d-flex align-items-center py-2" href="javascript:void(0)" 
+                           onclick="window.loadPage('${item.link}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';" 
+                           style="border-bottom: 1px solid #f8f9fc;">
+                            <div class="mr-3">
+                                <div class="icon-circle ${item.cor} bg-light p-2 rounded-circle text-center" style="width:35px; height:35px">
+                                    <i class="${item.icone}"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="small text-gray-500 text-uppercase" style="font-size: 0.65rem;">${item.subtitulo}</div>
+                                <span class="font-weight-bold" style="font-size: 0.85rem;">${item.titulo}</span>
+                            </div>
+                        </a>`;
+                        });
+                        resultsDiv.innerHTML = html;
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhum resultado encontrado.</p>';
+                        resultsDiv.style.display = 'block';
+                    }
+                });
+        }, 400);
+    });
+
+    document.addEventListener('click', function (e) {
+        const form = document.getElementById('globalSearchForm');
+        if (form && !form.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Item 2: Atualiza o nome do usuário no Topbar
+ */
+function updateUIUserInfo() {
+    const nome = localStorage.getItem('user_nome');
+    const perfil = localStorage.getItem('user_perfil');
+    const displayElement = document.getElementById('user-name-display');
+
+    if (displayElement && nome) {
+        const primeiroNome = nome.split(' ')[0];
+        displayElement.innerText = `${primeiroNome} (${perfil})`;
+    }
+}
+
+/**
+ * Item 3: Função de Logout
+ */
 window.handleLogout = function () {
     localStorage.clear();
     window.location.href = 'login.php';
 };
 
 /**
- * Inicialização ao carregar a página
+ * Inicialização ao carregar o DOM
  */
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Atualiza Nome no Topbar
-    const nome = localStorage.getItem('user_nome');
-    const perfil = localStorage.getItem('user_perfil');
-    const display = document.getElementById('user-name-display');
-    if (display && nome) display.innerText = `${nome.split(' ')[0]} (${perfil})`;
-
-    // 2. Inicia contadores
+    updateUIUserInfo();
     atualizarNotificacoes();
     atualizarMensagensTopbar();
+    initGlobalSearch();
+
     setInterval(atualizarNotificacoes, 120000);
     setInterval(atualizarMensagensTopbar, 120000);
 
-    // 3. Listener de cliques para navegação AJAX
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
         if (link && link.getAttribute('href')) {
