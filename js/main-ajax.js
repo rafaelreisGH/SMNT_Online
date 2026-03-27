@@ -258,3 +258,104 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+/**
+ * Lógica da Busca Global Inteligente
+ */
+function initGlobalSearch() {
+    const searchInput = document.getElementById('globalSearchInput');
+    const resultsDiv = document.getElementById('globalSearchResults');
+    let debounceTimer;
+
+    if (!searchInput || !resultsDiv) return;
+
+    searchInput.addEventListener('input', function () {
+        const query = this.value.trim();
+
+        clearTimeout(debounceTimer);
+        if (query.length < 2) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`api/search_global.php?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let html = '';
+                        data.forEach(item => {
+                            html += `
+                        <a class="dropdown-item d-flex align-items-center py-2" href="javascript:void(0)" 
+                           onclick="window.loadPage('${item.link}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';" 
+                           style="border-bottom: 1px solid #f8f9fc;">
+                            <div class="mr-3">
+                                <div class="icon-circle ${item.cor} bg-light p-2 rounded-circle text-center" style="width:35px; height:35px">
+                                    <i class="${item.icone}"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="small text-gray-500 text-uppercase" style="font-size: 0.65rem;">${item.subtitulo}</div>
+                                <span class="font-weight-bold" style="font-size: 0.85rem;">${item.titulo}</span>
+                            </div>
+                        </a>`;
+                        });
+                        resultsDiv.innerHTML = html;
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhum resultado encontrado.</p>';
+                        resultsDiv.style.display = 'block';
+                    }
+                });
+        }, 400);
+    });
+
+    document.addEventListener('click', function (e) {
+        const form = document.getElementById('globalSearchForm');
+        if (form && !form.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Item 2: Atualiza o nome do usuário no Topbar
+ */
+function updateUIUserInfo() {
+    const nome = localStorage.getItem('user_nome');
+    const perfil = localStorage.getItem('user_perfil');
+    const displayElement = document.getElementById('user-name-display');
+
+    if (displayElement && nome) {
+        const primeiroNome = nome.split(' ')[0];
+        displayElement.innerText = `${primeiroNome} (${perfil})`;
+    }
+}
+
+/**
+ * Inicialização ao carregar o DOM
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    updateUIUserInfo();
+    atualizarNotificacoes();
+    atualizarMensagensTopbar();
+    initGlobalSearch();
+
+    setInterval(atualizarNotificacoes, 120000);
+    setInterval(atualizarMensagensTopbar, 120000);
+
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a');
+        if (link && link.getAttribute('href')) {
+            const href = link.getAttribute('href');
+            if (href.startsWith('#') || href.startsWith('javascript:') || link.dataset.toggle === 'collapse' || link.dataset.bsToggle) return;
+
+            if (link.target !== '_blank') {
+                e.preventDefault();
+                window.loadPage(href);
+            }
+        }
+    });
+});

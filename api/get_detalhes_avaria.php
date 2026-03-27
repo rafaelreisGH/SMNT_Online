@@ -1,96 +1,128 @@
 <?php
 // api/get_detalhes_avaria.php
 
-// 1. Inclui as classes necessárias
 require_once 'middleware_auth.php';
 require_once '../components/DAO/RegistroAvariaDAO.php';
+require_once '../components/DAO/ApuracaoDAO.php';
 
-// Verifica se o ID da avaria foi passado via GET
-if (!isset($_GET['id']) || empty($_GET['id'])) {
-    http_response_code(400); // Bad Request
-    echo "<div class='alert alert-danger'>ID do registro não fornecido.</div>";
-    exit();
-}
+$id_avaria = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 
-$id_avaria = filter_var($_GET['id'], FILTER_VALIDATE_INT);
-if ($id_avaria === false) {
-    http_response_code(400); // Bad Request
-    echo "<div class='alert alert-danger'>ID do registro inválido.</div>";
-    exit();
+if (!$id_avaria) {
+    http_response_code(400);
+    echo "<div class='alert alert-danger'>ID inválido.</div>";
+    exit;
 }
 
 try {
-    // 2. Instancia o DAO e busca os dados
-    $registroAvariaDAO = new RegistroAvariaDAO();
-    $avaria = $registroAvariaDAO->buscarDetalhesPorId($id_avaria);
+    $aDAO = new RegistroAvariaDAO();
+    $apuracaoDAO = new ApuracaoDAO();
 
-    // 3. Verifica o resultado
+    $avaria = $aDAO->buscarDetalhesPorId($id_avaria);
+
     if (!$avaria) {
-        http_response_code(404); // Not Found
-        echo "<div class='alert alert-warning'>Registro de avaria não encontrado.</div>";
-        exit();
+        http_response_code(404);
+        echo "<div class='alert alert-warning'>Registro não encontrado.</div>";
+        exit;
     }
 
-    // 4. GERA O HTML PARA O MODAL
+    // Busca dados da apuração caso existam
+    $dados_apuracao = $apuracaoDAO->buscarPorAvariaId($id_avaria);
 ?>
 
-    <!-- Seção de Identificação da Viatura -->
-    <h5 class="mb-3 text-primary"><i class="fas fa-car me-2"></i>Viatura Relacionada</h5>
-    <dl class="row">
-        <dt class="col-sm-4">Viatura:</dt>
-        <dd class="col-sm-8"><strong><?php echo htmlspecialchars($avaria['prefixo'] . ' ' . $avaria['numero']); ?></strong></dd>
-
-        <dt class="col-sm-4">Placa / Modelo:</dt>
-        <dd class="col-sm-8"><?php echo htmlspecialchars($avaria['placa'] . ' - ' . $avaria['modelo']); ?></dd>
-    </dl>
+    <!-- Identificação da Viatura -->
+    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-truck me-2"></i>Viatura</h6>
+    <div class="row mb-3">
+        <div class="col-sm-6">
+            <label class="small text-muted mb-0">Viatura:</label>
+            <p class="fw-bold mb-0"><?= htmlspecialchars($avaria['prefixo'] . ' ' . $avaria['numero']) ?> (<?= htmlspecialchars($avaria['placa']) ?>)</p>
+        </div>
+        <div class="col-sm-6">
+            <label class="small text-muted mb-0">Modelo:</label>
+            <p class="mb-0"><?= htmlspecialchars($avaria['modelo']) ?></p>
+        </div>
+    </div>
 
     <hr>
 
-    <!-- Seção do Relato -->
-    <h5 class="mb-3 text-primary"><i class="fas fa-clipboard-list me-2"></i>Detalhes do Problema</h5>
-    <dl class="row">
-        <dt class="col-sm-4">Data do Registro:</dt>
-        <dd class="col-sm-8"><?php echo date('d/m/Y H:i', strtotime($avaria['data_registro'])); ?></dd>
+    <!-- Detalhes do Relato -->
+    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-clipboard-list me-2"></i>Relato da Avaria</h6>
+    <div class="row">
+        <div class="col-sm-6">
+            <label class="small text-muted mb-0">Componente:</label>
+            <p class="mb-2"><?= htmlspecialchars($avaria['nome_componente']) ?> (<?= htmlspecialchars($avaria['categoria']) ?>)</p>
+        </div>
+        <div class="col-sm-6">
+            <label class="small text-muted mb-0">Data do Relato:</label>
+            <p class="mb-2"><?= date('d/m/Y H:i', strtotime($avaria['data_registro'])) ?></p>
+        </div>
+        <div class="col-12">
+            <label class="small text-muted mb-0">Descrição do Problema:</label>
+            <div class="p-2 bg-light border rounded small"><?= nl2br(htmlspecialchars($avaria['observacoes_avaria'] ?? 'Nenhuma observação detalhada.')) ?></div>
+        </div>
+    </div>
 
-        <dt class="col-sm-4">Relatado por:</dt>
-        <dd class="col-sm-8"><?php echo htmlspecialchars($avaria['nome_condutor']); ?></dd>
+    <hr>
 
-        <dt class="col-sm-4">Componente:</dt>
-        <dd class="col-sm-8">
-            <span class="badge bg-secondary"><?php echo htmlspecialchars($avaria['categoria']); ?></span><br>
-            <?php echo htmlspecialchars($avaria['nome_componente']); ?>
-        </dd>
+    <!-- NOVA SEÇÃO: Apuração Administrativa -->
+    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-gavel me-2"></i>Apuração Administrativa</h6>
+    <div class="row">
+        <div class="col-sm-6">
+            <label class="small text-muted mb-0">Exige Apuração?</label>
+            <p class="mb-2">
+                <?php if ($avaria['requer_apuracao'] == 1): ?>
+                    <span class="badge bg-danger">SIM - Exigida pela Gestão Central</span>
+                <?php else: ?>
+                    <span class="badge bg-secondary">NÃO</span>
+                <?php endif; ?>
+            </p>
+        </div>
 
-        <dt class="col-sm-4 mt-2">Observações:</dt>
-        <dd class="col-sm-8 mt-2">
-            <div class="p-2 border rounded bg-light">
-                <?php echo nl2br(htmlspecialchars($avaria['observacoes_avaria'] ?? 'Nenhuma observação detalhada.')); ?>
+        <?php if ($avaria['requer_apuracao'] == 1): ?>
+            <div class="col-sm-6">
+                <label class="small text-muted mb-0">Status do Procedimento:</label>
+                <p class="mb-2">
+                    <span class="badge <?= ($dados_apuracao['status_apuracao'] ?? '') == 'Concluído' ? 'bg-success' : 'bg-warning text-dark' ?>">
+                        <?= htmlspecialchars($dados_apuracao['status_apuracao'] ?? 'Pendente de Abertura') ?>
+                    </span>
+                </p>
             </div>
-        </dd>
-    </dl>
+
+            <?php if (!empty($dados_apuracao['numero_portaria'])): ?>
+                <div class="col-sm-4">
+                    <label class="small text-muted mb-0">Nº Portaria:</label>
+                    <p class="mb-2"><?= htmlspecialchars($dados_apuracao['numero_portaria'] ?? 'Não informada') ?></p>
+                </div>
+                <div class="col-sm-4">
+                    <label class="small text-muted mb-0">Data Abertura:</label>
+                    <p class="mb-2"><?= !empty($dados_apuracao['data_abertura']) ? date('d/m/Y', strtotime($dados_apuracao['data_abertura'])) : 'Não informada' ?></p>
+                </div>
+                <div class="col-sm-4">
+                    <label class="small text-muted mb-0">Encarregado:</label>
+                    <p class="mb-2"><?= htmlspecialchars($dados_apuracao['encarregado'] ?? 'Não informado') ?></p>
+                </div>
+            <?php else: ?>
+                <div class="col-12">
+                    <div class="alert alert-warning py-1 small">
+                        Aguardando lançamento dos dados da Portaria pela Unidade Responsável.
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 
     <hr>
 
     <!-- Situação da Manutenção -->
-    <h5 class="mb-3 text-primary"><i class="fas fa-tools me-2"></i>Situação Atual</h5>
-    <dl class="row">
-        <dt class="col-sm-4">Status:</dt>
-        <dd class="col-sm-8">
-            <?php if ($avaria['status_manutencao']): ?>
-                <span class="badge <?php 
-                    echo ($avaria['status_manutencao'] == 'Concluída') ? 'bg-success' : 'bg-info'; 
-                ?>">
-                    Manutenção <?php echo htmlspecialchars($avaria['status_manutencao']); ?>
-                </span>
-            <?php else: ?>
-                <span class="badge bg-danger">Aguardando Início de Manutenção</span>
-            <?php endif; ?>
-        </dd>
-    </dl>
+    <div class="row">
+        <div class="col-sm-12 text-end">
+            <label class="small text-muted me-2">Situação Técnica:</label>
+            <span class="badge <?= $avaria['status_manutencao'] == 'Concluída' ? 'bg-success' : 'bg-info' ?>">
+                <?= $avaria['status_manutencao'] ? 'Manutenção ' . $avaria['status_manutencao'] : 'Manutenção não iniciada' ?>
+            </span>
+        </div>
+    </div>
 
 <?php
 } catch (Exception $e) {
-    http_response_code(500);
     echo "<div class='alert alert-danger'>Erro ao carregar detalhes: " . $e->getMessage() . "</div>";
 }
-?>

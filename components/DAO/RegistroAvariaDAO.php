@@ -2,6 +2,7 @@
 // components/DAO/RegistroAvariaDAO.php
 require_once __DIR__ . '/../../components/ConexaoDB/conexao.php';
 require_once __DIR__ . '/NotificacaoDAO.php';
+require_once __DIR__ . '/ViaturaDAO.php'; // Adicionado para garantir o uso no método inserir
 
 class RegistroAvariaDAO
 {
@@ -12,7 +13,6 @@ class RegistroAvariaDAO
         $this->conn = Conexao::getConexao();
     }
 
-    // Helper para restrição de visualização por perfil
     private function aplicarEscopoRBAC(string $aliasViatura = 'v', string $aliasUnidade = 'u'): array
     {
         $sql = "";
@@ -43,6 +43,7 @@ class RegistroAvariaDAO
     {
         $rbac = $this->aplicarEscopoRBAC();
 
+        // ADICIONADO: ra.requer_apuracao no SELECT
         $sql = "SELECT ra.*, v.prefixo, v.numero, ta.nome_componente, c.nome AS nome_condutor, m.status AS status_manutencao
                 FROM registro_avaria ra
                 JOIN viaturas v ON ra.viatura_id = v.id
@@ -83,8 +84,8 @@ class RegistroAvariaDAO
 
     public function inserir(array $data)
     {
-        $sql = "INSERT INTO registro_avaria (viatura_id, tipo_avaria_id, condutor_id, data_registro, observacoes_avaria) 
-            VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :data_registro, :observacoes)";
+        $sql = "INSERT INTO registro_avaria (viatura_id, tipo_avaria_id, condutor_id, data_registro, observacoes_avaria, requer_apuracao) 
+            VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :data_registro, :observacoes, :requer_apuracao)";
 
         try {
             $stmt = $this->conn->prepare($sql);
@@ -93,20 +94,15 @@ class RegistroAvariaDAO
             $stmt->bindValue(':condutor_id', $data['condutor_id'], PDO::PARAM_INT);
             $stmt->bindValue(':data_registro', $data['data_registro']);
             $stmt->bindValue(':observacoes', $data['observacoes_avaria'], PDO::PARAM_STR);
+            $stmt->bindValue(':requer_apuracao', $data['requer_apuracao'] ?? 0, PDO::PARAM_INT);
 
-            // 1. Executa a inserção da avaria primeiro
             $res = $stmt->execute();
 
-            // 2. Se salvou no banco, agora disparamos a notificação
             if ($res) {
-                // Buscamos os dados da viatura para a mensagem não ficar "vazia"
                 $vDAO = new ViaturaDAO();
                 $v = $vDAO->getViaturaById($data['viatura_id']);
 
-                // Instanciamos o NotificacaoDAO para enviar os alertas
-                require_once __DIR__ . '/NotificacaoDAO.php';
                 $nDAO = new NotificacaoDAO();
-
                 $nDAO->dispararEvento(
                     (int)$v['lotacao_atual_id'],
                     "Nova Avaria Relatada",
@@ -116,7 +112,6 @@ class RegistroAvariaDAO
                 );
             }
 
-            // 3. Só agora retornamos o resultado para a API
             return $res;
         } catch (PDOException $e) {
             throw new Exception("Erro ao registrar avaria: " . $e->getMessage());
@@ -125,6 +120,7 @@ class RegistroAvariaDAO
 
     public function buscarDetalhesPorId(int $id)
     {
+        // ADICIONADO: ra.requer_apuracao no SELECT
         $sql = "SELECT 
                 ra.*, 
                 v.prefixo, v.numero, v.placa, v.modelo,
@@ -151,12 +147,14 @@ class RegistroAvariaDAO
 
     public function atualizar(array $data): bool
     {
+        // ADICIONADO: requer_apuracao = :requer_apuracao no SET
         $sql = "UPDATE registro_avaria SET 
                 viatura_id = :viatura_id, 
                 tipo_avaria_id = :tipo_avaria_id, 
                 condutor_id = :condutor_id, 
                 data_registro = :data_registro, 
-                observacoes_avaria = :observacoes 
+                observacoes_avaria = :observacoes,
+                requer_apuracao = :requer_apuracao
             WHERE id = :id";
 
         try {
@@ -166,6 +164,7 @@ class RegistroAvariaDAO
             $stmt->bindValue(':condutor_id', $data['condutor_id'], PDO::PARAM_INT);
             $stmt->bindValue(':data_registro', $data['data_registro']);
             $stmt->bindValue(':observacoes', $data['observacoes_avaria'], PDO::PARAM_STR);
+            $stmt->bindValue(':requer_apuracao', $data['requer_apuracao'] ?? 0, PDO::PARAM_INT);
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
 
             return $stmt->execute();
