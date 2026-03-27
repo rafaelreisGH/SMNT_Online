@@ -78,55 +78,12 @@ $itens = $dao->listarTodos();
 </div>
 
 <script>
-    (function() {
-        // Cadastro
-        document.getElementById('formNovoItem').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            fetch('api/processar_item_preventiva.php?acao=cadastrar', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
-                    },
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message);
-                        loadPage('pages/gestao_itens_preventiva.php');
-                    } else {
-                        showToast(data.message, 'danger');
-                    }
-                });
-        });
+    /**
+     * Esta página é um "miolo". Ela não precisa carregar o main-ajax.js 
+     * porque a "casca" (index/footer) já o carregou para nós.
+     */
 
-        // Exclusão
-        window.excluirItem = function(id) {
-            if (!confirm("Deseja realmente remover este item?")) return;
-
-            const formData = new FormData();
-            formData.append('id', id);
-
-            fetch('api/processar_item_preventiva.php?acao=excluir', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
-                    },
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message);
-                        loadPage('pages/gestao_itens_preventiva.php');
-                    } else {
-                        alert(data.message); // Usando alert aqui para mensagens longas de erro de integridade
-                    }
-                });
-        }
-    })();
-
+    // Função de Alterar Status
     window.mudarStatusItem = function(id, status) {
         const formData = new FormData();
         formData.append('id', id);
@@ -141,8 +98,76 @@ $itens = $dao->listarTodos();
             })
             .then(r => r.json())
             .then(data => {
-                showToast(data.message);
-                loadPage('pages/gestao_itens_preventiva.php');
+                if (data.success) {
+                    // Chama a função que você definiu no main-ajax.js
+                    window.showToast(data.message, 'success');
+
+                    // Recarrega a página após um curto delay
+                    setTimeout(() => {
+                        loadPage('pages/cadastro_itens_preventiva.php');
+                    }, 150);
+                } else {
+                    window.showToast(data.message, 'danger');
+                }
             });
-    }
+    };
+
+    // Função de Exclusão
+    window.excluirItem = function(id) {
+        if (!confirm("Deseja realmente remover este item?")) return;
+
+        const formData = new FormData();
+        formData.append('id', id);
+
+        fetch('api/processar_item_preventiva.php?acao=excluir', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.showToast(data.message, 'success');
+                    setTimeout(() => loadPage('pages/cadastro_itens_preventiva.php'), 150);
+                } else {
+                    alert(data.message); // Mensagens de erro de banco (FK) costumam ser longas
+                }
+            });
+    };
+
+    // Lógica do Formulário de Cadastro
+    (function() {
+        const form = document.getElementById('formNovoItem');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const btn = this.querySelector('button[type="submit"]');
+                btn.disabled = true;
+
+                fetch('api/processar_item_preventiva.php?acao=cadastrar', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        },
+                        body: new FormData(this)
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.showToast(data.message, 'success');
+                            loadPage('pages/cadastro_itens_preventiva.php');
+                        } else {
+                            window.showToast(data.message, 'danger');
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(() => {
+                        window.showToast("Erro na comunicação", "danger");
+                        btn.disabled = false;
+                    });
+            });
+        }
+    })();
 </script>

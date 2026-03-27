@@ -1,8 +1,5 @@
 <?php
 // pages/cadastro_viatura.php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 // 1. Proteção e Dependências
 require_once '../api/middleware_auth.php';
