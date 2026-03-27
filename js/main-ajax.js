@@ -24,12 +24,11 @@ window.showToast = function (message, type = 'success') {
     // Estrutura simplificada: Texto à esquerda e botão de fechar à direita, sem ícones.
     const toastHtml = `
         <div id="${toastId}" class="toast align-items-center ${bgColorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
+                <div class="d-flex">
                 <div class="toast-body">
                     ${message}
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
+                <button type="button" class="btn-close btn-close-white ms-auto me-2 align-self-center" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>`;
 
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
