@@ -11,12 +11,16 @@ if (!$user) {
     exit;
 }
 
-// Lógica da foto (se não houver, usa a padrão)
-$fotoPath = "assets/uploads/perfil/" . ($user['foto'] ?: 'default_user.png');
-// Verifica se o arquivo existe fisicamente, senão volta para a default
-if (!file_exists(__DIR__ . "/../" . $fotoPath)) {
-    $fotoPath = "assets/uploads/perfil/default_user.png";
+// 1. Define o nome do arquivo padrão
+$fotoNome = 'undraw_profile.svg';
+
+// 2. Se o banco tiver um nome e o arquivo existir fisicamente, troca o nome
+if (!empty($user['foto']) && file_exists(__DIR__ . "/../assets/uploads/perfil/" . $user['foto'])) {
+    $fotoNome = $user['foto'];
 }
+
+// 3. Monta o caminho final para o HTML
+$fotoPath = "assets/uploads/perfil/" . $fotoNome;
 ?>
 
 <div class="container-fluid">

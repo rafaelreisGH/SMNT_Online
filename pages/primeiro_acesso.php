@@ -1,7 +1,5 @@
 <?php
-
-require_once '../api/middleware_auth.php';
-
+// pages/primeiro_acesso.php
 ?>
 
 <!doctype html>
