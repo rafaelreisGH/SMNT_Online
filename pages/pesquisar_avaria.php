@@ -72,6 +72,13 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Filtro Administrativo</label>
+                                        <select class="form-select" name="pendencia_adm" id="filtro_pendencia_adm">
+                                            <option value="">Todas as Avarias</option>
+                                            <option value="1">Com Pendência de Portaria</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <!-- Aba Período -->
@@ -237,6 +244,19 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                     .then(r => r.text())
                     .then(html => body.innerHTML = html);
             });
+        }
+    }
+
+    // Verifica se a URL possui o parâmetro de pendência (vindo do Dashboard)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pendencia = urlParams.get('pendencia');
+
+    if (pendencia === '1') {
+        const selectPendencia = document.getElementById('filtro_pendencia_adm');
+        if (selectPendencia) {
+            selectPendencia.value = '1';
+            // Dispara a pesquisa automaticamente
+            form.dispatchEvent(new Event('submit'));
         }
     }
 

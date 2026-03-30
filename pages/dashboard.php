@@ -226,7 +226,7 @@ require_once __DIR__ . '/../api/middleware_auth.php';
                     <i class="fas fa-gavel fa-lg me-3"></i>
                     <strong>Pendência Administrativa:</strong> Existem ${lista.length} avarias aguardando abertura de Portaria para que a manutenção possa ser finalizada.
                 </div>
-                <button class="btn btn-sm btn-danger fw-bold" onclick="loadPage('pages/pesquisar_avaria.php')">
+                <button class="btn btn-sm btn-danger fw-bold" onclick="loadPage('pages/pesquisar_avaria.php?pendencia=1')">
                     <i class="fas fa-search me-1"></i> Ver Avarias
                 </button>
             </div>

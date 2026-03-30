@@ -75,6 +75,10 @@ class RegistroAvariaDAO
             $sql .= " AND ra.data_registro <= :d_fim";
             $params[':d_fim'] = $filters['data_fim'] . " 23:59:59";
         }
+        if (!empty($filters['pendencia_adm'])) {
+            // Filtra avarias que o Central marcou como obrigatória, mas que o Local ainda não abriu a portaria
+            $sql .= " AND ra.requer_apuracao = 1 AND (pa.numero_portaria IS NULL OR pa.numero_portaria = '')";
+        }
 
         $sql .= " ORDER BY ra.data_registro DESC";
         $stmt = $this->conn->prepare($sql);
