@@ -213,6 +213,7 @@ window.updateUIUserInfo = function () {
 
     const displayNome = document.getElementById('user-name-display');
     const displayFoto = document.getElementById('user-img-topbar');
+    const secaoAdmin = document.getElementById('secao-admin-sidebar');
 
     if (displayNome && nome) {
         const primeiroNome = nome.split(' ')[0];
@@ -224,6 +225,16 @@ window.updateUIUserInfo = function () {
             displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
         } else {
             displayFoto.src = `assets/uploads/perfil/undraw_profile.svg`;
+        }
+    }
+
+    // 3. LÓGICA DE EXIBIÇÃO DO MENU ADMIN (RBAC NO FRONTEND)
+    if (secaoAdmin) {
+        // Se o perfil salvo for exatamente 'Administrador', remove o 'd-none'
+        if (perfil === 'Administrador') {
+            secaoAdmin.classList.remove('d-none');
+        } else {
+            secaoAdmin.classList.add('d-none');
         }
     }
 }

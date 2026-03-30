@@ -36,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     LoggerService::registrar("Realizou login no sistema", "usuarios", $user['id']);
 
+                    // --- Registrar o último login do usuário ---
+                    $db->prepare("UPDATE usuarios SET ultimo_login = NOW() WHERE id = :id")
+                        ->execute([':id' => $user['id']]);
+                    // ---------------------------------
+
                     $response['success'] = true;
                     $response['token'] = $token;
                     // Informa ao frontend se o usuário deve ser enviado para trocar senha

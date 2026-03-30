@@ -27,6 +27,10 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+    <!-- DATA TABLEAS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 </head>
 
 <body id="page-top">
@@ -152,7 +156,7 @@
                     </div>
                 </div>
             </li>
-            
+
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMovimento"
@@ -216,6 +220,20 @@
                     <i class="fas fa-fw fa-map"></i>
                     <span>Mapa de viaturas</span></a>
             </li>
+
+            <!-- Seção Administrativa (Escondida por padrão) -->
+            <div id="secao-admin-sidebar" class="d-none">
+                <hr class="sidebar-divider">
+                <div class="sidebar-heading">
+                    Configurações Master
+                </div>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/gestao_usuarios.php">
+                        <i class="fas fa-fw fa-users-cog"></i>
+                        <span>Gestão de Usuários</span>
+                    </a>
+                </li>
+            </div>
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
