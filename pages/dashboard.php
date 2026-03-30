@@ -5,6 +5,9 @@ require_once __DIR__ . '/../api/middleware_auth.php';
 <div class="container-fluid">
     <h1 class="h4 mb-4 text-gray-800">Painel de Controle Operacional</h1>
 
+    <!-- Inserir aqui: Container para Alertas Administrativos Críticos -->
+    <div id="container-alertas-adm" class="mb-4"></div>
+
     <!-- Row de Cards de Resumo Numérico -->
     <div class="row" id="row-cards-resumo">
         <!-- Preenchido via JS -->
@@ -76,7 +79,8 @@ require_once __DIR__ . '/../api/middleware_auth.php';
                     renderVencidos(data.vencidos);
                     renderAvarias(data.avarias);
                     renderAndamento(data.andamento);
-                    renderTransito(data.transito); // Chama a nova função
+                    renderTransito(data.transito);
+                    renderPendenciasAdm(data.pendencias_adm);
                 })
                 .catch(err => console.error("Erro dashboard:", err));
         }
@@ -204,6 +208,30 @@ require_once __DIR__ . '/../api/middleware_auth.php';
                 </div>`;
             });
             div.innerHTML = html + '</div>';
+        }
+
+        function renderPendenciasAdm(lista) {
+            const container = document.getElementById('container-alertas-adm');
+            if (!container) return;
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = ''; // Limpa se não houver pendências
+                return;
+            }
+
+            container.innerHTML = `
+        <div class="alert alert-danger border-left-danger shadow py-3 mb-0">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-gavel fa-lg me-3"></i>
+                    <strong>Pendência Administrativa:</strong> Existem ${lista.length} avarias aguardando abertura de Portaria para que a manutenção possa ser finalizada.
+                </div>
+                <button class="btn btn-sm btn-danger fw-bold" onclick="loadPage('pages/pesquisar_avaria.php')">
+                    <i class="fas fa-search me-1"></i> Ver Avarias
+                </button>
+            </div>
+        </div>
+    `;
         }
 
         initDashboard();

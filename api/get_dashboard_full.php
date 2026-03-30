@@ -13,7 +13,8 @@ try {
         'vencidos'  => $dao->getAlertasVencidos(),   // Garantias/Planos expirados
         'avarias'   => $dao->getAvariasPendentes(),  // Avarias sem OS ainda
         'andamento' => $dao->getManutencoesAndamento(), // Manutenções em curso
-        'transito'  => $dao->getTransferenciasEmTransito()
+        'transito'  => $dao->getTransferenciasEmTransito(),
+        'pendencias_adm' => $dao->getApuracoesPendentes() // Apurações administrativas pendentes
     ];
 
     echo json_encode($response);

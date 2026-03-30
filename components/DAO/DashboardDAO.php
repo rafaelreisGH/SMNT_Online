@@ -124,4 +124,25 @@ class DashboardDAO
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Busca avarias que aguardam a abertura de portaria (pendência administrativa)
+     */
+    public function getApuracoesPendentes()
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $sql = "SELECT ra.id, v.prefixo, v.numero, ta.nome_componente, ra.data_registro
+            FROM registro_avaria ra
+            JOIN viaturas v ON ra.viatura_id = v.id
+            JOIN unidades u ON v.lotacao_atual_id = u.id
+            JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
+            LEFT JOIN procedimentos_apuracao pa ON ra.id = pa.avaria_id
+            WHERE ra.requer_apuracao = 1 
+            AND (pa.numero_portaria IS NULL OR pa.numero_portaria = '')
+            $rbac
+            ORDER BY ra.data_registro ASC";
+
+        return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
