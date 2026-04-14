@@ -79,6 +79,8 @@
                         <h6 class="collapse-header">Funções para viaturas:</h6>
                         <a class="collapse-item" href="../pages/cadastro_viatura.php">Cadastrar</a>
                         <a class="collapse-item" href="../pages/pesquisar_viatura.php">Pesquisar</a>
+                        <h6 class="collapse-header">Funções para acessórios:</h6>
+                        <a class="collapse-item" href="../pages/gestao_acessorios.php">Cadastrar</a>
                     </div>
                 </div>
             </li>
