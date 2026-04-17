@@ -171,6 +171,10 @@
                         <h6 class="collapse-header">Opções de movimentação:</h6>
                         <a class="collapse-item" href="../pages/transferir_viatura.php">Transferir Viatura</a>
                         <a class="collapse-item" href="../pages/confirmar_recebimento.php">Confirmar Recebimento</a>
+                        <h6 class="collapse-header">Opções de cautela:</h6>
+                        <a class="collapse-item" href="../pages/abrir_cautela.php">Criar Cautela</a>
+                        <a class="collapse-item" href="../pages/pesquisar_cautelas.php">Pesquisar Cautelas</a>
+                        <a class="collapse-item" href="../pages/teste_cautela.php">Teste</a>
                     </div>
                 </div>
             </li>
