@@ -6,6 +6,10 @@ require_once __DIR__ . '/../components/Auth/JwtHandler.php';
 $headers = array_change_key_case(getallheaders(), CASE_LOWER);
 $authHeader = $headers['authorization'] ?? '';
 
+if (empty($authHeader) && isset($_GET['token'])) {
+    $authHeader = 'Bearer ' . $_GET['token'];
+}
+
 if (preg_match('/bearer\s(\S+)/i', $authHeader, $matches)) {
     $token = $matches[1];
     $jwt = new JwtHandler();
@@ -17,12 +21,12 @@ if (preg_match('/bearer\s(\S+)/i', $authHeader, $matches)) {
         echo json_encode(['success' => false, 'message' => 'Token invalido ou expirado. Verifique o log do servidor.']);
         exit;
     }
-    
-    define('USER_AUTH', $userData); 
+
+    define('USER_AUTH', $userData);
 } else {
     http_response_code(401);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Cabecalho Authorization nao encontrado ou malformatado.',
         'debug_header_recebido' => $authHeader // Isso nos dira se o JS enviou certo
     ]);

@@ -40,7 +40,6 @@ $checklistSalvo = $dao->buscarChecklist($id); // Retorna array [id_acessorio => 
         <div class="col-lg-10 mx-auto">
             <form id="formEditarCautela" novalidate>
                 <input type="hidden" name="id" value="<?= $cautela['id'] ?>">
-                <input type="hidden" name="status" value="Pendente">
 
                 <!-- CARD 1: IDENTIFICAÇÃO -->
                 <div class="card shadow mb-4">
@@ -121,15 +120,16 @@ $checklistSalvo = $dao->buscarChecklist($id); // Retorna array [id_acessorio => 
                     </div>
                 </div>
 
+                <hr class="my-4">
                 <div class="row">
                     <div class="col-md-6 mb-2">
-                        <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
-                            <i class="fas fa-save me-2"></i>Salvar Alterações
+                        <button type="button" class="btn btn-outline-primary w-100 py-2" onclick="salvarEdicao('Pendente')">
+                            <i class="fas fa-save me-2"></i>Apenas Salvar Alterações
                         </button>
                     </div>
                     <div class="col-md-6">
-                        <button type="button" class="btn btn-outline-secondary w-100 py-2" onclick="loadPage('pages/pesquisar_cautelas.php')">
-                            Cancelar
+                        <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="salvarEdicao('Disponível')">
+                            <i class="fas fa-share-square me-2"></i>Salvar e Disponibilizar para Assinatura
                         </button>
                     </div>
                 </div>
@@ -140,21 +140,51 @@ $checklistSalvo = $dao->buscarChecklist($id); // Retorna array [id_acessorio => 
 
 <script>
     (function() {
-        document.getElementById('formEditarCautela').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = this;
-            const btn = form.querySelector('button[type="submit"]');
+        const form = document.getElementById('formEditarCautela');
 
-            // 1. REABILITA TEMPORARIAMENTE (Para capturar ID, Vtr, Condutor, etc)
+        // 1. Lógica para carregar itens opcionais que já estavam salvos
+        const checklistSalvo = <?= json_encode($checklistSalvo) ?>;
+        const opcionais = <?= json_encode($opcionais) ?>;
+
+        opcionais.forEach(opt => {
+            // Se o item está no banco (mesmo desmarcado) e não está na lista universal
+            if (checklistSalvo.hasOwnProperty(opt.id) && !document.getElementById('item_' + opt.id)) {
+                const isChecked = checklistSalvo[opt.id] == 1 ? 'checked' : '';
+                const html = `
+                    <div class="col">
+                        <div class="form-check form-switch p-2 border rounded border-primary bg-white d-flex align-items-center" style="min-height: 50px;">
+                            <input class="form-check-input ms-0 me-3 check-item" type="checkbox" role="switch" data-id="${opt.id}" ${isChecked}>
+                            <label class="form-check-label small fw-bold mb-0">${opt.nome}</label>
+                        </div>
+                    </div>`;
+                document.getElementById('container-checklist').insertAdjacentHTML('beforeend', html);
+            }
+        });
+
+        // 2. Função de inclusão manual (caso o gestor queira adicionar algo que não estava antes)
+        window.adicionarItemChecklist = function() {
+            const sel = document.getElementById('sel_opcionais');
+            if (!sel.value || document.querySelector(`.check-item[data-id="${sel.value}"]`)) return;
+
+            const html = `<div class="col"><div class="form-check form-switch p-2 border rounded border-primary d-flex align-items-center" style="min-height: 50px;"><input class="form-check-input ms-0 me-3 check-item" type="checkbox" role="switch" data-id="${sel.value}" checked><label class="form-check-label small fw-bold mb-0 text-dark">${sel.options[sel.selectedIndex].text}</label></div></div>`;
+            document.getElementById('container-checklist').insertAdjacentHTML('beforeend', html);
+            sel.value = "";
+        };
+
+        // 3. Função Única de Salvamento (Chamada pelos botões do HTML)
+        window.salvarEdicao = function(statusFinal) {
+            const btn = event.currentTarget; // Captura o botão clicado
+
+            // Reabilita temporariamente para captura de dados
             const camposBloqueados = form.querySelectorAll(':disabled');
             camposBloqueados.forEach(el => el.disabled = false);
 
             const formData = new FormData(form);
 
-            // 2. BLOQUEIA NOVAMENTE
+            // Bloqueia novamente
             camposBloqueados.forEach(el => el.disabled = true);
 
-            // 3. COLETA TODO O CHECKLIST (Garantindo que envie 0 ou 1)
+            // Coleta checklist completo (1 ou 0)
             const checklist = [];
             document.querySelectorAll('.check-item').forEach(el => {
                 checklist.push({
@@ -164,11 +194,12 @@ $checklistSalvo = $dao->buscarChecklist($id); // Retorna array [id_acessorio => 
             });
 
             formData.append('checklist_json', JSON.stringify(checklist));
+            formData.append('status', statusFinal);
 
             btn.disabled = true;
+            const originalContent = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
 
-            // 4. ENVIA COM O PARÂMETRO acao=editar
             fetch('api/processar_cautela.php?acao=editar', {
                     method: 'POST',
                     headers: {
@@ -179,76 +210,20 @@ $checklistSalvo = $dao->buscarChecklist($id); // Retorna array [id_acessorio => 
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        window.showToast(data.message, 'success');
+                        showToast(data.message, 'success');
                         setTimeout(() => loadPage('pages/pesquisar_cautelas.php'), 1200);
                     } else {
-                        window.showToast(data.message, 'danger');
+                        showToast(data.message, 'danger');
                         btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Alterações';
+                        btn.innerHTML = originalContent;
                     }
                 })
                 .catch(err => {
-                    window.showToast("Erro na comunicação com o servidor", "danger");
+                    console.error("Erro na edição:", err);
+                    showToast("Erro de comunicação", "danger");
                     btn.disabled = false;
+                    btn.innerHTML = originalContent;
                 });
-        });
-
-        window.adicionarItemChecklist = function() {
-            const sel = document.getElementById('sel_opcionais');
-            if (!sel.value || document.querySelector(`.check-item[data-id="${sel.value}"]`)) return;
-
-            const html = `<div class="col"><div class="form-check form-switch px-5 border rounded shadow-sm d-flex align-items-center" style="min-height: 50px;"><input class="form-check-input check-item" type="checkbox" role="switch" data-id="${sel.value}" checked><label class="form-check-label small fw-bold mb-0 text-dark">${sel.options[sel.selectedIndex].text}</label></div></div>`;
-            document.getElementById('container-checklist').insertAdjacentHTML('beforeend', html);
-            sel.value = "";
         };
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const btn = this.querySelector('button[type="submit"]');
-
-            // A. COLETA O CHECKLIST (Garantindo que ele seja enviado)
-            const checklist = [];
-            // Buscamos TODOS os itens que tem a classe check-item, marcados ou não
-            const elementos = document.querySelectorAll('.check-item');
-
-            if (elementos.length === 0) {
-                window.showToast("Erro: Nenhum item de checklist encontrado na tela.", "danger");
-                return;
-            }
-
-            elementos.forEach(el => {
-                checklist.push({
-                    id: el.dataset.id,
-                    status: el.checked ? 1 : 0 // Enviamos 1 para marcado, 0 para desmarcado
-                });
-            });
-
-            formData.append('checklist_json', JSON.stringify(checklist));
-
-            btn.disabled = true;
-
-            fetch('api/processar_cautela.php?acao=editar', { // Certifique-se que o parâmetro acao=editar está aqui
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
-                    },
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        window.showToast(data.message, 'success');
-                        setTimeout(() => loadPage('pages/pesquisar_cautelas.php'), 1200);
-                    } else {
-                        window.showToast(data.message, 'danger');
-                        btn.disabled = false;
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    window.showToast("Erro ao processar edição.", "danger");
-                    btn.disabled = false;
-                });
-        });
     })();
 </script>

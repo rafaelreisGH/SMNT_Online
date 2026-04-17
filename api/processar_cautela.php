@@ -14,11 +14,11 @@ $data = $_POST;
 $acao = $_GET['acao'] ?? '';
 
 try {
-    if (USER_AUTH['perfil'] === 'Condutor') {
-        throw new Exception("Acesso Negado: Condutores não podem realizar esta operação.");
-    }
-
     $dao = new CautelaDAO();
+
+    if (USER_AUTH['perfil'] === 'Condutor' && $acao !== 'assinar') {
+        throw new Exception("Acesso Negado: Condutores não podem criar, editar ou cancelar cautelas.");
+    }
 
     // AÇÃO A: CANCELAR
     if ($acao === 'cancelar') {
@@ -55,6 +55,48 @@ try {
             $response['message'] = "Alterações salvas com sucesso!";
         } else {
             throw new Exception("Nenhuma alteração feita ou cautela já foi assinada.");
+        }
+    } elseif ($acao === 'assinar') {
+        $idCautela = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
+        $senha = $data['senha_assinatura'] ?? '';
+
+        if (!$idCautela || empty($senha)) {
+            throw new Exception("Dados insuficientes para assinatura.");
+        }
+
+        $dao = new CautelaDAO();
+        // 1. Busca os dados da cautela para conferir o condutor
+        $cautela = $dao->getCautelaById($idCautela);
+
+        if (!$cautela) throw new Exception("Cautela não encontrada.");
+
+        // 2. VERIFICAÇÃO RBAC: O usuário logado é o condutor da cautela?
+        // Buscamos o usuario_id vinculado ao condutor daquela cautela
+        $db = Conexao::getConexao();
+        $stmt = $db->prepare("SELECT usuario_id FROM condutor WHERE id = :c_id");
+        $stmt->execute([':c_id' => $cautela['condutor_id']]);
+        $idUsuarioResponsavel = $stmt->fetchColumn();
+
+        if (USER_AUTH['id'] != $idUsuarioResponsavel) {
+            throw new Exception("Acesso Negado: Apenas o condutor designado pode assinar esta cautela.");
+        }
+
+        // 3. VALIDAÇÃO DA SENHA (Assinatura Digital)
+        $stmtUser = $db->prepare("SELECT senha_hash FROM usuarios WHERE id = :u_id");
+        $stmtUser->execute([':u_id' => USER_AUTH['id']]);
+        $hash = $stmtUser->fetchColumn();
+
+        if (!password_verify($senha, $hash)) {
+            throw new Exception("Senha de assinatura incorreta.");
+        }
+
+        // 4. EXECUTA A ASSINATURA
+        if ($dao->assinarCautela($idCautela, USER_AUTH['id'])) {
+            LoggerService::registrar("Condutor assinou a cautela ID: $idCautela", "cautelas", $idCautela);
+            $response['success'] = true;
+            $response['message'] = "Cautela assinada e ativa! Boa jornada.";
+        } else {
+            throw new Exception("Não foi possível assinar. Verifique se a cautela ainda está disponível.");
         }
     }
     // AÇÃO C: CRIAR (Novo Registro)

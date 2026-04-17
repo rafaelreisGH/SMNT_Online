@@ -270,4 +270,47 @@ class CautelaDAO
         }
         return ['sql' => $sql, 'params' => $params];
     }
+
+    /**
+     * Realiza a assinatura digital da cautela (Aceite do Condutor)
+     */
+    public function assinarCautela(int $id, int $usuarioId)
+    {
+        $sql = "UPDATE cautelas SET 
+                status = 'Ativa', 
+                assinatura_saida_data = NOW() 
+            WHERE id = :id AND status = 'Disponível'";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao processar assinatura no banco: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Busca todos os dados para emissão do Termo de Cautela (PDF/Modal)
+     */
+    public function buscarDadosCompletosDocumento(int $id)
+    {
+        $sql = "SELECT c.*, 
+                   v.prefixo, v.numero, v.placa, v.marca, v.modelo,
+                   cond.nome as condutor_nome, cond.cpf as condutor_cpf,
+                   un.nome as unidade_nome,
+                   gest.nome as gestor_entrega_nome
+            FROM cautelas c
+            JOIN viaturas v ON c.viatura_id = v.id
+            JOIN unidades un ON v.lotacao_atual_id = un.id
+            JOIN condutor cond ON c.condutor_id = cond.id
+            JOIN usuarios gest ON c.gestor_entrega_id = gest.id
+            WHERE c.id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
