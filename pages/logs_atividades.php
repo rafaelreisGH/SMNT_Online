@@ -3,6 +3,14 @@
 require_once __DIR__ . '/../api/middleware_auth.php';
 require_once __DIR__ . '/../components/DAO/LogDAO.php';
 
+// TRAVA DE SEGURANÇA RBAC
+if (!in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central'])) {
+    echo "<div class='container-fluid'><div class='alert alert-danger'>
+            <i class='fas fa-lock me-2'></i>Acesso Negado: Você não tem permissão para visualizar os logs de auditoria.
+          </div></div>";
+    exit; // Interrompe o carregamento da página
+}
+
 $logDAO = new LogDAO();
 $logs = $logDAO->buscarLogs(USER_AUTH);
 ?>

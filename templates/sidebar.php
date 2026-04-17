@@ -380,7 +380,7 @@
                                     Alterar senha
                                 </a>
                                 <a class="dropdown-item" href="/pages/logs_atividades.php">
-                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400" id="link-logs-auditoria"></i>
                                     Histórico (log)
                                 </a>
                                 <div class="dropdown-divider"></div>

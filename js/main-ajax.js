@@ -345,6 +345,15 @@ function updateUIUserInfo() {
         const primeiroNome = nome.split(' ')[0];
         displayElement.innerText = `${primeiroNome} (${perfil})`;
     }
+    const linkLogs = document.getElementById('link-logs-auditoria');
+    if (linkLogs) {
+        // Se NÃO for Admin nem Gestor Central, esconde o link
+        if (perfil !== 'Administrador' && perfil !== 'Gestor Central') {
+            linkLogs.classList.add('d-none');
+        } else {
+            linkLogs.classList.remove('d-none');
+        }
+    }
 }
 
 /**
