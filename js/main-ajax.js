@@ -101,6 +101,8 @@ window.loadPage = function (url) {
             if (!html) return;
             mainContentArea.innerHTML = html;
 
+            window.scrollTo(0, 0);
+
             const scripts = mainContentArea.querySelectorAll('script');
             scripts.forEach(script => {
                 const newScript = document.createElement('script');
