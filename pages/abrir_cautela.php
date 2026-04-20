@@ -94,7 +94,7 @@ $opcionais = $aDAO->listarOpcionais();
                                             <?= ($a['eh_universal'] == 1) ? 'checked' : '' ?>> <!-- Marcado se for universal -->
                                         <label class="form-check-label small fw-bold mb-0 text-dark" for="item_<?= $a['id'] ?>">
                                             <?= htmlspecialchars($a['nome']) ?>
-                                            
+
                                         </label>
                                     </div>
                                 </div>
@@ -146,16 +146,37 @@ $opcionais = $aDAO->listarOpcionais();
         const selVtr = document.getElementById('sel_vtr');
         const containerAvarias = document.getElementById('container_avarias_vtr');
 
-        // 1. Busca avarias dinamicamente
+        // 1. Busca dados e avarias dinamicamente ao selecionar a viatura
         if (selVtr) {
             selVtr.addEventListener('change', function() {
-                if (!this.value) {
+                const viaturaId = this.value;
+                if (!viaturaId) {
                     containerAvarias.innerHTML = '<span class="text-muted small italic">Selecione uma viatura...</span>';
                     return;
                 }
-                containerAvarias.innerHTML = '<span class="text-muted small italic"><i class="fas fa-spinner fa-spin me-1"></i> Consultando histórico...</span>';
 
-                fetch(`api/get_avarias_viaturas.php?viatura_id=${this.value}`, {
+                // A. BUSCA ODÔMETRO ATUAL (NOVO)
+                fetch(`api/get_dados_viatura.php?id=${viaturaId}`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.quilometragem !== undefined) {
+                            const inputOdo = document.querySelector('input[name="odometro_saida"]');
+                            if (inputOdo) {
+                                inputOdo.value = data.quilometragem;
+                                // Opcional: define como 'min' para o HTML não aceitar menor que isso
+                                inputOdo.setAttribute('min', data.quilometragem);
+                            }
+                        }
+                    })
+                    .catch(err => console.error("Erro ao buscar odômetro:", err));
+
+                // B. BUSCA HISTÓRICO DE AVARIAS (Mantenha sua lógica existente abaixo)
+                containerAvarias.innerHTML = '<span class="text-muted small italic"><i class="fas fa-spinner fa-spin me-1"></i> Consultando histórico...</span>';
+                fetch(`api/get_avarias_viaturas.php?viatura_id=${viaturaId}`, {
                         headers: {
                             'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
                         }

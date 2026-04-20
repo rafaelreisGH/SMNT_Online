@@ -92,21 +92,27 @@ class RegistroAvariaDAO
 
     public function inserir(array $data)
     {
-        $sql = "INSERT INTO registro_avaria (viatura_id, tipo_avaria_id, condutor_id, data_registro, observacoes_avaria, requer_apuracao) 
-            VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :data_registro, :observacoes, :requer_apuracao)";
+        // Adicionado o campo cautela_id no INSERT para rastreabilidade
+        $sql = "INSERT INTO registro_avaria (viatura_id, tipo_avaria_id, condutor_id, cautela_id, data_registro, observacoes_avaria, requer_apuracao) 
+            VALUES (:viatura_id, :tipo_avaria_id, :condutor_id, :cautela_id, :data_registro, :observacoes, :requer_apuracao)";
 
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
-            $stmt->bindValue(':tipo_avaria_id', $data['tipo_avaria_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':tipo_avaria_id', $data['tipo_avaria_id'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':condutor_id', $data['condutor_id'], PDO::PARAM_INT);
-            $stmt->bindValue(':data_registro', $data['data_registro']);
+            $stmt->bindValue(':cautela_id', $data['cautela_id'] ?? null, PDO::PARAM_INT); // Vínculo com a cautela
+            $stmt->bindValue(':data_registro', $data['data_registro'] ?? date('Y-m-d H:i:s'));
             $stmt->bindValue(':observacoes', $data['observacoes_avaria'], PDO::PARAM_STR);
             $stmt->bindValue(':requer_apuracao', $data['requer_apuracao'] ?? 0, PDO::PARAM_INT);
 
             $res = $stmt->execute();
 
             if ($res) {
+                // CAPTURA O ID GERADO PELO BANCO DE DADOS
+                $novoIdAvaria = (int)$this->conn->lastInsertId();
+
+                // MANTÉM A LÓGICA DE NOTIFICAÇÃO ORIGINAL
                 $vDAO = new ViaturaDAO();
                 $v = $vDAO->getViaturaById($data['viatura_id']);
 
@@ -118,14 +124,26 @@ class RegistroAvariaDAO
                     "avaria",
                     "pages/pesquisar_avaria.php"
                 );
+
+                // RETORNO CRÍTICO: Devolve o ID da avaria (50, 51...) e não apenas true/1
+                return $novoIdAvaria;
             }
 
-            return $res;
+            return false;
         } catch (PDOException $e) {
             throw new Exception("Erro ao registrar avaria: " . $e->getMessage());
         }
     }
 
+    /**
+     * Método para salvar apenas o NOME do arquivo na tabela avaria_fotos
+     */
+    public function inserirFoto(int $avariaId, string $nomeArquivo)
+    {
+        $sql = "INSERT INTO avaria_fotos (avaria_id, caminho_arquivo) VALUES (:id, :nome)";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([':id' => $avariaId, ':nome' => $nomeArquivo]);
+    }
     public function buscarDetalhesPorId(int $id)
     {
         $sql = "SELECT 

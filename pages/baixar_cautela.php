@@ -81,6 +81,28 @@ if (!$c) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+
+                    <?php foreach ($itens as $it): ?>
+                        <div class="row mb-2 border-bottom pb-2 align-items-center">
+                            <div class="col-md-4 small fw-bold"><?= htmlspecialchars($it['nome']) ?></div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm sel-retorno" data-id="<?= $it['acessorio_id'] ?>" data-nome="<?= $it['nome'] ?>" onchange="toggleJustificativa(this)">
+                                    <option value="1">Devolvido</option>
+                                    <option value="0">FALTANTE</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control form-control-sm d-none input-justifica" placeholder="Obrigatório descrever a falta...">
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <div class="mt-4 p-3 bg-light border rounded">
+                        <label class="form-label fw-bold text-danger">Relatar Novo Dano / Avaria</label>
+                        <textarea name="novo_dano_obs" class="form-control mb-2" rows="2"></textarea>
+                        <input type="file" name="fotos[]" class="form-control" multiple accept="image/*">
+                    </div>
+
                     <div class="card-footer">
                         <button type="submit" class="btn btn-outline-primary w-100 py-2 fw-bold">FINALIZAR RECEBIMENTO</button>
                     </div>
@@ -129,6 +151,17 @@ if (!$c) {
                 })
                 .then(r => r.json())
                 .then(data => {
+                    if (data.success) {
+                        window.showToast(data.message, 'success');
+                        // REDIRECIONAMENTO SPA GARANTIDO:
+                        setTimeout(() => {
+                            if (typeof window.loadPage === 'function') {
+                                window.loadPage('pages/pesquisar_cautelas.php');
+                            } else {
+                                window.location.hash = 'pesquisar_cautelas';
+                            }
+                        }, 1200);
+                    }
                     window.showToast(data.message, data.success ? 'success' : 'danger');
                     if (data.success) setTimeout(() => loadPage('pages/pesquisar_cautelas.php'), 1200);
                 });
