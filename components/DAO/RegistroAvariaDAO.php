@@ -43,15 +43,19 @@ class RegistroAvariaDAO
     {
         $rbac = $this->aplicarEscopoRBAC();
 
-        // ADICIONADO: ra.requer_apuracao no SELECT
-        $sql = "SELECT ra.*, v.prefixo, v.numero, ta.nome_componente, c.nome AS nome_condutor, m.status AS status_manutencao
-                FROM registro_avaria ra
-                JOIN viaturas v ON ra.viatura_id = v.id
-                JOIN unidades u ON v.lotacao_atual_id = u.id
-                JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
-                JOIN condutor c ON ra.condutor_id = c.id
-                LEFT JOIN manutencoes m ON m.avaria_id = ra.id
-                WHERE 1=1 {$rbac['sql']}";
+        $sql = "SELECT ra.*, v.prefixo, v.numero, 
+                   ta.nome_componente, 
+                   c.nome AS nome_condutor, 
+                   m.status AS status_manutencao
+            FROM registro_avaria ra
+            JOIN viaturas v ON ra.viatura_id = v.id
+            JOIN unidades u ON v.lotacao_atual_id = u.id
+            JOIN condutor c ON ra.condutor_id = c.id
+            LEFT JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
+            LEFT JOIN manutencoes m ON m.avaria_id = ra.id
+            -- ADICIONADO ABAIXO: Necessário para o filtro de pendencia_adm funcionar
+            LEFT JOIN procedimentos_apuracao pa ON ra.id = pa.avaria_id
+            WHERE 1=1 {$rbac['sql']}";
 
         $params = $rbac['params'];
 
@@ -124,19 +128,21 @@ class RegistroAvariaDAO
 
     public function buscarDetalhesPorId(int $id)
     {
-        // ADICIONADO: ra.requer_apuracao no SELECT
         $sql = "SELECT 
                 ra.*, 
                 v.prefixo, v.numero, v.placa, v.modelo,
                 ta.nome_componente, ta.categoria,
                 c.nome AS nome_condutor,
                 m.status AS status_manutencao,
-                m.id AS manutencao_id
+                m.id AS manutencao_id,
+                -- ADICIONADO: traz dados da apuração se existirem
+                pa.numero_portaria, pa.status_apuracao, pa.encarregado
             FROM registro_avaria ra
             JOIN viaturas v ON ra.viatura_id = v.id
             JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
             JOIN condutor c ON ra.condutor_id = c.id
             LEFT JOIN manutencoes m ON m.avaria_id = ra.id
+            LEFT JOIN procedimentos_apuracao pa ON ra.id = pa.avaria_id
             WHERE ra.id = :id";
 
         try {

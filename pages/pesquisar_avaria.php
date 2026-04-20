@@ -130,12 +130,15 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                                             <?php foreach ($results as $row): ?>
                                                 <tr>
                                                     <td><?= date('d/m/Y H:i', strtotime($row['data_registro'])) ?></td>
-                                                    <td><strong><?= htmlspecialchars($row['prefixo'] . ' ' . $row['numero']) ?></strong></td>
-                                                    <td><?= htmlspecialchars($row['nome_componente']) ?></td>
-                                                    <td><?= htmlspecialchars($row['nome_condutor']) ?></td>
+                                                    <!-- Correção de $viatura para $row -->
+                                                    <td><strong><?= htmlspecialchars(($row['prefixo'] ?? '') . ' ' . ($row['numero'] ?? '')) ?></strong></td>
+                                                    <!-- Correção do nome do componente -->
+                                                    <td><?= htmlspecialchars($row['nome_componente'] ?? 'Não classificado') ?></td>
+                                                    <!-- Correção de $condutor para $row['nome_condutor'] -->
+                                                    <td><?= htmlspecialchars($row['nome_condutor'] ?? 'N/A') ?></td>
                                                     <td>
-                                                        <?php if ($row['status_manutencao']): ?>
-                                                            <span class="badge bg-info"><?= $row['status_manutencao'] ?></span>
+                                                        <?php if (!empty($row['status_manutencao'])): ?>
+                                                            <span class="badge bg-info"><?= htmlspecialchars($row['status_manutencao']) ?></span>
                                                         <?php else: ?>
                                                             <span class="badge bg-secondary">Não iniciada</span>
                                                         <?php endif; ?>
@@ -195,26 +198,22 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
         if (!form || form.hasAttribute('data-initialized')) return;
         form.setAttribute('data-initialized', 'true');
 
+        // Escuta o envio do formulário
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(form);
+
+            // O SPINNER SÓ APARECE SE O SCRIPT NÃO QUEBRAR
             areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Pesquisando...</div>';
 
             fetch('pages/pesquisar_avaria.php', {
                     method: 'POST',
                     headers: {
-                        // CORREÇÃO CRÍTICA: Enviar o Token para não dar erro 401
                         'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
                     },
                     body: formData
                 })
-                .then(r => {
-                    if (r.status === 401) {
-                        window.location.href = 'login.php';
-                        return;
-                    }
-                    return r.text();
-                })
+                .then(r => r.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
@@ -228,7 +227,7 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                 });
         });
 
-        // Função para Detalhes (Modal) - Corrigida para enviar Token
+        // Lógica do Modal (Sempre enviar Token)
         const modal = document.getElementById('modalDetalhesAvaria');
         if (modal) {
             modal.addEventListener('show.bs.modal', function(event) {
@@ -245,21 +244,19 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                     .then(html => body.innerHTML = html);
             });
         }
-    }
 
-    // Verifica se a URL possui o parâmetro de pendência (vindo do Dashboard)
-    const urlParams = new URLSearchParams(window.location.search);
-    const pendencia = urlParams.get('pendencia');
-
-    if (pendencia === '1') {
-        const selectPendencia = document.getElementById('filtro_pendencia_adm');
-        if (selectPendencia) {
-            selectPendencia.value = '1';
-            // Dispara a pesquisa automaticamente
-            form.dispatchEvent(new Event('submit'));
+        // === LÓGICA DE REDIRECIONAMENTO (MOVIDA PARA DENTRO DA FUNÇÃO) ===
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('pendencia') === '1') {
+            const selectPendencia = document.getElementById('filtro_pendencia_adm');
+            if (selectPendencia) {
+                selectPendencia.value = '1';
+                // Dispara o evento de submit que acabamos de configurar acima
+                form.dispatchEvent(new Event('submit'));
+            }
         }
     }
 
-    // Inicializa imediatamente
+    // Inicializa
     initializePesquisaAvaria();
 </script>
