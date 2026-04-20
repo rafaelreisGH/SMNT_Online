@@ -44,9 +44,9 @@ $fotoPath = "assets/uploads/perfil/" . $fotoNome;
                         </button>
                     </form>
 
-                    <h5 class="mt-3 fw-bold text-dark mb-0"><?= htmlspecialchars($user['nome']) ?></h5>
-                    <p class="text-muted small mb-3"><?= htmlspecialchars($user['email']) ?></p>
-                    <span class="badge bg-danger px-3 py-2 rounded-pill"><?= htmlspecialchars($user['perfil_nome']) ?></span>
+                    <h5 class="mt-3 fw-bold text-dark mb-0"><?= htmlspecialchars($user['nome'] ?? '') ?></h5>
+                    <p class="text-muted small mb-3"><?= htmlspecialchars($user['email'] ?? '') ?></p>
+                    <span class="badge bg-danger px-3 py-2 rounded-pill"><?= htmlspecialchars($user['perfil_nome'] ?? '') ?></span>
                 </div>
             </div>
         </div>
@@ -61,11 +61,11 @@ $fotoPath = "assets/uploads/perfil/" . $fotoNome;
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted fw-bold">CPF:</div>
-                        <div class="col-sm-8 text-dark"><?= htmlspecialchars($user['cpf']) ?></div>
+                        <div class="col-sm-8 text-dark"><?= htmlspecialchars($user['cpf'] ?? '') ?></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted fw-bold">Unidade de Lotação:</div>
-                        <div class="col-sm-8 text-dark"><?= htmlspecialchars($user['unidade_nome']) ?></div>
+                        <div class="col-sm-8 text-dark"><?= htmlspecialchars($user['unidade_nome'] ?? '') ?></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted fw-bold">Data de Cadastro:</div>

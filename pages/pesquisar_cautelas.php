@@ -89,6 +89,22 @@ $cautelas = $dao->buscarCautelas();
                                             <i class="fas fa-hourglass-half me-1"></i> Aguardando
                                         </button>
                                     <?php endif; ?>
+                                    <!-- Ação de DESCAUTELA: 
+         Regra: Somente se status for 'Ativa' E o usuário logado NÃO for o Condutor -->
+                                    <?php if ($c['status'] === 'Ativa' && USER_AUTH['perfil'] !== 'Condutor'): ?>
+                                        <button class="btn btn-sm btn-primary ms-1"
+                                            title="Realizar Descautela (Receber Veículo)"
+                                            onclick="loadPage('pages/baixar_cautela.php?id=<?= $c['id'] ?>')">
+                                            <i class="fas fa-file-download me-1"></i> Receber
+                                        </button>
+                                    <?php endif; ?>
+
+                                    <!-- Informativo visual de que a Viatura está na rua -->
+                                    <?php if ($c['status'] === 'Ativa' && USER_AUTH['perfil'] === 'Condutor'): ?>
+                                        <small class="text-success d-block italic">
+                                            <i class="fas fa-steering-wheel me-1"></i>Em posse do veículo
+                                        </small>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

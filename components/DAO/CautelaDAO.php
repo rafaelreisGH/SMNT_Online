@@ -313,4 +313,68 @@ class CautelaDAO
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Busca o checklist de itens que foram entregues na saída
+     */
+    public function buscarItensEntreguesNaSaida(int $cautelaId)
+    {
+        $sql = "SELECT ci.acessorio_id, av.nome 
+            FROM cautela_itens ci 
+            JOIN acessorios_viatura av ON ci.acessorio_id = av.id 
+            WHERE ci.cautela_id = :id AND ci.entregue_saida = 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':id' => $cautelaId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Encerramento da Cautela com atualização de frota
+     */
+    public function finalizarDescautela(array $d, array $checklist)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // 1. Atualiza a Cautela
+            $sqlC = "UPDATE cautelas SET 
+                    data_fim = NOW(), odometro_retorno = :odo, 
+                    combustivel_retorno = :comb, status = 'Concluída',
+                    gestor_recebimento_id = :gestor, observacoes_gerais = :obs,
+                    assinatura_retorno_data = NOW()
+                 WHERE id = :id";
+            $stmtC = $this->conn->prepare($sqlC);
+            $stmtC->execute([
+                ':odo'    => $d['odometro_retorno'],
+                ':comb'   => $d['combustivel_retorno'],
+                ':gestor' => USER_AUTH['id'],
+                ':obs'    => $d['observacoes_gerais'] ?? null,
+                ':id'     => $d['id']
+            ]);
+
+            // 2. Atualiza o checklist de retorno
+            $sqlI = "UPDATE cautela_itens SET entregue_retorno = :ret, justificativa_divergencia = :just 
+                 WHERE cautela_id = :c_id AND acessorio_id = :a_id";
+            $stmtI = $this->conn->prepare($sqlI);
+            foreach ($checklist as $item) {
+                $stmtI->execute([
+                    ':ret'  => $item['status_retorno'],
+                    ':just' => $item['justificativa'] ?? null,
+                    ':c_id' => $d['id'],
+                    ':a_id' => $item['acessorio_id']
+                ]);
+            }
+
+            // 3. Atualiza o Odômetro Global da Viatura
+            $sqlV = "UPDATE viaturas SET quilometragem = :odo WHERE id = :v_id";
+            $stmtV = $this->conn->prepare($sqlV);
+            $stmtV->execute([':odo' => $d['odometro_retorno'], ':v_id' => $d['viatura_id']]);
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
 }
