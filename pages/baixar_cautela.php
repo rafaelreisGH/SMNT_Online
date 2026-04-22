@@ -82,26 +82,18 @@ if (!$c) {
                         <?php endforeach; ?>
                     </div>
 
-                    <?php foreach ($itens as $it): ?>
-                        <div class="row mb-2 border-bottom pb-2 align-items-center">
-                            <div class="col-md-4 small fw-bold"><?= htmlspecialchars($it['nome']) ?></div>
-                            <div class="col-md-3">
-                                <select class="form-select form-select-sm sel-retorno" data-id="<?= $it['acessorio_id'] ?>" data-nome="<?= $it['nome'] ?>" onchange="toggleJustificativa(this)">
-                                    <option value="1">Devolvido</option>
-                                    <option value="0">FALTANTE</option>
-                                </select>
-                            </div>
-                            <div class="col-md-5">
-                                <input type="text" class="form-control form-control-sm d-none input-justifica" placeholder="Obrigatório descrever a falta...">
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-
                     <div class="mt-4 p-3 bg-light border rounded">
                         <label class="form-label fw-bold text-danger">Relatar Novo Dano / Avaria</label>
+                        <small class="text-muted d-block mb-2">Se a viatura retornou com algum dano que não estava presente na saída ou na lista de acessórios, descreva aqui e anexe fotos, se necessário.</small>
                         <textarea name="novo_dano_obs" class="form-control mb-2" rows="2"></textarea>
                         <input type="file" name="fotos[]" class="form-control" multiple accept="image/*">
                     </div>
+
+                    <div id="containerOcorrencias"></div>
+
+                    <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="adicionarOcorrencia()">
+                        <i class="fas fa-plus"></i> Adicionar nova ocorrência/dano
+                    </button>
 
                     <div class="card-footer">
                         <button type="submit" class="btn btn-outline-primary w-100 py-2 fw-bold">FINALIZAR RECEBIMENTO</button>
@@ -114,6 +106,7 @@ if (!$c) {
 
 <script>
     (function() {
+        // Função para alternar visibilidade do campo de justificativa
         window.toggleJust = function(sel) {
             const input = sel.closest('.row').querySelector('.input-justifica');
             if (sel.value === '0') {
@@ -129,6 +122,7 @@ if (!$c) {
         document.getElementById('formDescautela').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // Coleta os dados do checklist
             const checklist = [];
             document.querySelectorAll('.sel-retorno').forEach(sel => {
                 checklist.push({
@@ -142,6 +136,7 @@ if (!$c) {
             const formData = new FormData(this);
             formData.append('checklist_json', JSON.stringify(checklist));
 
+            // Executa o envio
             fetch('api/processar_descautela.php', {
                     method: 'POST',
                     headers: {
@@ -153,26 +148,48 @@ if (!$c) {
                 .then(data => {
                     if (data.success) {
                         window.showToast(data.message, 'success');
-                        // REDIRECIONAMENTO SPA GARANTIDO:
+
+                        // Redirecionamento Garantido
                         setTimeout(() => {
                             if (typeof window.loadPage === 'function') {
                                 window.loadPage('pages/pesquisar_cautelas.php');
                             } else {
-                                window.location.hash = 'pesquisar_cautelas';
+                                window.location.href = 'pesquisar_cautelas.php';
                             }
                         }, 1200);
+                    } else {
+                        window.showToast(data.message, 'danger');
                     }
-                    window.showToast(data.message, data.success ? 'success' : 'danger');
-                    if (data.success) setTimeout(() => loadPage('pages/pesquisar_cautelas.php'), 1200);
+                })
+                .catch(err => {
+                    console.error("Erro na requisição:", err);
+                    window.showToast("Erro ao processar o servidor.", "danger");
                 });
         });
-        fetch('api/processar_descautela.php', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('smnt_token'),
-                'X-Authorization': 'Bearer ' + localStorage.getItem('smnt_token') // Cabeçalho reserva
-            },
-            body: formData
-        })
     })();
+</script>
+<script>
+    function adicionarOcorrencia() {
+        const container = document.getElementById('containerOcorrencias');
+        const index = document.querySelectorAll('.ocorrencia-item').length;
+
+        const html = `
+        <div class="card mb-3 p-3 ocorrencia-item">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <select name="ocorrencias[${index}][tipo]" class="form-select form-select-sm" required>
+                        <option value="Dano">Dano na Viatura</option>
+                        <option value="Extravio">Acessório Faltante</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="ocorrencias[${index}][desc]" class="form-control form-control-sm" placeholder="Descrição curta" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="file" name="fotos_${index}[]" class="form-control form-control-sm" multiple accept="image/*">
+                </div>
+            </div>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+    }
 </script>

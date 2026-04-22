@@ -47,13 +47,13 @@ class NotificacaoDAO
         // 2. Gestor Regional do Comando da unidade afetada
         // 3. Gestores Locais da própria unidade
         $sql = "SELECT DISTINCT u.id 
-                FROM usuarios u
-                JOIN usuario_perfis up ON u.id = up.usuario_id
-                JOIN perfis p ON up.perfil_id = p.id
-                JOIN unidades un ON u.unidade_id = un.id
-                WHERE p.nome IN ('Administrador', 'Gestor Central') -- Regra 1
-                OR (p.nome = 'Gestor Regional' AND un.comando_regional_id = (SELECT comando_regional_id FROM unidades WHERE id = :unid_id)) -- Regra 2
-                OR (p.nome = 'Gestor Local' AND u.unidade_id = :unid_id) -- Regra 3";
+        FROM usuarios u
+        JOIN usuario_perfis up ON u.id = up.usuario_id
+        JOIN perfis p ON up.perfil_id = p.id
+        LEFT JOIN unidades un ON u.unidade_id = un.id -- Mudado para LEFT JOIN
+        WHERE p.nome IN ('Administrador', 'Gestor Central') 
+        OR (p.nome = 'Gestor Regional' AND un.comando_regional_id = (SELECT comando_regional_id FROM unidades WHERE id = :unid_id)) 
+        OR (p.nome = 'Gestor Local' AND u.unidade_id = :unid_id)";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':unid_id' => $unidadeEventoId]);
@@ -97,6 +97,7 @@ class NotificacaoDAO
      * Roda um check-up e cria notificações de sistema para itens que entraram em zona crítica
      * Pode ser chamado no login ou por um cronjob
      */
+    /*
     public function verificarGerarAlertasAutomaticos(int $usuarioId, int $unidadeId, int $crbmId, string $perfil)
     {
         $dash = new DashboardDAO();
@@ -117,4 +118,5 @@ class NotificacaoDAO
             }
         }
     }
+        */
 }

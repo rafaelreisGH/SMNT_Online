@@ -200,4 +200,35 @@ class RegistroAvariaDAO
             throw new Exception("Erro ao atualizar registro de avaria: " . $e->getMessage());
         }
     }
+
+    public function buscarAvariasPorCautela($cautela_id)
+    {
+        $db = Conexao::getConexao();
+        $sql = "SELECT * FROM registro_avaria WHERE cautela_id = :cautela_id";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['cautela_id' => $cautela_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Inserir ao final da classe RegistroAvariaDAO
+    public function listarCautelasConcluidasPorViatura(int $viatura_id): array
+    {
+        $sql = "SELECT c.id, c.data_fim, c.condutor_id, cond.nome AS condutor_nome 
+                FROM cautelas c
+                JOIN condutor cond ON c.condutor_id = cond.id
+                WHERE c.viatura_id = :viatura_id 
+                AND c.status = 'Concluída' 
+                ORDER BY c.data_fim DESC 
+                LIMIT 10";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':viatura_id', $viatura_id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar cautelas concluídas: " . $e->getMessage());
+            return [];
+        }
+    }
 }

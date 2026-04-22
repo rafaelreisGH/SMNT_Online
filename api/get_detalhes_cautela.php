@@ -1,10 +1,14 @@
 <?php
 require_once 'middleware_auth.php';
 require_once '../components/DAO/CautelaDAO.php';
+require_once '../components/DAO/RegistroAvariaDAO.php';
 
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 $dao = new CautelaDAO();
 $c = $dao->buscarDadosCompletosDocumento($id);
+
+// Instancia o RegistroAvariaDAO para buscar as avarias desta cautela
+$daoAvaria = new RegistroAvariaDAO();
 
 if (!$c) {
     echo "<div class='alert alert-danger'>Dados não encontrados.</div>";
@@ -58,6 +62,27 @@ $nomesItens = $db->query("SELECT id, nome FROM acessorios_viatura")->fetchAll(PD
             <ul class="list-unstyled mb-0">
                 <?php foreach ($avarias as $av): ?>
                     <li>• <?= htmlspecialchars($av['nome_componente']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
+    <h6 class="text-danger fw-bold border-bottom pb-1">
+        <i class="fas fa-exclamation-triangle me-2"></i>Ocorrências Registradas (Extravios/Danos)
+    </h6>
+    <div class="bg-light p-2 border rounded mb-3">
+        <?php
+        // Certifique-se de chamar o novo método buscarAvariasPorCautela($id)
+        $avarias = $daoAvaria->buscarAvariasPorCautela($id);
+
+        if (empty($avarias)): ?>
+            <span class="text-muted">Nenhuma avaria ou extravio registrado.</span>
+        <?php else: ?>
+            <ul class="list-unstyled mb-0">
+                <?php foreach ($avarias as $av): ?>
+                    <li class="mb-2 border-bottom pb-1">
+                        <i class="fas fa-angle-right me-2 text-danger"></i>
+                        <?= nl2br(htmlspecialchars($av['observacoes_avaria'])) ?>
+                    </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>

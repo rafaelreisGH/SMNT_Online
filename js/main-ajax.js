@@ -123,23 +123,36 @@ window.atualizarNotificacoes = function () {
     const token = localStorage.getItem('smnt_token');
     const contador = document.getElementById('notificacao-contador');
     const container = document.getElementById('container-notificacoes-itens');
+
     if (!token || !contador || !container) return;
 
     fetch('api/get_notificacoes.php', {
         headers: { 'Authorization': 'Bearer ' + token }
     })
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) throw new Error('Falha na rede ou autenticação');
+            return r.json();
+        })
         .then(data => {
-            if (data.total > 0) {
+            if (data.success && data.total > 0) {
                 contador.innerText = data.total > 9 ? '9+' : data.total;
                 contador.classList.remove('d-none');
+
                 let html = '';
                 data.notificacoes.forEach(n => {
                     const iconClass = n.tipo === 'avaria' ? 'bg-danger' : 'bg-warning';
+                    // Note: Verifique se o campo no seu banco é 'link' ou 'link_id'
                     html += `
-                <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="clicarNotificacao(${n.id}, '${n.link_id}')">
-                    <div class="mr-3"><div class="icon-circle ${iconClass} text-white"><i class="fas fa-exclamation-triangle"></i></div></div>
-                    <div><div class="small text-gray-500">${new Date(n.criada_em).toLocaleString()}</div><span class="font-weight-bold">${n.titulo}</span></div>
+                <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="clicarNotificacao(${n.id}, '${n.link || n.link_id}')">
+                    <div class="mr-3">
+                        <div class="icon-circle ${iconClass} text-white">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="small text-gray-500">${new Date(n.criada_em).toLocaleString()}</div>
+                        <span class="font-weight-bold">${n.titulo}</span>
+                    </div>
                 </a>`;
                 });
                 container.innerHTML = html;
@@ -147,7 +160,8 @@ window.atualizarNotificacoes = function () {
                 contador.classList.add('d-none');
                 container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Sem notificações.</p>';
             }
-        });
+        })
+        .catch(err => console.error('Erro ao buscar notificações:', err));
 };
 
 /**
@@ -208,6 +222,9 @@ window.clicarNotificacao = function (id, link) {
 /**
  * Item 2: Atualiza o nome e a foto do usuário no Topbar
  */
+/**
+ * Unificação da Interface do Usuário (Topbar, Sidebar e RBAC)
+ */
 window.updateUIUserInfo = function () {
     const nome = localStorage.getItem('user_nome');
     const perfil = localStorage.getItem('user_perfil');
@@ -216,12 +233,15 @@ window.updateUIUserInfo = function () {
     const displayNome = document.getElementById('user-name-display');
     const displayFoto = document.getElementById('user-img-topbar');
     const secaoAdmin = document.getElementById('secao-admin-sidebar');
+    const linkLogs = document.getElementById('link-logs-auditoria');
 
+    // 1. Atualiza Nome e Perfil
     if (displayNome && nome) {
         const primeiroNome = nome.split(' ')[0];
         displayNome.innerText = `${primeiroNome} (${perfil})`;
     }
 
+    // 2. Atualiza Foto
     if (displayFoto) {
         if (foto && foto !== 'null' && foto !== '' && foto !== 'undraw_profile.svg') {
             displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
@@ -230,14 +250,14 @@ window.updateUIUserInfo = function () {
         }
     }
 
-    // 3. LÓGICA DE EXIBIÇÃO DO MENU ADMIN (RBAC NO FRONTEND)
+    // 3. RBAC: Seção Admin na Sidebar
     if (secaoAdmin) {
-        // Se o perfil salvo for exatamente 'Administrador', remove o 'd-none'
-        if (perfil === 'Administrador') {
-            secaoAdmin.classList.remove('d-none');
-        } else {
-            secaoAdmin.classList.add('d-none');
-        }
+        perfil === 'Administrador' ? secaoAdmin.classList.remove('d-none') : secaoAdmin.classList.add('d-none');
+    }
+
+    // 4. RBAC: Link de Logs de Auditoria
+    if (linkLogs) {
+        (perfil === 'Administrador' || perfil === 'Gestor Central') ? linkLogs.classList.remove('d-none') : linkLogs.classList.add('d-none');
     }
 }
 
@@ -247,132 +267,30 @@ window.handleLogout = function () {
 };
 
 /**
- * Inicialização ao carregar o DOM
+ * Inicialização Única do Sistema
  */
 document.addEventListener('DOMContentLoaded', function () {
+    // Executa funções iniciais
     window.updateUIUserInfo();
     atualizarNotificacoes();
     atualizarMensagensTopbar();
     if (typeof initGlobalSearch === 'function') initGlobalSearch();
 
+    // Define os intervalos (2 minutos)
     setInterval(atualizarNotificacoes, 120000);
     setInterval(atualizarMensagensTopbar, 120000);
 
+    // Interceptador de cliques para SPA
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
         if (link && link.getAttribute('href')) {
             const href = link.getAttribute('href');
-            if (href.startsWith('#') || href.startsWith('javascript:') || link.dataset.toggle === 'collapse' || link.dataset.bsToggle) return;
 
-            if (link.target !== '_blank') {
-                e.preventDefault();
-                window.loadPage(href);
-            }
-        }
-    });
-});
-
-/**
- * Lógica da Busca Global Inteligente
- */
-function initGlobalSearch() {
-    const searchInput = document.getElementById('globalSearchInput');
-    const resultsDiv = document.getElementById('globalSearchResults');
-    let debounceTimer;
-
-    if (!searchInput || !resultsDiv) return;
-
-    searchInput.addEventListener('input', function () {
-        const query = this.value.trim();
-
-        clearTimeout(debounceTimer);
-        if (query.length < 2) {
-            resultsDiv.style.display = 'none';
-            return;
-        }
-
-        debounceTimer = setTimeout(() => {
-            fetch(`api/search_global.php?q=${encodeURIComponent(query)}`, {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') }
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        let html = '';
-                        data.forEach(item => {
-                            html += `
-                        <a class="dropdown-item d-flex align-items-center py-2" href="javascript:void(0)" 
-                           onclick="window.loadPage('${item.link}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';" 
-                           style="border-bottom: 1px solid #f8f9fc;">
-                            <div class="mr-3">
-                                <div class="icon-circle ${item.cor} bg-light p-2 rounded-circle text-center" style="width:35px; height:35px">
-                                    <i class="${item.icone}"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="small text-gray-500 text-uppercase" style="font-size: 0.65rem;">${item.subtitulo}</div>
-                                <span class="font-weight-bold" style="font-size: 0.85rem;">${item.titulo}</span>
-                            </div>
-                        </a>`;
-                        });
-                        resultsDiv.innerHTML = html;
-                        resultsDiv.style.display = 'block';
-                    } else {
-                        resultsDiv.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhum resultado encontrado.</p>';
-                        resultsDiv.style.display = 'block';
-                    }
-                });
-        }, 400);
-    });
-
-    document.addEventListener('click', function (e) {
-        const form = document.getElementById('globalSearchForm');
-        if (form && !form.contains(e.target)) {
-            resultsDiv.style.display = 'none';
-        }
-    });
-}
-
-/**
- * Item 2: Atualiza o nome do usuário no Topbar
- */
-function updateUIUserInfo() {
-    const nome = localStorage.getItem('user_nome');
-    const perfil = localStorage.getItem('user_perfil');
-    const displayElement = document.getElementById('user-name-display');
-
-    if (displayElement && nome) {
-        const primeiroNome = nome.split(' ')[0];
-        displayElement.innerText = `${primeiroNome} (${perfil})`;
-    }
-    const linkLogs = document.getElementById('link-logs-auditoria');
-    if (linkLogs) {
-        // Se NÃO for Admin nem Gestor Central, esconde o link
-        if (perfil !== 'Administrador' && perfil !== 'Gestor Central') {
-            linkLogs.classList.add('d-none');
-        } else {
-            linkLogs.classList.remove('d-none');
-        }
-    }
-}
-
-/**
- * Inicialização ao carregar o DOM
- */
-document.addEventListener('DOMContentLoaded', function () {
-    updateUIUserInfo();
-    atualizarNotificacoes();
-    atualizarMensagensTopbar();
-    initGlobalSearch();
-
-    setInterval(atualizarNotificacoes, 120000);
-    setInterval(atualizarMensagensTopbar, 120000);
-
-    document.addEventListener('click', function (e) {
-        const link = e.target.closest('a');
-        if (link && link.getAttribute('href')) {
-            const href = link.getAttribute('href');
-            if (href.startsWith('#') || href.startsWith('javascript:') || link.dataset.toggle === 'collapse' || link.dataset.bsToggle) return;
+            // Ignora links internos, javascript ou de componentes do Bootstrap
+            if (href.startsWith('#') ||
+                href.startsWith('javascript:') ||
+                link.dataset.toggle === 'collapse' ||
+                link.dataset.bsToggle) return;
 
             if (link.target !== '_blank') {
                 e.preventDefault();

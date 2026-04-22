@@ -20,43 +20,46 @@ try {
 
     $checklist = json_decode($data['checklist_json'], true);
 
+    // --- 1. CONSOLIDAÇÃO DAS OBSERVAÇÕES ---
+    $observacoes_final = "";
+
+    // Adiciona os itens faltantes na string
+    foreach ($checklist as $item) {
+        if ($item['status_retorno'] == 0) {
+            $observacoes_final .= "EXTRAVIO: " . $item['nome'] . " | Justificativa: " . $item['justificativa'] . " \n";
+        }
+    }
+
+    // Adiciona o novo dano relatado na mesma string
+    if (!empty($data['novo_dano_obs'])) {
+        $observacoes_final .= "NOVO DANO RELATADO: " . $data['novo_dano_obs'] . "\n";
+    }
+
+    // --- 2. REGRA: SÓ GRAVA SE HOUVER AVARIA ---
+    $avId = null;
+    if (!empty($observacoes_final)) {
+        $avId = $rDAO->inserir([
+            'viatura_id'         => $cautela['viatura_id'],
+            'tipo_avaria_id'     => 15, // Categoria padrão ou lógica para definir
+            'condutor_id'        => $cautela['condutor_id'],
+            'cautela_id'         => $cautela['id'],
+            'data_registro'      => date('Y-m-d H:i:s'),
+            'observacoes_avaria' => $observacoes_final, // String consolidada
+            'requer_apuracao'    => 1
+        ]);
+    }
+
+    // --- 3. PROCESSO DE FINALIZAÇÃO ---
     if ($cDAO->finalizarDescautela($data, $checklist)) {
 
-        // 1. Processar ITENS FALTANTES (Gera Avaria Automática)
-        foreach ($checklist as $item) {
-            if ($item['status_retorno'] == 0) {
-                $rDAO->inserir([
-                    'viatura_id' => $cautela['viatura_id'],
-                    'tipo_avaria_id' => 15, // ID da categoria Patrimonial
-                    'condutor_id' => $cautela['condutor_id'],
-                    'cautela_id' => $cautela['id'],
-                    'data_registro' => date('Y-m-d H:i:s'),
-                    'observacoes_avaria' => "EXTRAVIO: " . $item['nome'] . ". Justificativa: " . $item['justificativa'],
-                    'requer_apuracao' => 1
-                ]);
-            }
-        }
-
-        // 2. Processar NOVOS DANOS com UPLOAD DE FOTOS
-        if (!empty($data['novo_dano_obs'])) {
-            $avId = $rDAO->inserir([
-                'viatura_id' => $cautela['viatura_id'],
-                'tipo_avaria_id' => null,
-                'condutor_id' => $cautela['condutor_id'],
-                'cautela_id' => $cautela['id'],
-                'data_registro' => date('Y-m-d H:i:s'),
-                'observacoes_avaria' => "NOVO DANO RELATADO: " . $data['novo_dano_obs'],
-                'requer_apuracao' => 1
-            ]);
-
-            if ($avId && isset($_FILES['fotos'])) {
-                $dir = "../assets/uploads/avarias/";
-                foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp) {
-                    if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
-                        $nomeArquivo = "av_" . $avId . "_" . uniqid() . "." . pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
-                        if (move_uploaded_file($tmp, $dir . $nomeArquivo)) {
-                            $rDAO->inserirFoto($avId, $nomeArquivo); // SALVA APENAS O NOME
-                        }
+        // 4. Se houve avaria gravada e existem fotos, vincula ao ID ÚNICO
+        if ($avId && isset($_FILES['fotos'])) {
+            $dir = "../assets/uploads/avarias/";
+            foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp) {
+                if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                    $nomeArquivo = "av_" . $avId . "_" . uniqid() . "." . pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
+                    if (move_uploaded_file($tmp, $dir . $nomeArquivo)) {
+                        $rDAO->inserirFoto($avId, $nomeArquivo);
                     }
                 }
             }
