@@ -238,6 +238,12 @@
                         <span>Gestão de Usuários</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/gerenciar_combustiveis.php">
+                        <i class="fas fa-fw fa-gas-pump"></i>
+                        <span>Gestão de Combustíveis</span>
+                    </a>
+                </li>
             </div>
 
             <!-- Divider -->
