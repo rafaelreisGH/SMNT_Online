@@ -113,58 +113,66 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                             <?php if (empty($results)): ?>
                                 <div class="alert alert-warning">Nenhuma avaria encontrada com os filtros selecionados.</div>
                             <?php else: ?>
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Data</th>
-                                                <th>Viatura</th>
-                                                <th>Componente</th>
-                                                <th>Condutor</th>
-                                                <th>Manutenção</th>
-                                                <th>Detalhes</th>
-                                                <th>Editar</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($results as $row): ?>
+                                <div class="container-fluid">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
                                                 <tr>
-                                                    <td><?= date('d/m/Y H:i', strtotime($row['data_registro'])) ?></td>
-                                                    <!-- Correção de $viatura para $row -->
-                                                    <td><strong><?= htmlspecialchars(($row['prefixo'] ?? '') . ' ' . ($row['numero'] ?? '')) ?></strong></td>
-                                                    <!-- Correção do nome do componente -->
-                                                    <td><?= htmlspecialchars($row['nome_componente'] ?? 'Não classificado') ?></td>
-                                                    <!-- Correção de $condutor para $row['nome_condutor'] -->
-                                                    <td><?= htmlspecialchars($row['nome_condutor'] ?? 'N/A') ?></td>
-                                                    <td>
-                                                        <?php if (!empty($row['status_manutencao'])): ?>
-                                                            <span class="badge bg-info"><?= htmlspecialchars($row['status_manutencao']) ?></span>
-                                                        <?php else: ?>
-                                                            <span class="badge bg-secondary">Não iniciada</span>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                    <!-- Coluna Detalhes (Modal) -->
-                                                    <td>
-                                                        <button type="button" class="btn btn-outline-info btn-sm"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#modalDetalhesAvaria"
-                                                            data-id="<?= $row['id'] ?>"
-                                                            title="Ver Detalhes">
-                                                            <i class="bi bi-list-check"></i>
-                                                        </button>
-                                                    </td>
-                                                    <!-- Coluna Editar (Link para nova página) -->
-                                                    <td>
-                                                        <a href="pages/editar_avaria.php?id=<?= $row['id'] ?>"
-                                                            class="btn btn-outline-warning btn-sm"
-                                                            title="Editar Registro de Avaria">
-                                                            <i class="bi bi-pen"></i>
-                                                        </a>
-                                                    </td>
+                                                    <th>Data</th>
+                                                    <th>Viatura</th>
+                                                    <th>Componente</th>
+                                                    <th>Condutor</th>
+                                                    <th>Manutenção</th>
+                                                    <th>Detalhes</th>
+                                                    <th>Editar</th>
                                                 </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($results as $row): ?>
+                                                    <tr>
+                                                        <td>
+                                                            <?php if (!empty($row['data_registro'])): ?>
+                                                                <?= date('d/m/Y', strtotime($row['data_registro'])) ?>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">N/D</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <!-- Correção de $viatura para $row -->
+                                                        <td><strong><?= htmlspecialchars(($row['prefixo'] ?? '') . ' ' . ($row['numero'] ?? '')) ?></strong></td>
+                                                        <!-- Correção do nome do componente -->
+                                                        <td><?= htmlspecialchars($row['nome_componente'] ?? 'Não classificado') ?></td>
+                                                        <!-- Correção de $condutor para $row['nome_condutor'] -->
+                                                        <td><?= htmlspecialchars($row['nome_condutor'] ?? 'N/A') ?></td>
+                                                        <td>
+                                                            <?php if (!empty($row['status_manutencao'])): ?>
+                                                                <span class="badge bg-info"><?= htmlspecialchars($row['status_manutencao']) ?></span>
+                                                            <?php else: ?>
+                                                                <span class="badge bg-secondary">Não iniciada</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <!-- Coluna Detalhes (Modal) -->
+                                                        <td>
+                                                            <button type="button" class="btn btn-outline-info btn-sm"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#modalDetalhesAvaria"
+                                                                data-id="<?= $row['id'] ?>"
+                                                                title="Ver Detalhes">
+                                                                <i class="bi bi-list-check"></i>
+                                                            </button>
+                                                        </td>
+                                                        <!-- Coluna Editar (Link para nova página) -->
+                                                        <td>
+                                                            <a href="pages/editar_avaria.php?id=<?= $row['id'] ?>"
+                                                                class="btn btn-outline-warning btn-sm"
+                                                                title="Editar Registro de Avaria">
+                                                                <i class="bi bi-pen"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -189,6 +197,7 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
         </div>
     </div>
 </div>
+
 
 <script>
     function initializePesquisaAvaria() {

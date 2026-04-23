@@ -38,7 +38,7 @@ if (!$c) {
     <h1 class="h4 mb-4 text-gray-800">Descautela (Retorno de Viatura)</h1>
     <div class="row">
         <div class="col-lg-10 mx-auto">
-            <form id="formDescautela">
+            <form id="formDescautela" novalidate>
                 <input type="hidden" name="id" value="<?= $id ?>">
                 <input type="hidden" name="viatura_id" value="<?= $c['viatura_id'] ?>">
 
@@ -80,20 +80,24 @@ if (!$c) {
                                 </div>
                             </div>
                         <?php endforeach; ?>
+
+
+
+
+                        <!-- Área de Extravio: Só aparece se algum item for marcado como faltante -->
+                        <div id="area_extravio" class="mt-4 p-3 border-left-warning bg-light border rounded shadow-sm d-none">
+                            <h6 class="text-warning fw-bold"><i class="fas fa-boxes me-2"></i>Relato de Extravio de Acessórios</h6>
+                            <p class="small text-muted">Utilize este campo para observações gerais sobre os itens faltantes e anexe fotos se necessário.</p>
+
+                            <textarea name="obs_extravio" id="obs_extravio" class="form-control mb-2" rows="2" placeholder="Observações complementares sobre os itens faltantes..."></textarea>
+
+                            <label class="form-label small fw-bold">Fotos dos Itens Faltantes (Máx. 5)</label>
+                            <input type="file" name="fotos_extravio[]" class="form-control" multiple accept="image/*" onchange="validarLimiteFotos(this)">
+                        </div>
                     </div>
 
-                    <div class="mt-4 p-3 bg-light border rounded">
-                        <label class="form-label fw-bold text-danger">Relatar Novo Dano / Avaria</label>
-                        <small class="text-muted d-block mb-2">Se a viatura retornou com algum dano que não estava presente na saída ou na lista de acessórios, descreva aqui e anexe fotos, se necessário.</small>
-                        <textarea name="novo_dano_obs" class="form-control mb-2" rows="2"></textarea>
-                        <input type="file" name="fotos[]" class="form-control" multiple accept="image/*">
-                    </div>
 
                     <div id="containerOcorrencias"></div>
-
-                    <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="adicionarOcorrencia()">
-                        <i class="fas fa-plus"></i> Adicionar nova ocorrência/dano
-                    </button>
 
                     <div class="card-footer">
                         <button type="submit" class="btn btn-outline-primary w-100 py-2 fw-bold">FINALIZAR RECEBIMENTO</button>
@@ -106,23 +110,55 @@ if (!$c) {
 
 <script>
     (function() {
-        // Função para alternar visibilidade do campo de justificativa
+        // 1. Alternar visibilidade da justificativa por acessório
         window.toggleJust = function(sel) {
-            const input = sel.closest('.row').querySelector('.input-justifica');
+            const row = sel.closest('.row');
+            const input = row.querySelector('.input-justifica');
+
             if (sel.value === '0') {
                 input.classList.remove('d-none');
-                input.required = true;
+                // Exibe a área de fotos/obs gerais de extravio
+                document.getElementById('area_extravio').classList.remove('d-none');
             } else {
                 input.classList.add('d-none');
                 input.value = '';
-                input.required = false;
+
+                // Esconde a área de extravio apenas se não houver NENHUM outro item faltante
+                const temOutroFaltante = document.querySelectorAll('.sel-retorno[value="0"]').length > 0;
+                if (!temOutroFaltante) {
+                    document.getElementById('area_extravio').classList.add('d-none');
+                }
             }
         };
 
+        // 2. Alternar visibilidade da área de avaria técnica
+        window.toggleAreaAvaria = function(checkbox) {
+            const area = document.getElementById('area_detalhes_avaria');
+            const obs = document.getElementById('obs_avaria');
+            if (checkbox.checked) {
+                area.classList.remove('d-none');
+                obs.required = true;
+            } else {
+                area.classList.add('d-none');
+                obs.required = false;
+                obs.value = '';
+                document.getElementById('fotos_avaria').value = '';
+            }
+        };
+
+        // 3. Validação do limite de 5 fotos
+        window.validarLimiteFotos = function(input) {
+            if (input.files.length > 5) {
+                showToast("Máximo de 5 fotos permitido.", "danger");
+                input.value = "";
+            }
+        };
+
+        // 4. LISTENER ÚNICO para o envio do formulário
         document.getElementById('formDescautela').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // Coleta os dados do checklist
+            // Coleta os dados do checklist de acessórios
             const checklist = [];
             document.querySelectorAll('.sel-retorno').forEach(sel => {
                 checklist.push({
@@ -136,7 +172,11 @@ if (!$c) {
             const formData = new FormData(this);
             formData.append('checklist_json', JSON.stringify(checklist));
 
-            // Executa o envio
+            const btn = this.querySelector('button[type="submit"]');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>PROCESSANDO...';
+
             fetch('api/processar_descautela.php', {
                     method: 'POST',
                     headers: {
@@ -147,49 +187,23 @@ if (!$c) {
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        window.showToast(data.message, 'success');
+                        showToast(data.message, 'success');
 
-                        // Redirecionamento Garantido
-                        setTimeout(() => {
-                            if (typeof window.loadPage === 'function') {
-                                window.loadPage('pages/pesquisar_cautelas.php');
-                            } else {
-                                window.location.href = 'pesquisar_cautelas.php';
-                            }
-                        }, 1200);
+                        // REDIRECIONAMENTO IDENTICO AO EDITAR_CAUTELA (Padrão SPA)
+                        setTimeout(() => loadPage('pages/pesquisar_cautelas.php'), 1200);
+
                     } else {
-                        window.showToast(data.message, 'danger');
+                        showToast(data.message, 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
                     }
                 })
                 .catch(err => {
-                    console.error("Erro na requisição:", err);
-                    window.showToast("Erro ao processar o servidor.", "danger");
+                    console.error("Erro na descautela:", err);
+                    showToast("Erro de comunicação com o servidor", "danger");
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
                 });
         });
     })();
-</script>
-<script>
-    function adicionarOcorrencia() {
-        const container = document.getElementById('containerOcorrencias');
-        const index = document.querySelectorAll('.ocorrencia-item').length;
-
-        const html = `
-        <div class="card mb-3 p-3 ocorrencia-item">
-            <div class="row g-2">
-                <div class="col-md-3">
-                    <select name="ocorrencias[${index}][tipo]" class="form-select form-select-sm" required>
-                        <option value="Dano">Dano na Viatura</option>
-                        <option value="Extravio">Acessório Faltante</option>
-                    </select>
-                </div>
-                <div class="col-md-5">
-                    <input type="text" name="ocorrencias[${index}][desc]" class="form-control form-control-sm" placeholder="Descrição curta" required>
-                </div>
-                <div class="col-md-4">
-                    <input type="file" name="fotos_${index}[]" class="form-control form-control-sm" multiple accept="image/*">
-                </div>
-            </div>
-        </div>`;
-        container.insertAdjacentHTML('beforeend', html);
-    }
 </script>

@@ -126,39 +126,26 @@ class CautelaDAO
      */
     public function buscarCautelas(array $f = [])
     {
-        // Reutilize a lógica de RBAC (se já tiver o método aplicarEscopoRBAC no CautelaDAO)
-        // Se não tiver, use a lógica direta:
-        $sql_rbac = "";
-        if (defined('USER_AUTH')) {
-            $user = USER_AUTH;
-            if ($user['perfil'] === 'Gestor Local') {
-                $sql_rbac = " AND v.lotacao_atual_id = " . (int)$user['unidade_id'];
-            } elseif ($user['perfil'] === 'Gestor Regional') {
-                $sql_rbac = " AND u.comando_regional_id = " . (int)$user['comando_regional_id'];
-            } elseif ($user['perfil'] === 'Condutor') {
-                // O condutor só vê as dele (IMPORTANTE)
-                $sql_rbac = " AND c.condutor_id = (SELECT id FROM condutor WHERE usuario_id = " . (int)$user['id'] . ")";
-            }
-        }
+        $rbac = $this->aplicarEscopoRBAC();
 
         $sql = "SELECT c.*, v.prefixo, v.numero, cond.nome as condutor_nome, u.nome as unidade_nome
-        FROM cautelas c
-        JOIN viaturas v ON c.viatura_id = v.id
-        JOIN condutor cond ON c.condutor_id = cond.id
-        JOIN unidades u ON v.lotacao_atual_id = u.id
-        WHERE 1=1 $sql_rbac";
+            FROM cautelas c
+            JOIN viaturas v ON c.viatura_id = v.id
+            JOIN condutor cond ON c.condutor_id = cond.id
+            JOIN unidades u ON v.lotacao_atual_id = u.id
+            WHERE 1=1 {$rbac['sql']}";
 
-        // Aqui você aplicaria o aplicarEscopoRBAC() que já temos nos outros DAOs
+        $params = $rbac['params'];
 
         if (!empty($f['status'])) {
             $sql .= " AND c.status = :status";
+            $params[':status'] = $f['status'];
         }
 
         $sql .= " ORDER BY c.data_inicio DESC";
-        $stmt = $this->conn->prepare($sql);
-        if (!empty($f['status'])) $stmt->bindValue(':status', $f['status']);
 
-        $stmt->execute();
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -338,11 +325,11 @@ class CautelaDAO
 
             // 1. Atualiza a Cautela
             $sqlC = "UPDATE cautelas SET 
-                    data_fim = NOW(), odometro_retorno = :odo, 
-                    combustivel_retorno = :comb, status = 'Concluída',
-                    gestor_recebimento_id = :gestor, observacoes_gerais = :obs,
-                    assinatura_retorno_data = NOW()
-                 WHERE id = :id";
+                data_fim = NOW(), odometro_retorno = :odo, 
+                combustivel_retorno = :comb, status = 'Concluída',
+                gestor_recebimento_id = :gestor, observacoes_gerais = :obs,
+                assinatura_retorno_data = NOW()
+             WHERE id = :id";
             $stmtC = $this->conn->prepare($sqlC);
             $stmtC->execute([
                 ':odo'    => $d['odometro_retorno'],
@@ -354,7 +341,7 @@ class CautelaDAO
 
             // 2. Atualiza o checklist de retorno
             $sqlI = "UPDATE cautela_itens SET entregue_retorno = :ret, justificativa_divergencia = :just 
-                 WHERE cautela_id = :c_id AND acessorio_id = :a_id";
+             WHERE cautela_id = :c_id AND acessorio_id = :a_id";
             $stmtI = $this->conn->prepare($sqlI);
             foreach ($checklist as $item) {
                 $stmtI->execute([
@@ -370,11 +357,51 @@ class CautelaDAO
             $stmtV = $this->conn->prepare($sqlV);
             $stmtV->execute([':odo' => $d['odometro_retorno'], ':v_id' => $d['viatura_id']]);
 
+            // 4. LÓGICA DE AVARIA: Se o usuário relatou novo dano
+            $novoAvariaId = null;
+            if (!empty($d['registrar_avaria']) && $d['registrar_avaria'] == 1) {
+                // Buscamos o condutor_id da própria cautela para vincular à avaria
+                $cautela = $this->getCautelaById($d['id']);
+
+                $sqlA = "INSERT INTO registro_avaria (viatura_id, condutor_id, cautela_id, data_registro, observacoes_avaria) 
+                     VALUES (:v_id, :cond_id, :caut_id, NOW(), :obs)";
+                $stmtA = $this->conn->prepare($sqlA);
+                $stmtA->execute([
+                    ':v_id'    => $d['viatura_id'],
+                    ':cond_id' => $cautela['condutor_id'],
+                    ':caut_id' => $d['id'],
+                    ':obs'     => $d['observacoes_avaria_manual'] ?? 'Relatado durante o recebimento.'
+                ]);
+                $novoAvariaId = $this->conn->lastInsertId();
+            }
+
             $this->conn->commit();
-            return true;
+
+            // Retornamos o ID da avaria (se houver) para a API processar as fotos
+            return [
+                'success' => true,
+                'avaria_id' => $novoAvariaId
+            ];
         } catch (Exception $e) {
-            $this->conn->rollBack();
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
             throw $e;
         }
+    }
+
+
+    /**
+     * Vincula uma foto ao registro de uma avaria.
+     *
+     * @param int $avariaId O ID identificador da avaria.
+     * @param string $nomeArquivo O nome ou caminho do arquivo da imagem.
+     * @return bool Retorna true se a operação foi bem-sucedida, false caso contrário.
+     */
+    public function vincularFotoAvaria(int $avariaId, string $nomeArquivo)
+    {
+        $sql = "INSERT INTO avaria_fotos (avaria_id, caminho_arquivo) VALUES (:id, :nome)";
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([':id' => $avariaId, ':nome' => $nomeArquivo]);
     }
 }

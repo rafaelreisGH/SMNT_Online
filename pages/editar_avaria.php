@@ -42,6 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $sucessoAvaria = $aDAO->atualizar($data);
 
+            // 1.5 Processamento de NOVAS FOTOS
+            if (isset($_FILES['novas_fotos'])) {
+                $dir = __DIR__ . "/../assets/uploads/avarias/"; // Caminho absoluto é mais seguro
+
+                // Verifica se a pasta existe, se não, tenta criar
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+
+                foreach ($_FILES['novas_fotos']['tmp_name'] as $key => $tmp) {
+                    if ($_FILES['novas_fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                        $ext = pathinfo($_FILES['novas_fotos']['name'][$key], PATHINFO_EXTENSION);
+                        $nomeArquivo = "av_" . $data['id'] . "_" . time() . "_" . uniqid() . "." . $ext;
+
+                        if (move_uploaded_file($tmp, $dir . $nomeArquivo)) {
+                            $aDAO->inserirFoto((int)$data['id'], $nomeArquivo);
+                        } else {
+                            // Se falhar o move_uploaded_file, registra o erro mas não deixa o PHP travar
+                            error_log("Falha ao mover arquivo: " . $_FILES['novas_fotos']['name'][$key]);
+                        }
+                    }
+                }
+            }
+
             // 2. Se a avaria requer apuração ou já possui dados de apuração enviados
             $sucessoApuracao = true;
             if (isset($data['numero_portaria']) || isset($data['encarregado'])) {
@@ -78,6 +102,15 @@ if (!$id) {
 }
 
 $display_data = $aDAO->buscarDetalhesPorId($id);
+
+// SEGURANÇA RBAC: Validar se o usuário pode editar esta avaria
+if (!$ehGestorMaster && $display_data['lotacao_atual_id'] != USER_AUTH['unidade_id']) {
+    echo "<div class='container-fluid'><div class='alert alert-danger'>Acesso Negado: Esta viatura pertence a outra unidade.</div></div>";
+    exit();
+}
+
+$fotos = $aDAO->buscarFotos($id); // Carrega as fotos para a galeria
+
 $dados_apuracao = $apuracaoDAO->buscarPorAvariaId($id);
 
 if (!$display_data) {
@@ -95,7 +128,7 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
 
     <div class="row">
         <div class="col-lg-10 mx-auto">
-            <form id="formEditarAvaria" novalidate>
+            <div id="formEditarAvaria" novalidate>
                 <input type="hidden" name="id" value="<?= $display_data['id'] ?>">
 
                 <!-- Card da Avaria -->
@@ -150,7 +183,8 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                                         <option value="<?= $t['id'] ?>" <?= ($t['id'] == $display_data['tipo_avaria_id']) ? 'selected' : '' ?>>
                                             <?= htmlspecialchars($t['nome_componente'] ?? '') ?>
                                         </option>
-                                    <?php endforeach; echo "</optgroup>"; ?>
+                                    <?php endforeach;
+                                    echo "</optgroup>"; ?>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -198,16 +232,51 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="d-flex justify-content-between mb-5">
-                    <button type="submit" class="btn btn-outline-success px-4" id="btnSalvar">
-                        <i class="fas fa-save me-2"></i>Salvar Tudo
-                    </button>
-                    <a href="pages/pesquisar_avaria.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
-                    </a>
+            <!-- FORA DA TAG </form> -->
+            <div class="card shadow mb-4" id="modulo-fotos">
+                <div class="card-header py-3 bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-camera me-2"></i>Evidências (Fotos)</h6>
+                    <span class="badge bg-secondary" id="contador-fotos"><?= count($fotos) ?> / 5</span>
                 </div>
-            </form>
+                <div class="card-body">
+                    <!-- Galeria -->
+                    <div class="row mb-4" id="galeria-fotos">
+                        <?php foreach ($fotos as $f): ?>
+                            <div class="col-md-2 col-6 mb-3 text-center" id="foto-wrapper-<?= $f['id'] ?>">
+                                <div class="position-relative">
+                                    <img src="assets/uploads/avarias/<?= $f['caminho_arquivo'] ?>" class="img-thumbnail shadow-sm" style="height: 100px; width: 100%; object-fit: cover;">
+                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1" onclick="excluirFoto(event, <?= $f['id'] ?>, '<?= $f['caminho_arquivo'] ?>')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Controles de Upload (Independentes) -->
+                    <div id="controles-upload" class="<?= count($fotos) >= 5 ? 'd-none' : '' ?>">
+                        <div class="input-group">
+                            <input type="file" id="input-fotos-independente" class="form-control" multiple accept="image/*">
+                            <button class="btn btn-primary" type="button" id="btn-fazer-upload" onclick="uploadFotosIndependente()">
+                                <i class="fas fa-upload me-2"></i>Fazer Upload das Fotos
+                            </button>
+                        </div>
+                        <small class="text-muted">Selecione as imagens e clique em "Fazer Upload".</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação (Também fora do form) -->
+            <div class="d-flex justify-content-between mb-5">
+                <button type="button" class="btn btn-outline-success px-4" id="btnSalvarManual" onclick="executarSalvarAvaria()">
+                    <i class="fas fa-save me-2"></i>Salvar Tudo
+                </button>
+                <a href="pages/pesquisar_avaria.php" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
+                </a>
+            </div>
         </div>
     </div>
     <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
@@ -215,11 +284,10 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
 
 <script>
     (function() {
-        const form = document.getElementById('formEditarAvaria');
         const checkApuracao = document.getElementById('requer_apuracao');
         const cardApuracao = document.getElementById('card_apuracao');
 
-        // Lógica para mostrar/esconder campos de apuração dinamicamente (para Admin)
+        // 1. Lógica para mostrar/esconder campos de apuração dinamicamente
         if (checkApuracao) {
             checkApuracao.addEventListener('change', function() {
                 if (this.checked) {
@@ -230,31 +298,189 @@ $tiposAvaria = $aDAO->listarTiposAvaria();
             });
         }
 
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSalvar');
-            const formData = new FormData(this);
+        // 2. SALVAMENTO DE TEXTO (Formulário Principal)
+        window.executarSalvarAvaria = function() {
+            const btn = document.getElementById('btnSalvarManual');
+            const container = document.getElementById('formEditarAvaria'); // Agora é uma DIV
+            const formData = new FormData();
+
+            // Coleta manual para garantir que nenhum comportamento de 'form' interfira
+            container.querySelectorAll('input, select, textarea').forEach(el => {
+                if (el.type === 'checkbox') {
+                    if (el.checked) formData.append(el.name, el.value);
+                } else if (el.name) {
+                    formData.append(el.name, el.value);
+                }
+            });
 
             btn.disabled = true;
+            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
 
             fetch('pages/editar_avaria.php', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') },
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                showToast(data.message, data.success ? 'success' : 'danger');
-            })
-            .catch(err => {
-                console.error(err);
-                showToast("Erro de comunicação com o servidor.", "danger");
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Tudo';
-            });
-        });
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                    },
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        setTimeout(() => window.loadPage('pages/pesquisar_avaria.php'), 1200);
+                    } else {
+                        showToast(data.message, 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
+                })
+                .catch(err => {
+                    console.error("Erro no salvamento:", err);
+                    showToast("Erro ao salvar dados técnicos.", "danger");
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                });
+        };
+
+        // 3. UPLOAD INDEPENDENTE DE FOTOS
+        window.uploadFotosIndependente = function() {
+            const input = document.getElementById('input-fotos-independente');
+            const btn = document.getElementById('btn-fazer-upload');
+            const avariaId = document.querySelector('input[name="id"]').value;
+
+            if (input.files.length === 0) {
+                showToast("Selecione ao menos uma foto.", "warning");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('avaria_id', avariaId);
+            for (let i = 0; i < input.files.length; i++) {
+                formData.append('fotos[]', input.files[i]);
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+            fetch('api/processar_upload_foto_avaria.php', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                    },
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, "success");
+
+                        const galeria = document.getElementById('galeria-fotos');
+                        data.fotos.forEach(foto => {
+                            const html = `
+        <div class="col-md-2 col-6 mb-3 text-center border border-success rounded p-1" id="foto-wrapper-${foto.id}" style="background-color: #f0fff0;">
+            <div class="position-relative">
+                <span class="position-absolute top-0 start-0 badge rounded-pill bg-success m-1 shadow">
+                    <i class="fas fa-check"></i>
+                </span>
+                <img src="assets/uploads/avarias/${foto.caminho}" class="img-thumbnail shadow-sm" style="height: 100px; width: 100%; object-fit: cover;">
+                
+                <!-- O ID passado aqui agora será o correto (ex: 85) -->
+                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 shadow" 
+                        onclick="excluirFoto(event, ${foto.id}, '${foto.caminho}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>`;
+                            galeria.insertAdjacentHTML('beforeend', html);
+                        });
+
+                        input.value = '';
+                        atualizarContadorFotos();
+                    } else {
+                        showToast(data.message, "danger");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast("Erro ao subir fotos. Verifique o tamanho dos arquivos.", "danger");
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-upload me-2"></i>Fazer Upload das Fotos';
+                });
+        };
+
+        // 4. EXCLUSÃO DE FOTO INDEPENDENTE
+        window.excluirFoto = function(event, fotoId, arquivo) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            if (!confirm("Deseja realmente excluir esta foto?")) return;
+
+            const formData = new FormData();
+            formData.append('id', fotoId);
+            formData.append('arquivo', arquivo);
+
+            fetch('api/deletar_foto_avaria.php', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                    },
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const elemento = document.getElementById(`foto-wrapper-${fotoId}`);
+                        // SÓ TENTA REMOVER SE O ELEMENTO EXISTIR (Evita o erro na linha 140)
+                        if (elemento) {
+                            elemento.style.opacity = "0";
+                            setTimeout(() => {
+                                elemento.remove();
+                                // Se existir a função de atualizar contador, chama com segurança
+                                if (typeof atualizarContadorFotos === 'function') {
+                                    atualizarContadorFotos();
+                                }
+                            }, 300);
+                        }
+                        showToast("Foto removida.", "success");
+                    } else {
+                        showToast(data.message, "danger");
+                    }
+                })
+                .catch(err => {
+                    console.error("Erro na exclusão:", err);
+                    showToast("Erro ao processar exclusão no servidor.", "danger");
+                });
+        };
+
+        // 5. AUXILIARES
+        window.validarLimiteFotosEdicao = function(input, jaExistentes) {
+            // Conta as fotos atuais no DOM para ser preciso
+            const atuaisNoDom = document.querySelectorAll('#galeria-fotos > div').length;
+            const limiteDisponivel = 5 - atuaisNoDom;
+
+            if (input.files.length > limiteDisponivel) {
+                showToast(`Limite excedido. Você só pode adicionar mais ${limiteDisponivel} foto(s).`, "danger");
+                input.value = "";
+            }
+        };
+
+        function atualizarContadorFotos() {
+            const galeria = document.getElementById('galeria-fotos');
+            if (!galeria) return;
+
+            const total = galeria.querySelectorAll('.foto-item-container').length; // Use uma classe comum nas divs das fotos
+            const contadorEl = document.getElementById('contador-fotos');
+            const controlesUpload = document.getElementById('controles-upload');
+
+            if (contadorEl) contadorEl.innerText = `${total} / 5`;
+            if (controlesUpload) {
+                total >= 5 ? controlesUpload.classList.add('d-none') : controlesUpload.classList.remove('d-none');
+            }
+        }
     })();
 </script>

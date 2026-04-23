@@ -48,12 +48,12 @@ try {
     <h6 class="text-primary fw-bold mb-3"><i class="fas fa-clipboard-list me-2"></i>Relato da Avaria</h6>
     <div class="row">
         <div class="col-sm-6">
-            <label class="small text-muted mb-0">Componente:</label>
-            <p class="mb-2"><?= htmlspecialchars($avaria['nome_componente']) ?> (<?= htmlspecialchars($avaria['categoria']) ?>)</p>
+            <label class="small text-muted mb-0">Classificação:</label>
+            <p class="mb-2"><?= htmlspecialchars($avaria['nome_componente'] ?? 'Não classificado') ?></p>
         </div>
         <div class="col-sm-6">
             <label class="small text-muted mb-0">Data do Relato:</label>
-            <p class="mb-2"><?= date('d/m/Y H:i', strtotime($avaria['data_registro'])) ?></p>
+            <p class="mb-2"><?= date('d/m/Y H:i', strtotime($avaria['data_registro'] ?? 'N/D')) ?></p>
         </div>
         <div class="col-12">
             <label class="small text-muted mb-0">Descrição do Problema:</label>

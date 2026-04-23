@@ -141,27 +141,38 @@ class RegistroAvariaDAO
     public function inserirFoto(int $avariaId, string $nomeArquivo)
     {
         $sql = "INSERT INTO avaria_fotos (avaria_id, caminho_arquivo) VALUES (:id, :nome)";
-        $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([':id' => $avariaId, ':nome' => $nomeArquivo]);
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $res = $stmt->execute([':id' => $avariaId, ':nome' => $nomeArquivo]);
+
+            if ($res) {
+                // RETORNA O ID REAL GERADO PELO BANCO
+                return (int)$this->conn->lastInsertId();
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Erro ao inserir foto no banco: " . $e->getMessage());
+            return false;
+        }
     }
+
     public function buscarDetalhesPorId(int $id)
     {
         $sql = "SELECT 
-                ra.*, 
-                v.prefixo, v.numero, v.placa, v.modelo,
-                ta.nome_componente, ta.categoria,
-                c.nome AS nome_condutor,
-                m.status AS status_manutencao,
-                m.id AS manutencao_id,
-                -- ADICIONADO: traz dados da apuração se existirem
-                pa.numero_portaria, pa.status_apuracao, pa.encarregado
-            FROM registro_avaria ra
-            JOIN viaturas v ON ra.viatura_id = v.id
-            JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id
-            JOIN condutor c ON ra.condutor_id = c.id
-            LEFT JOIN manutencoes m ON m.avaria_id = ra.id
-            LEFT JOIN procedimentos_apuracao pa ON ra.id = pa.avaria_id
-            WHERE ra.id = :id";
+        ra.*, 
+        v.prefixo, v.numero, v.placa, v.modelo, v.lotacao_atual_id,
+        ta.nome_componente, ta.categoria,
+        c.nome AS nome_condutor,
+        m.status AS status_manutencao,
+        m.id AS manutencao_id,
+        pa.numero_portaria, pa.status_apuracao, pa.encarregado
+    FROM registro_avaria ra
+    JOIN viaturas v ON ra.viatura_id = v.id
+    LEFT JOIN tipo_avaria ta ON ra.tipo_avaria_id = ta.id -- ALTERADO PARA LEFT JOIN
+    JOIN condutor c ON ra.condutor_id = c.id
+    LEFT JOIN manutencoes m ON m.avaria_id = ra.id
+    LEFT JOIN procedimentos_apuracao pa ON ra.id = pa.avaria_id
+    WHERE ra.id = :id";
 
         try {
             $stmt = $this->conn->prepare($sql);
@@ -228,6 +239,22 @@ class RegistroAvariaDAO
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erro ao buscar cautelas concluídas: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Busca todas as fotos vinculadas a uma avaria específica
+     */
+    public function buscarFotos(int $avariaId): array
+    {
+        $sql = "SELECT id, caminho_arquivo FROM avaria_fotos WHERE avaria_id = :id ORDER BY criado_em DESC";
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([':id' => $avariaId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar fotos da avaria: " . $e->getMessage());
             return [];
         }
     }
