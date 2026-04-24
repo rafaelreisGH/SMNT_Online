@@ -102,7 +102,7 @@
                             if (data.require_new_password) {
                                 window.location.href = 'pages/primeiro_acesso.php';
                             } else {
-                                window.location.href = 'index.php';
+                                window.location.href = 'principal.php';
                             }
                         }, 1000);
 

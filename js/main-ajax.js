@@ -1,7 +1,7 @@
-// ARQUIVO: main-ajax.js
+// ARQUIVO: main-ajax.js consolidado
 
 /**
- * Sistema Global de Toasts (Versão Minimalista)
+ * 1. Sistema Global de Toasts
  */
 window.showToast = function (message, type = 'success') {
     let toastContainer = document.querySelector('.toast-container');
@@ -11,7 +11,6 @@ window.showToast = function (message, type = 'success') {
         document.body.appendChild(toastContainer);
     }
 
-    // Define a cor de fundo e garante contraste do texto (text-bg-*)
     const bgColorClass = {
         success: 'text-bg-success',
         danger: 'text-bg-danger',
@@ -20,35 +19,29 @@ window.showToast = function (message, type = 'success') {
     }[type] || 'text-bg-primary';
 
     const toastId = `toast-${Date.now()}`;
-
-    // Estrutura simplificada: Texto à esquerda e botão de fechar à direita, sem ícones.
     const toastHtml = `
         <div id="${toastId}" class="toast align-items-center ${bgColorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
                 <button type="button" class="btn-close btn-close-white ms-auto me-2 align-self-center" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
         </div>`;
 
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
     const toastEl = document.getElementById(toastId);
-
     const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
     toast.show();
-
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-}
+};
 
 /**
- * Função para atualizar visualmente o Menu Lateral (Sidebar)
+ * 2. Atualização visual da Sidebar
  */
 window.updateActiveSidebar = function (url) {
     document.querySelectorAll('#accordionSidebar .nav-item').forEach(li => li.classList.remove('active'));
     document.querySelectorAll('#accordionSidebar .collapse-item').forEach(a => a.classList.remove('active'));
 
     const cleanUrl = url.split('?')[0];
-
     document.querySelectorAll('#accordionSidebar a').forEach(link => {
         const href = link.getAttribute('href');
         if (href && href.includes(cleanUrl)) {
@@ -70,16 +63,14 @@ window.updateActiveSidebar = function (url) {
 };
 
 /**
- * Função de Navegação Global (SPA)
+ * 3. Navegação Global SPA
  */
 window.loadPage = function (url) {
     const token = localStorage.getItem('smnt_token');
     const mainContentArea = document.getElementById('main-content-area');
-
     if (!mainContentArea) return;
 
     window.updateActiveSidebar(url);
-
     mainContentArea.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-danger"></i><br><small>Carregando...</small></div>';
 
     fetch(url, {
@@ -100,9 +91,9 @@ window.loadPage = function (url) {
         .then(html => {
             if (!html) return;
             mainContentArea.innerHTML = html;
-
             window.scrollTo(0, 0);
 
+            // Executa scripts injetados
             const scripts = mainContentArea.querySelectorAll('script');
             scripts.forEach(script => {
                 const newScript = document.createElement('script');
@@ -117,42 +108,29 @@ window.loadPage = function (url) {
 };
 
 /**
- * Atualiza o ícone do SINO (Notificações de Sistema)
+ * 4. Notificações e Mensagens
  */
 window.atualizarNotificacoes = function () {
     const token = localStorage.getItem('smnt_token');
     const contador = document.getElementById('notificacao-contador');
     const container = document.getElementById('container-notificacoes-itens');
-
     if (!token || !contador || !container) return;
 
     fetch('api/get_notificacoes.php', {
         headers: { 'Authorization': 'Bearer ' + token }
     })
-        .then(r => {
-            if (!r.ok) throw new Error('Falha na rede ou autenticação');
-            return r.json();
-        })
+        .then(r => r.json())
         .then(data => {
             if (data.success && data.total > 0) {
                 contador.innerText = data.total > 9 ? '9+' : data.total;
                 contador.classList.remove('d-none');
-
                 let html = '';
                 data.notificacoes.forEach(n => {
                     const iconClass = n.tipo === 'avaria' ? 'bg-danger' : 'bg-warning';
-                    // Note: Verifique se o campo no seu banco é 'link' ou 'link_id'
                     html += `
-                <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="clicarNotificacao(${n.id}, '${n.link || n.link_id}')">
-                    <div class="mr-3">
-                        <div class="icon-circle ${iconClass} text-white">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="small text-gray-500">${new Date(n.criada_em).toLocaleString()}</div>
-                        <span class="font-weight-bold">${n.titulo}</span>
-                    </div>
+                <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="clicarNotificacao(${n.id}, '${n.link_id}')">
+                    <div class="mr-3"><div class="icon-circle ${iconClass} text-white"><i class="fas fa-exclamation-triangle"></i></div></div>
+                    <div><div class="small text-gray-500">${new Date(n.criada_em).toLocaleString()}</div><span class="font-weight-bold">${n.titulo}</span></div>
                 </a>`;
                 });
                 container.innerHTML = html;
@@ -160,13 +138,9 @@ window.atualizarNotificacoes = function () {
                 contador.classList.add('d-none');
                 container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Sem notificações.</p>';
             }
-        })
-        .catch(err => console.error('Erro ao buscar notificações:', err));
+        });
 };
 
-/**
- * Atualiza o ícone da CARTA (Mensagens entre usuários)
- */
 window.atualizarMensagensTopbar = function () {
     const token = localStorage.getItem('smnt_token');
     const contador = document.getElementById('msg-contador');
@@ -179,27 +153,21 @@ window.atualizarMensagensTopbar = function () {
         .then(r => r.json())
         .then(data => {
             const mensagens = data.mensagens || [];
-            const total = mensagens.length;
-            if (total > 0) {
-                contador.innerText = total > 9 ? '9+' : total;
+            if (mensagens.length > 0) {
+                contador.innerText = mensagens.length > 9 ? '9+' : mensagens.length;
                 contador.classList.remove('d-none');
                 let html = '';
                 mensagens.slice(0, 4).forEach(m => {
                     html += `
                 <a class="dropdown-item d-flex align-items-center" href="javascript:void(0)" onclick="window.loadPage('pages/mensagens.php?id=${m.id}')">
-                    <div class="dropdown-list-image mr-3">
-                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width:40px; height:40px"><i class="fas fa-user"></i></div>
-                    </div>
-                    <div class="font-weight-bold">
-                        <div class="text-truncate">${m.assunto || '(Sem assunto)'}</div>
-                        <div class="small text-gray-500">${m.remetente_nome || 'Desconhecido'}</div>
-                    </div>
+                    <div class="dropdown-list-image mr-3"><div class="rounded-circle bg-primary text-white p-2"><i class="fas fa-user"></i></div></div>
+                    <div class="font-weight-bold"><div class="text-truncate">${m.assunto}</div><div class="small text-gray-500">${m.remetente_nome}</div></div>
                 </a>`;
                 });
                 container.innerHTML = html;
             } else {
                 contador.classList.add('d-none');
-                container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhuma mensagem nova.</p>';
+                container.innerHTML = '<p class="small text-center p-3 text-muted m-0">Sem mensagens novas.</p>';
             }
         });
 };
@@ -207,8 +175,6 @@ window.atualizarMensagensTopbar = function () {
 window.clicarNotificacao = function (id, link) {
     const fd = new FormData();
     fd.append('id', id);
-    fd.append('marcar_lida', 1);
-
     fetch('api/get_notificacoes.php', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') },
@@ -220,10 +186,7 @@ window.clicarNotificacao = function (id, link) {
 };
 
 /**
- * Item 2: Atualiza o nome e a foto do usuário no Topbar
- */
-/**
- * Unificação da Interface do Usuário (Topbar, Sidebar e RBAC)
+ * 5. UI e RBAC
  */
 window.updateUIUserInfo = function () {
     const nome = localStorage.getItem('user_nome');
@@ -235,63 +198,94 @@ window.updateUIUserInfo = function () {
     const secaoAdmin = document.getElementById('secao-admin-sidebar');
     const linkLogs = document.getElementById('link-logs-auditoria');
 
-    // 1. Atualiza Nome e Perfil
     if (displayNome && nome) {
-        const primeiroNome = nome.split(' ')[0];
-        displayNome.innerText = `${primeiroNome} (${perfil})`;
+        displayNome.innerText = `${nome.split(' ')[0]} (${perfil})`;
     }
 
-    // 2. Atualiza Foto
     if (displayFoto) {
-        if (foto && foto !== 'null' && foto !== '' && foto !== 'undraw_profile.svg') {
-            displayFoto.src = `assets/uploads/perfil/${foto}?v=${Date.now()}`;
-        } else {
-            displayFoto.src = `assets/uploads/perfil/undraw_profile.svg`;
-        }
+        displayFoto.src = (foto && foto !== 'null' && foto !== 'undraw_profile.svg')
+            ? `assets/uploads/perfil/${foto}?v=${Date.now()}`
+            : `assets/uploads/perfil/undraw_profile.svg`;
     }
 
-    // 3. RBAC: Seção Admin na Sidebar
     if (secaoAdmin) {
         perfil === 'Administrador' ? secaoAdmin.classList.remove('d-none') : secaoAdmin.classList.add('d-none');
     }
 
-    // 4. RBAC: Link de Logs de Auditoria
     if (linkLogs) {
         (perfil === 'Administrador' || perfil === 'Gestor Central') ? linkLogs.classList.remove('d-none') : linkLogs.classList.add('d-none');
     }
-}
-
-window.handleLogout = function () {
-    localStorage.clear();
-    window.location.href = 'login.php';
 };
 
 /**
- * Inicialização Única do Sistema
+ * 6. Pesquisa Global
+ */
+window.initGlobalSearch = function () {
+    const searchInput = document.getElementById('globalSearchInput');
+    const resultsDiv = document.getElementById('globalSearchResults');
+    let debounceTimer;
+
+    if (!searchInput || !resultsDiv) return;
+
+    searchInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        clearTimeout(debounceTimer);
+        if (query.length < 2) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`api/search_global.php?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('smnt_token') }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let html = '';
+                        data.forEach(item => {
+                            html += `
+                        <a class="dropdown-item d-flex align-items-center py-2" href="javascript:void(0)" 
+                           onclick="window.loadPage('${item.link}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';">
+                            <div class="mr-3"><div class="icon-circle ${item.cor} bg-light p-2 rounded-circle"><i class="${item.icone}"></i></div></div>
+                            <div><div class="small text-gray-500 text-uppercase">${item.subtitulo}</div><span class="font-weight-bold">${item.titulo}</span></div>
+                        </a>`;
+                        });
+                        resultsDiv.innerHTML = html;
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<p class="small text-center p-3 text-muted m-0">Nenhum resultado.</p>';
+                        resultsDiv.style.display = 'block';
+                    }
+                });
+        }, 400);
+    });
+
+    document.addEventListener('click', e => {
+        if (!document.getElementById('globalSearchForm')?.contains(e.target)) resultsDiv.style.display = 'none';
+    });
+};
+
+/**
+ * 7. Inicialização e Listeners
  */
 document.addEventListener('DOMContentLoaded', function () {
-    // Executa funções iniciais
+    // Carrega dados iniciais
     window.updateUIUserInfo();
-    atualizarNotificacoes();
-    atualizarMensagensTopbar();
-    if (typeof initGlobalSearch === 'function') initGlobalSearch();
+    window.atualizarNotificacoes();
+    window.atualizarMensagensTopbar();
+    window.initGlobalSearch();
 
-    // Define os intervalos (2 minutos)
-    setInterval(atualizarNotificacoes, 120000);
-    setInterval(atualizarMensagensTopbar, 120000);
+    // Timers de atualização
+    setInterval(window.atualizarNotificacoes, 120000);
+    setInterval(window.atualizarMensagensTopbar, 120000);
 
-    // Interceptador de cliques para SPA
+    // Interceptador de cliques SPA
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
         if (link && link.getAttribute('href')) {
             const href = link.getAttribute('href');
-
-            // Ignora links internos, javascript ou de componentes do Bootstrap
-            if (href.startsWith('#') ||
-                href.startsWith('javascript:') ||
-                link.dataset.toggle === 'collapse' ||
-                link.dataset.bsToggle) return;
-
+            if (href.startsWith('#') || href.startsWith('javascript:') || link.dataset.toggle === 'collapse' || link.dataset.bsToggle) return;
             if (link.target !== '_blank') {
                 e.preventDefault();
                 window.loadPage(href);
@@ -299,3 +293,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+window.handleLogout = function () {
+    localStorage.clear();
+    window.location.href = 'login.php';
+};

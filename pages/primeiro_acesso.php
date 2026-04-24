@@ -96,7 +96,7 @@
                 if (data.success) {
                     msgDiv.innerHTML = `<div class="text-success fw-bold">Senha atualizada! Redirecionando...</div>`;
                     setTimeout(() => {
-                        window.location.href = '../index.php';
+                        window.location.href = '../principal.php';
                     }, 1500);
                 } else {
                     btn.disabled = false;
