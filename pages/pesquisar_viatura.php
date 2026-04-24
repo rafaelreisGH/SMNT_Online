@@ -1,143 +1,29 @@
 <?php
 // pages/pesquisar_viatura.php
-// Inclua seu arquivo de conexão com o banco de dados
 
 require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
-$conn = Conexao::getConexao(); // Use $conn para a conexão PDO
+require_once '../components/DAO/CombustivelDAO.php';
 
-// Lógica de pesquisa
-$results = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Coleta dos filtros do formulário
-    $tipo_operacional = $_POST['tipo_operacional'] ?? '';
-    $prefixo = $_POST['prefixo'] ?? '';
-    $numero = $_POST['numero'] ?? '';
-    $placa = $_POST['placa'] ?? '';
-    $renavam = $_POST['renavam'] ?? '';
-    $marca = $_POST['marca'] ?? '';
-    $modelo = $_POST['modelo'] ?? '';
-    $ano = $_POST['ano'] ?? '';
-    $pbt = $_POST['pbt'] ?? '';
-    $tipo_aquisicao = $_POST['tipo_aquisicao'] ?? '';
-    $status_da_viatura = $_POST['status_da_viatura'] ?? '';
-    $lotacao_atual_id = $_POST['lotacao_atual_id'] ?? '';
-    $cilindradas = $_POST['cilindradas'] ?? '';
-    $cavalos_forca = $_POST['cavalos_forca'] ?? '';
-    $torque = $_POST['torque'] ?? '';
-    $garantia_fim = $_POST['garantia_fim'] ?? '';
-    $tipo_cambio = $_POST['tipo_cambio'] ?? '';
-    $numero_marchas = $_POST['numero_marchas'] ?? '';
+// 1. Instancia os DAOs necessários (Resolve o erro de "Undefined variable $vDAO")
+$vDAO = new ViaturaDAO();
+$combDAO = new CombustivelDAO();
 
-    // Constrói a consulta SQL dinamicamente
-    // A consulta seleciona apenas as colunas necessárias para exibição na tabela e para as ações.
-    $sql = "SELECT
-                v.id,
-                v.prefixo,
-                v.numero,
-                v.marca,
-                v.modelo,
-                v.status_da_viatura,
-                u.nome AS unidade_lotacao
-            FROM
-                controle_viaturas.viaturas v
-            LEFT JOIN
-                controle_viaturas.unidades u ON v.lotacao_atual_id = u.id
-            WHERE 1=1";
+// 2. Carrega lista de combustíveis para o <select> de filtros
+$listaCombustiveis = $combDAO->listarTodos();
 
-    $params = [];
+// 3. Captura os filtros enviados via POST (ou inicializa vazio)
+$filters = $_POST ?: [];
 
-    if (!empty($tipo_operacional)) {
-        $sql .= " AND v.tipo_operacional = :tipo_operacional";
-        $params[':tipo_operacional'] = $tipo_operacional;
-    }
-    if (!empty($prefixo)) {
-        $sql .= " AND v.prefixo LIKE :prefixo";
-        $params[':prefixo'] = '%' . $prefixo . '%';
-    }
-    if (!empty($numero)) {
-        $sql .= " AND v.numero = :numero";
-        $params[':numero'] = $numero;
-    }
-    if (!empty($placa)) {
-        $sql .= " AND v.placa LIKE :placa";
-        $params[':placa'] = '%' . $placa . '%';
-    }
-    if (!empty($renavam)) {
-        $sql .= " AND v.renavam LIKE :renavam";
-        $params[':renavam'] = '%' . $renavam . '%';
-    }
-    if (!empty($marca)) {
-        $sql .= " AND v.marca LIKE :marca";
-        $params[':marca'] = '%' . $marca . '%';
-    }
-    if (!empty($modelo)) {
-        $sql .= " AND v.modelo LIKE :modelo";
-        $params[':modelo'] = '%' . $modelo . '%';
-    }
-    if (!empty($ano)) {
-        $sql .= " AND v.ano = :ano";
-        $params[':ano'] = $ano;
-    }
-    if (!empty($pbt)) {
-        $sql .= " AND v.pbt = :pbt";
-        $params[':pbt'] = $pbt;
-    }
-    if (!empty($tipo_aquisicao)) {
-        $sql .= " AND v.tipo_aquisicao = :tipo_aquisicao";
-        $params[':tipo_aquisicao'] = $tipo_aquisicao;
-    }
-    if (!empty($status_da_viatura)) {
-        $sql .= " AND v.status_da_viatura = :status_da_viatura";
-        $params[':status_da_viatura'] = $status_da_viatura;
-    }
-    if (!empty($lotacao_atual_id)) {
-        $sql .= " AND v.lotacao_atual_id = :lotacao_atual_id";
-        $params[':lotacao_atual_id'] = $lotacao_atual_id;
-    }
-    if (!empty($cilindradas)) {
-        $sql .= " AND v.cilindradas = :cilindradas";
-        $params[':cilindradas'] = $cilindradas;
-    }
-    if (!empty($cavalos_forca)) {
-        $sql .= " AND v.cavalos_forca = :cavalos_forca";
-        $params[':cavalos_forca'] = $cavalos_forca;
-    }
-    if (!empty($torque)) {
-        $sql .= " AND v.torque LIKE :torque";
-        $params[':torque'] = '%' . $torque . '%';
-    }
-
-    if (!empty($garantia_fim)) {
-        $sql .= " AND v.garantia_fim >= :garantia_fim"; // Buscar viaturas com garantia igual ou maior que a data informada
-        $params[':garantia_fim'] = $garantia_fim;
-    }
-
-    if (!empty($tipo_cambio)) {
-        $sql .= " AND v.tipo_cambio = :tipo_cambio";
-        $params[':tipo_cambio'] = $tipo_cambio;
-    }
-    if (!empty($numero_marchas)) {
-        $sql .= " AND v.numero_marchas = :numero_marchas";
-        $params[':numero_marchas'] = $numero_marchas;
-    }
-
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        echo "<div class='alert alert-danger'>Erro ao consultar o banco de dados: " . $e->getMessage() . "</div>";
-    }
+// 4. Executa a busca através do DAO
+// O DAO agora centraliza toda a lógica de SQL e RBAC que estava solta na página
+try {
+    $results = $vDAO->buscarViaturasComFiltros($filters);
+} catch (Exception $e) {
+    error_log("Erro na pesquisa: " . $e->getMessage());
+    $results = [];
+    echo "<div class='alert alert-danger'>Erro ao processar consulta no servidor.</div>";
 }
-
-// 1. Inclui o DAO de Unidades
-require_once '../components/DAO/UnidadeDAO.php';
-
-// 2. Busca as unidades AGRUPADAS (como no cadastro)
-$unidadeDAO = new UnidadeDAO();
-$unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
-
 ?>
 
 <!-- Begin Page Content -->
@@ -284,6 +170,38 @@ $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
                                     <div class="col-md-4">
                                         <label for="numero_marchas" class="form-label">Número de Marchas</label>
                                         <input type="number" class="form-control" id="numero_marchas" name="numero_marchas" value="<?= htmlspecialchars($_POST['numero_marchas'] ?? '') ?>">
+                                    </div>
+
+                                    <!-- NOVO FILTRO DE COMBUSTÍVEL -->
+                                    <div class="col-md-4">
+                                        <label for="combustivel_id" class="form-label">Tipo de Combustível</label>
+                                        <select class="form-select" id="combustivel_id" name="combustivel_id">
+                                            <option value="">Todos</option>
+                                            <?php foreach ($listaCombustiveis as $c): ?>
+                                                <option value="<?= $c['id'] ?>" <?= (isset($_POST['combustivel_id']) && $_POST['combustivel_id'] == $c['id']) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($c['tipo']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="tipo_cambio" class="form-label">Tipo de Câmbio</label>
+                                        <select class="form-select" id="tipo_cambio" name="tipo_cambio">
+                                            <option value="">Todos</option>
+                                            <?php
+                                            $tiposCambio = ['Manual', 'Automático'];
+                                            foreach ($tiposCambio as $cambio) {
+                                                $selected = (isset($_POST['tipo_cambio']) && $_POST['tipo_cambio'] == $cambio) ? 'selected' : '';
+                                                echo "<option value=\"$cambio\" $selected>$cambio</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
+                                        <input type="number" class="form-control" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($_POST['cilindradas'] ?? '') ?>">
                                     </div>
                                 </div>
                             </div>

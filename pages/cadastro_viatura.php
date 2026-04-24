@@ -7,6 +7,10 @@ require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/UnidadeDAO.php';
 require_once '../components/DAO/PlanoManutencaoDAO.php'; // ADICIONADO
 require_once '../api/validate_functions_editar_viatura.php';
+require_once '../components/DAO/CombustivelDAO.php';
+
+$combDAO = new CombustivelDAO();
+$combustiveis = $combDAO->listarTodos();
 
 // 2. Busca de dados para os Selects
 $unidadeDAO = new UnidadeDAO();
@@ -175,6 +179,28 @@ $listaPlanos = $pDAO->listarTodos(); // ADICIONADO: Agora os planos aparecerão 
                                         <label for="numero_marchas" class="form-label">Número de Marchas</label>
                                         <input type="number" min="1" class="form-control" id="numero_marchas" name="numero_marchas">
                                     </div>
+                                    <div class="col-12 mt-4">
+                                        <h6 class="fw-bold text-primary"><i class="fas fa-gas-pump me-2"></i>Tanques e Combustíveis</h6>
+                                        <div class="row g-2">
+                                            <?php foreach ($combustiveis as $cb): ?>
+                                                <div class="col-md-6">
+                                                    <div class="border rounded p-2 d-flex align-items-center justify-content-between bg-light">
+                                                        <div class="col">
+                                                            <div class="form-check form-switch px-5  d-flex align-items-center" style="min-height: 50px;">
+                                                                <input class="form-check-input check-item" type="checkbox" name="tanques[<?= $cb['id'] ?>][ativo]" value="1" id="cb_<?= $cb['id'] ?>"
+                                                                    onchange="document.getElementById('litros_<?= $cb['id'] ?>').disabled = !this.checked">
+                                                                <label class="form-check-label small fw-bold" for="cb_<?= $cb['id'] ?>"><?= htmlspecialchars($cb['tipo']) ?></label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="input-group input-group-sm" style="width: 120px;">
+                                                            <input type="number" min="1" name="tanques[<?= $cb['id'] ?>][litragem]" id="litros_<?= $cb['id'] ?>" class="form-control" placeholder="Lts" disabled>
+                                                            <span class="input-group-text">L</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -200,6 +226,10 @@ $listaPlanos = $pDAO->listarTodos(); // ADICIONADO: Agora os planos aparecerão 
                         </button>
                         <button type="button" onclick="limparFormulario()" class="btn btn-outline-secondary ms-2">
                             <i class="fas fa-redo me-2"></i>Limpar Formulário
+                        </button>
+                        <!-- NOVO BOTÃO DE RETORNO -->
+                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="loadPage('pages/pesquisar_viatura.php')">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
                         </button>
                     </form>
                 </div>

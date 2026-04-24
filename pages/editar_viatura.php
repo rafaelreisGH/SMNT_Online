@@ -6,15 +6,12 @@ require_once '../api/middleware_auth.php';
 require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/DAO/ViaturaDAO.php';
 require_once '../components/DAO/UnidadeDAO.php';
-require_once '../api/validate_functions_editar_viatura.php';
 require_once '../components/DAO/PlanoManutencaoDAO.php';
+require_once '../components/DAO/CombustivelDAO.php';
+require_once '../api/validate_functions_editar_viatura.php';
 
-$pDAO = new PlanoManutencaoDAO();
-$listaPlanos = $pDAO->listarTodos();
-
-// --- Lógica para processar a requisição POST (AJAX) ---
+// --- Lógica para processar a atualização (POST - AJAX) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // LIMPEZA: Impede que qualquer erro de texto do PHP "suje" o JSON de saída
     ob_clean();
     header('Content-Type: application/json');
     ini_set('display_errors', 0);
@@ -25,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $validation_errors = validateViaturaData($data_from_form);
 
     if (!empty($validation_errors)) {
-        $response['message'] = "Houve erros no preenchimento. Por favor, corrija os campos indicados.";
+        $response['message'] = "Houve erros no preenchimento.";
         $response['errors'] = $validation_errors;
     } else {
         try {
@@ -34,37 +31,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $response['success'] = true;
                 $response['message'] = "Viatura atualizada com sucesso!";
             } else {
-                $response['message'] = "Nenhuma alteração foi feita ou a viatura não foi encontrada.";
+                $response['message'] = "Nenhuma alteração foi feita.";
             }
         } catch (Exception $e) {
-            error_log("Erro na atualização: " . $e->getMessage());
-            $response['message'] = "Erro interno no servidor.";
+            $response['message'] = "Erro: " . $e->getMessage();
         }
     }
     echo json_encode($response);
     exit();
 }
 
-// --- Lógica para requisição GET ---
+// --- Lógica para carregar os dados da página (GET) ---
 $id_viatura_get = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
 if (!$id_viatura_get) {
     echo "<div class='container-fluid'><div class='alert alert-danger'>ID inválido.</div></div>";
     exit();
 }
 
+// Inicializamos as variáveis para o HTML não dar erro caso o try falhe
+$display_data = [];
+$tanquesAtuais = [];
+$combustiveis = [];
+$unidadesAgrupadas = [];
+$listaPlanos = [];
+
 try {
+    // 1. Instanciamos os DAOs necessários
     $viaturaDAO = new ViaturaDAO();
     $unidadeDAO = new UnidadeDAO();
+    $combDAO = new CombustivelDAO();
+    $pDAO = new PlanoManutencaoDAO();
 
+    // 2. Buscamos os dados básicos
     $display_data = $viaturaDAO->getViaturaById($id_viatura_get);
-    $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
 
     if (!$display_data) {
         echo "<div class='container-fluid'><div class='alert alert-warning'>Viatura não encontrada.</div></div>";
         exit();
     }
+
+    // 3. Buscamos as listas para os selects e checkboxes
+    $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
+    $listaPlanos = $pDAO->listarTodos();
+    $combustiveis = $combDAO->listarTodos();
+
+    // 4. Buscamos os tanques (combustíveis) vinculados a esta viatura específica
+    $tanquesAtuais = $viaturaDAO->buscarTanquesViatura($id_viatura_get);
 } catch (Exception $e) {
-    echo "<div class='container-fluid'><div class='alert alert-danger'>Erro ao carregar dados.</div></div>";
+    error_log("Erro ao carregar editar_viatura: " . $e->getMessage());
+    echo "<div class='container-fluid'><div class='alert alert-danger'>Erro crítico ao carregar dados do servidor.</div></div>";
     exit();
 }
 ?>
@@ -174,6 +190,31 @@ try {
                                         <div class="col-md-4"><label class="form-label">Cilindradas (cc)</label><input type="number" class="form-control" name="cilindradas" value="<?= $display_data['cilindradas'] ?>"></div>
                                         <div class="col-md-4"><label class="form-label">Cavalos (cv)</label><input type="number" class="form-control" name="cavalos_forca" value="<?= $display_data['cavalos_forca'] ?>"></div>
                                         <div class="col-md-4"><label class="form-label">Número de Marchas</label><input type="number" class="form-control" name="numero_marchas" value="<?= $display_data['numero_marchas'] ?>"></div>
+                                        <div class="col-12 mt-4">
+                                            <h6 class="fw-bold text-primary"><i class="fas fa-gas-pump me-2"></i>Tanques e Combustíveis</h6>
+                                            <div class="row g-2">
+                                                <?php foreach ($combustiveis as $cb):
+                                                    $estaVinculado = isset($tanquesAtuais[$cb['id']]);
+                                                    $litragemAtual = $estaVinculado ? $tanquesAtuais[$cb['id']]['litragem'] : '';
+                                                ?>
+                                                    <div class="col-md-6">
+                                                        <div class="border rounded px-5 d-flex align-items-center justify-content-between <?= $estaVinculado ? 'border-primary bg-white' : 'bg-light' ?>">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox" name="tanques[<?= $cb['id'] ?>][ativo]" value="1"
+                                                                    id="cb_<?= $cb['id'] ?>" <?= $estaVinculado ? 'checked' : '' ?>
+                                                                    onchange="document.getElementById('litros_<?= $cb['id'] ?>').disabled = !this.checked">
+                                                                <label class="form-check-label small fw-bold" for="cb_<?= $cb['id'] ?>"><?= htmlspecialchars($cb['tipo']) ?></label>
+                                                            </div>
+                                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                                <input type="number" step="1" min="1" name="tanques[<?= $cb['id'] ?>][litragem]" id="litros_<?= $cb['id'] ?>"
+                                                                    class="form-control" value="<?= $litragemAtual ?>" <?= $estaVinculado ? '' : 'disabled' ?>>
+                                                                <span class="input-group-text">L</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -188,6 +229,11 @@ try {
                             <hr class="my-4">
                             <button class="btn btn-outline-success" type="submit" id="btnSalvarVtr">
                                 <i class="fas fa-save me-2"></i>Atualizar Viatura
+                            </button>
+
+                            <!-- NOVO BOTÃO DE RETORNO -->
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="loadPage('pages/pesquisar_viatura.php')">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
                             </button>
                         </form>
                     <?php endif; ?>
@@ -210,20 +256,46 @@ try {
                 fetch('pages/editar_viatura.php', {
                         method: 'POST',
                         headers: {
-                            // CORREÇÃO: Enviar o Token JWT
                             'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
                         },
                         body: new FormData(form)
                     })
                     .then(response => response.json())
                     .then(data => {
+                        // Remove marcações de erro anteriores
+                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
                         if (data.success) {
                             showToast(data.message, 'success');
                         } else {
-                            showToast(data.message, 'danger');
+                            // Se houverem erros específicos detalhados pelo PHP
+                            if (data.errors) {
+                                let listaErros = "<strong>Campos pendentes:</strong><br>";
+
+                                // Percorre o JSON de erros
+                                Object.keys(data.errors).forEach(key => {
+                                    // 1. Monta a mensagem para exibir no Toast
+                                    listaErros += `- ${data.errors[key]}<br>`;
+
+                                    // 2. Tenta encontrar o campo no formulário e marca de vermelho
+                                    const input = form.querySelector(`[name="${key}"]`);
+                                    if (input) {
+                                        input.classList.add('is-invalid');
+                                    }
+                                });
+
+                                // Exibe o Toast com a lista completa do que falta
+                                showToast(listaErros, 'danger');
+                            } else {
+                                // Mensagem genérica se o PHP não detalhou os campos
+                                showToast(data.message, 'danger');
+                            }
                         }
                     })
-                    .catch(() => showToast('Erro de conexão.', 'danger'))
+                    .catch((err) => {
+                        console.error(err);
+                        showToast('Erro de conexão ou resposta inválida.', 'danger');
+                    })
                     .finally(() => {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Viatura';

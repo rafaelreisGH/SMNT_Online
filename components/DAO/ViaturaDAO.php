@@ -68,32 +68,35 @@ class ViaturaDAO
     {
         $rbac = $this->aplicarEscopoRBAC();
 
-        // O JOIN no UPDATE garante que a restrição de Unidade/CRBM seja aplicada no momento da escrita
         $query = "UPDATE {$this->table_name} v
-                  INNER JOIN unidades u ON v.lotacao_atual_id = u.id
-                  SET v.tipo_operacional = :tipo_operacional,
-                      v.prefixo = :prefixo,
-                      v.numero = :numero,
-                      v.placa = :placa,
-                      v.renavam = :renavam,
-                      v.marca = :marca,
-                      v.modelo = :modelo,
-                      v.ano = :ano,
-                      v.pbt = :pbt,
-                      v.tipo_aquisicao = :tipo_aquisicao,
-                      v.status_da_viatura = :status_da_viatura,
-                      v.lotacao_atual_id = :lotacao_atual_id,
-                      v.cilindradas = :cilindradas,
-                      v.cavalos_forca = :cavalos_forca,
-                      v.torque = :torque,
-                      v.tipo_cambio = :tipo_cambio,
-                      v.numero_marchas = :numero_marchas,
-                      v.quilometragem = :quilometragem,
-                      v.garantia_fim = :garantia_fim
-                  WHERE v.id = :id {$rbac['sql']}";
+              INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+              SET v.tipo_operacional = :tipo_operacional,
+                  v.prefixo = :prefixo,
+                  v.numero = :numero,
+                  v.placa = :placa,
+                  v.renavam = :renavam,
+                  v.marca = :marca,
+                  v.modelo = :modelo,
+                  v.ano = :ano,
+                  v.pbt = :pbt,
+                  v.tipo_aquisicao = :tipo_aquisicao,
+                  v.status_da_viatura = :status_da_viatura,
+                  v.lotacao_atual_id = :lotacao_atual_id,
+                  v.cilindradas = :cilindradas,
+                  v.cavalos_forca = :cavalos_forca,
+                  v.torque = :torque,
+                  v.tipo_cambio = :tipo_cambio,
+                  v.numero_marchas = :numero_marchas,
+                  v.quilometragem = :quilometragem,
+                  v.garantia_fim = :garantia_fim,
+                  v.plano_id = :plano_id
+              WHERE v.id = :id {$rbac['sql']}";
 
         try {
+            $this->conn->beginTransaction();
+
             $stmt = $this->conn->prepare($query);
+            // Binds padrão
             $stmt->bindValue(':tipo_operacional', $data['tipo_operacional'] ?? null);
             $stmt->bindValue(':prefixo', $data['prefixo'] ?? null);
             $stmt->bindValue(':numero', $data['numero'] ?? null, PDO::PARAM_INT);
@@ -120,9 +123,50 @@ class ViaturaDAO
                 $stmt->bindValue($key, $value, PDO::PARAM_INT);
             }
 
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            throw new Exception("Erro ao atualizar viatura: " . $e->getMessage());
+            // 1. EXECUTA O UPDATE DA VIATURA (Sem o return aqui!)
+            $stmt->execute();
+
+            // 2. GESTÃO DE TANQUES (Limpa e Reinserção)
+            $sqlDel = "DELETE FROM tanques_combustivel WHERE viatura_id = :v_id";
+            $stmtDel = $this->conn->prepare($sqlDel);
+            $stmtDel->execute([':v_id' => $data['id']]);
+
+            if (!empty($data['tanques']) && is_array($data['tanques'])) {
+                $sqlIns = "INSERT INTO tanques_combustivel (viatura_id, combustivel_id, litragem) VALUES (:v_id, :c_id, :litros)";
+                $stmtIns = $this->conn->prepare($sqlIns);
+
+                foreach ($data['tanques'] as $combId => $info) {
+                    if (isset($info['ativo']) && $info['ativo'] == '1') {
+
+                        // 1. Tratamento da string (troca vírgula por ponto e converte para float)
+                        $litragem = !empty($info['litragem']) ? (float)str_replace(',', '.', $info['litragem']) : 0;
+
+                        // 2. VALIDAÇÃO BACKEND: Impede valores negativos
+                        if ($litragem < 0) {
+                            // Opção A: Forçar zero se for negativo
+                            $litragem = 0;
+
+                            // Opção B (Recomendada): Lançar uma exceção para avisar o erro
+                            // throw new Exception("A litragem do combustível não pode ser negativa.");
+                        }
+
+                        $stmtIns->execute([
+                            ':v_id'   => $data['id'], // ou $viaturaId no caso do insert
+                            ':c_id'   => $combId,
+                            ':litros' => $litragem
+                        ]);
+                    }
+                }
+            }
+
+            // 3. FINALIZA A TRANSAÇÃO
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            throw new Exception("Erro ao atualizar viatura e tanques: " . $e->getMessage());
         }
     }
 
@@ -259,6 +303,102 @@ class ViaturaDAO
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             throw new Exception("Erro ao listar viaturas: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Busca os combustíveis e litragens vinculados a uma viatura
+     */
+    public function buscarTanquesViatura(int $id)
+    {
+        $sql = "SELECT combustivel_id, litragem FROM tanques_combustivel WHERE viatura_id = :id";
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            // fetchAll com FETCH_UNIQUE retornará [] se não houver registros
+            return $stmt->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            return []; // Retorna vazio em caso de erro no SQL
+        }
+    }
+
+    /**
+     * Busca viaturas com filtros avançados e suporte a RBAC
+     */
+    public function buscarViaturasComFiltros(array $f = [])
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+        $params = $rbac['params'];
+
+        // 1. Base da Query com DISTINCT (evita duplicar viatura se tiver 2 tanques)
+        $sql = "SELECT DISTINCT 
+                v.id, v.prefixo, v.numero, v.marca, v.modelo, v.placa,
+                v.status_da_viatura, v.quilometragem,
+                u.nome AS unidade_lotacao
+            FROM viaturas v
+            LEFT JOIN unidades u ON v.lotacao_atual_id = u.id";
+
+        // 2. JOIN condicional para Combustível
+        if (!empty($f['combustivel_id'])) {
+            $sql .= " INNER JOIN tanques_combustivel tc ON v.id = tc.viatura_id";
+        }
+
+        $sql .= " WHERE 1=1 {$rbac['sql']}";
+
+        // 3. Filtros Dinâmicos
+        if (!empty($f['tipo_operacional'])) {
+            $sql .= " AND v.tipo_operacional = :tipo_op";
+            $params[':tipo_op'] = $f['tipo_operacional'];
+        }
+        if (!empty($f['prefixo'])) {
+            $sql .= " AND v.prefixo LIKE :prefixo";
+            $params[':prefixo'] = '%' . $f['prefixo'] . '%';
+        }
+        if (!empty($f['numero'])) {
+            $sql .= " AND v.numero = :numero";
+            $params[':numero'] = $f['numero'];
+        }
+        if (!empty($f['placa'])) {
+            $sql .= " AND v.placa LIKE :placa";
+            $params[':placa'] = '%' . $f['placa'] . '%';
+        }
+        if (!empty($f['combustivel_id'])) {
+            $sql .= " AND tc.combustivel_id = :comb_id";
+            $params[':comb_id'] = $f['combustivel_id'];
+        }
+        if (!empty($f['lotacao_atual_id'])) {
+            $sql .= " AND v.lotacao_atual_id = :lotacao";
+            $params[':lotacao'] = $f['lotacao_atual_id'];
+        }
+        if (!empty($f['status_da_viatura'])) {
+            $sql .= " AND v.status_da_viatura = :status";
+            $params[':status'] = $f['status_da_viatura'];
+        }
+        if (!empty($f['cilindradas'])) {
+            $sql .= " AND v.cilindradas = :cil";
+            $params[':cil'] = $f['cilindradas'];
+        }
+        if (!empty($f['cavalos_forca'])) {
+            $sql .= " AND v.cavalos_forca = :cv";
+            $params[':cv'] = $f['cavalos_forca'];
+        }
+        if (!empty($f['tipo_cambio'])) {
+            $sql .= " AND v.tipo_cambio = :cambio";
+            $params[':cambio'] = $f['tipo_cambio'];
+        }
+        if (!empty($f['garantia_fim'])) {
+            $sql .= " AND v.garantia_fim >= :garantia";
+            $params[':garantia'] = $f['garantia_fim'];
+        }
+
+        $sql .= " ORDER BY v.prefixo ASC, v.numero ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Erro SQL: " . $e->getMessage());
         }
     }
 }
