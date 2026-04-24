@@ -14,8 +14,8 @@ class JwtHandler
     public function gerarToken(array $dadosUsuario)
     {
         $issuedAt = time();
-        // $expire = $issuedAt + (60 * 60 * 12); // Expira em 12 horas
-        $expire = $issuedAt + (60 * 60 * 24 * 7); // Expira em 12 horas
+        // Ajuste para 24 horas: 60s * 60m * 24h
+        $expire = $issuedAt + (60 * 60 * 24);
 
         $payload = [
             "iss" => "smnt_online",       // Emissor
