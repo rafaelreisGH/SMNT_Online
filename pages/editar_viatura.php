@@ -9,6 +9,7 @@ require_once '../components/DAO/UnidadeDAO.php';
 require_once '../components/DAO/PlanoManutencaoDAO.php';
 require_once '../components/DAO/CombustivelDAO.php';
 require_once '../api/validate_functions_editar_viatura.php';
+require_once '../components/Log/LoggerService.php';
 
 // bloqueio de acesso por perfil
 // BLOQUEIO DE ACESSO POR PERFIL
@@ -51,6 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $viaturaDAO = new ViaturaDAO();
             if ($viaturaDAO->updateViatura($data_from_form)) {
+
+                // REGISTRO DE LOG PARA AUDITORIA
+                LoggerService::registrar(
+                    "Editou dados da viatura: " . $data_from_form['prefixo'] . " " . $data_from_form['numero'],
+                    "viaturas",
+                    $data_from_form['id'],
+                    "Alteração técnica efetuada pelo gestor da unidade."
+                );
+
                 $response['success'] = true;
                 $response['message'] = "Viatura atualizada com sucesso!";
             } else {
