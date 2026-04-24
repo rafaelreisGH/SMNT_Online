@@ -56,17 +56,45 @@ class MovimentacaoDAO
     }
 
     /**
-     * Confirma que a viatura chegou (Gestor Local/Regional)
+     * Confirma que a viatura chegou (Gestor Local/Regional/Admin)
+     * Agora com verificação de escopo RBAC
      */
-    public function confirmarRecebimento(int $movId, int $usuarioId)
+    public function confirmarRecebimento(int $movId, array $userAuth)
     {
-        $sql = "UPDATE movimentacoes_lotacao SET 
-                status = 'Recebido', 
-                data_recebimento = NOW(), 
-                usuario_recebeu_id = :u_id 
-                WHERE id = :id";
-        $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([':u_id' => $usuarioId, ':id' => $movId]);
+        // 1. Base da query de atualização
+        $sql = "UPDATE movimentacoes_lotacao m
+                SET m.status = 'Recebido', 
+                    m.data_recebimento = NOW(), 
+                    m.usuario_recebeu_id = :u_id 
+                WHERE m.id = :id 
+                AND m.status = 'Em Trânsito'";
+
+        $params = [
+            ':u_id' => $userAuth['id'],
+            ':id'   => $movId
+        ];
+
+        // 2. Trava RBAC: Se não for Administrador ou Gestor Central, 
+        // só pode confirmar movimentações destinadas ao seu próprio escopo.
+        if ($userAuth['perfil'] === 'Gestor Local') {
+            $sql .= " AND m.unidade_destino_id = :unid_id";
+            $params[':unid_id'] = $userAuth['unidade_id'];
+        } elseif ($userAuth['perfil'] === 'Gestor Regional') {
+            // Verifica se a unidade destino pertence ao comando regional do usuário
+            $sql .= " AND m.unidade_destino_id IN (SELECT id FROM unidades WHERE comando_regional_id = :crbm_id)";
+            $params[':crbm_id'] = $userAuth['comando_regional_id'];
+        }
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute($params);
+
+            // rowCount() > 0 garante que o ID existia E o usuário tinha permissão sobre ele
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Erro ao confirmar recebimento: " . $e->getMessage());
+            throw new Exception("Falha técnica ao processar recebimento.");
+        }
     }
 
     /**

@@ -6,6 +6,11 @@ require_once '../components/ConexaoDB/conexao.php';
 
 $response = ['success' => false, 'message' => ''];
 
+// Apenas Gestores e Admin podem apagar evidências
+if (!in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'])) {
+    die(json_encode(['success' => false, 'message' => 'Acesso negado: Você não tem permissão para remover evidências.']));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
     $arquivo = $_POST['arquivo'] ?? '';
@@ -35,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         error_log("Erro ao deletar arquivo físico: " . $caminhoFisico);
                     }
                 }
+
+                LoggerService::registrar("Removeu foto (evidência) da avaria ID $avariaId", "avaria_fotos", $id);
 
                 $response['success'] = true;
                 $response['message'] = "Foto removida com sucesso.";

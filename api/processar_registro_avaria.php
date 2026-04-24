@@ -7,6 +7,10 @@ require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => '', 'errors' => []];
 
+if (USER_AUTH['perfil'] === 'Consulta') {
+    die(json_encode(['success' => false, 'message' => 'Acesso negado.']));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST;
 

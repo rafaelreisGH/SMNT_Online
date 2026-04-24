@@ -11,7 +11,20 @@ require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => ''];
 $data = $_POST;
+
+// 1. RBAC: Perfis que podem MANIPULAR cautelas (Criar, Editar, Cancelar)
+$perfisGestores = ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'];
 $acao = $_GET['acao'] ?? '';
+
+// Regra Especial: O Condutor SÓ pode acessar se a ação for 'assinar'
+if (USER_AUTH['perfil'] === 'Condutor' && $acao !== 'assinar') {
+    die(json_encode(['success' => false, 'message' => 'Acesso negado: Condutores não podem criar ou cancelar cautelas.']));
+}
+
+// Regra Geral: Perfil 'Consulta' não faz nada
+if (USER_AUTH['perfil'] === 'Consulta') {
+    die(json_encode(['success' => false, 'message' => 'Acesso negado: Perfil apenas de leitura.']));
+}
 
 try {
     $dao = new CautelaDAO();
