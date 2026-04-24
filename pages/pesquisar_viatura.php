@@ -270,9 +270,12 @@ try {
                                                     <th>Status</th>
                                                     <th>Lotação</th>
                                                     <th>Detalhes</th>
-                                                    <th>Editar</th>
-                                                    <th>Reativar</th>
-                                                    <th>Baixar</th>
+                                                    <!-- RBAC: Só mostra os cabeçalhos de ação para quem pode editar -->
+                                                    <?php if (in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'])): ?>
+                                                        <th>Editar</th>
+                                                        <th>Reativar</th>
+                                                        <th>Baixar</th>
+                                                    <?php endif; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -284,8 +287,9 @@ try {
                                                         <td><?= htmlspecialchars($viatura['modelo']) ?></td>
                                                         <td class="viatura-status"><?= htmlspecialchars($viatura['status_da_viatura']) ?></td>
                                                         <td><?= htmlspecialchars($viatura['unidade_lotacao'] ?? 'Não informada') ?></td>
+
+                                                        <!-- Detalhes: Todo mundo vê -->
                                                         <td>
-                                                            <!-- ANTES ERA UM <a>, AGORA É UM <button> -->
                                                             <button type="button" class="btn btn-outline-info btn-sm"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#detalhesModal"
@@ -294,27 +298,31 @@ try {
                                                                 <i class="bi bi-list-check"></i>
                                                             </button>
                                                         </td>
-                                                        <td>
-                                                            <a href="pages/editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
-                                                                <i class="bi bi-pen"></i>
-                                                            </a>
-                                                        </td>
-                                                        <td>
-                                                            <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
-                                                                    <i class="bi bi-check-lg"></i>
-                                                                </button>
-                                                            </form>
-                                                        </td>
-                                                        <td>
-                                                            <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
-                                                                    <i class="bi bi-x-lg"></i>
-                                                                </button>
-                                                            </form>
-                                                        </td>
+
+                                                        <!-- RBAC: Colunas Restritas -->
+                                                        <?php if (in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'])): ?>
+                                                            <td>
+                                                                <a href="pages/editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
+                                                                    <i class="bi bi-pen"></i>
+                                                                </a>
+                                                            </td>
+                                                            <td>
+                                                                <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                    <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                    <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
+                                                                        <i class="bi bi-check-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                            <td>
+                                                                <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                    <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                    <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
+                                                                        <i class="bi bi-x-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>

@@ -9,6 +9,18 @@ require_once '../components/DAO/PlanoManutencaoDAO.php'; // ADICIONADO
 require_once '../api/validate_functions_editar_viatura.php';
 require_once '../components/DAO/CombustivelDAO.php';
 
+$permissaoCadastro = ['Administrador', 'Gestor Central'];
+
+if (!in_array(USER_AUTH['perfil'], $permissaoCadastro)) {
+    echo "<div class='container-fluid mt-4'>
+            <div class='alert alert-warning shadow'>
+                <i class='fas fa-exclamation-triangle me-2'></i> 
+                <strong>Acesso Restrito:</strong> Apenas a Gestão Central ou Administradores podem cadastrar novas viaturas.
+            </div>
+          </div>";
+    exit;
+}
+
 $combDAO = new CombustivelDAO();
 $combustiveis = $combDAO->listarTodos();
 

@@ -10,6 +10,12 @@ require_once '../components/Log/LoggerService.php';
 
 $response = ['success' => false, 'message' => '', 'errors' => []];
 
+if (!in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Acesso negado para cadastro.']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data_from_form = $_POST;
     $validation_errors = validateViaturaData($data_from_form);

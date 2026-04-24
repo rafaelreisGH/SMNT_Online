@@ -10,6 +10,29 @@ require_once '../components/DAO/PlanoManutencaoDAO.php';
 require_once '../components/DAO/CombustivelDAO.php';
 require_once '../api/validate_functions_editar_viatura.php';
 
+// bloqueio de acesso por perfil
+// BLOQUEIO DE ACESSO POR PERFIL
+$permissaoEdicao = ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'];
+
+if (!in_array(USER_AUTH['perfil'], $permissaoEdicao)) {
+    // Se for uma tentativa de salvamento (POST), responde com JSON
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Acesso negado: seu perfil não tem permissão para editar.']);
+        exit;
+    }
+
+    // Se for apenas o carregamento da página (GET), exibe o alerta HTML
+    echo "<div class='container-fluid mt-4'>
+            <div class='alert alert-danger shadow'>
+                <i class='fas fa-lock me-2'></i> <strong>Acesso Negado:</strong> 
+                Seu perfil não possui permissão para editar dados de viaturas.
+            </div>
+          </div>";
+    exit;
+}
+
 // --- Lógica para processar a atualização (POST - AJAX) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ob_clean();

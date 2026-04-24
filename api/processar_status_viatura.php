@@ -9,6 +9,21 @@ error_reporting(E_ALL);
 
 try {
     require_once 'middleware_auth.php';
+
+    // --- BLOQUEIO DE SEGURANÇA (RBAC) ---
+    // Apenas Administradores e Gestores podem alterar o status operacional
+    $perfisAutorizados = ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'];
+
+    if (!in_array(USER_AUTH['perfil'], $perfisAutorizados)) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Acesso Negado: Seu perfil não tem permissão para alterar o status de viaturas.'
+        ]);
+        exit;
+    }
+    // ------------------------------------
+
     require_once '../components/DAO/ViaturaDAO.php';
     require_once '../components/Log/LoggerService.php';
 
