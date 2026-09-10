@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Firebase\JWT\ExpiredException;
 use Dotenv\Dotenv;
 
 /**
@@ -24,8 +25,12 @@ class JwtHandler
             $dotenv->safeLoad();
         }
 
-        // Define a chave secreta a partir das variáveis de ambiente
-        $this->secret = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET') ?? 'CHAVE_PADRAO_SEGURANCA_CBMMT_2026';
+        // Define a chave secreta das variáveis de ambiente de forma segura
+        $this->secret = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET') ?: null;
+
+        if (!$this->secret) {
+            throw new Exception("A chave JWT_SECRET não está definida nas variáveis de ambiente.");
+        }
     }
 
     /**
@@ -66,28 +71,33 @@ class JwtHandler
     public function validarToken($token)
     {
         try {
-            // Registro de erro usando o logger padronizado
-            $logger = LoggerFactory::createLogger();
-            $logger->info('Token JWT expirado', [
-                'id' => $_SESSION['id'] ?? null,
-                'usuario' => $_SESSION['nome'] ?? null,
-                'email' => $_SESSION['email'] ?? null,
-                'perfil' => $_SESSION['nivel_de_acesso'] ?? null,
-                'sujeito' => null
-            ]);
+            // Decodifica e valida o token usando a chave secreta
+            $decoded = JWT::decode($token, new Key($this->secret, $this->alg));
+            return (array) $decoded->data;
+
+        } catch (ExpiredException $e) {
+            // Log específico para token expirado
+            if (class_exists('LoggerFactory')) {
+                $logger = LoggerFactory::createLogger();
+                $logger->info('Token JWT expirado', [
+                    'id' => $_SESSION['id'] ?? null,
+                    'usuario' => $_SESSION['nome'] ?? null,
+                    'mensagem' => $e->getMessage()
+                ]);
+            }
             return false;
+
         } catch (\Exception $e) {
-            // Registro de erro geral usando o logger padronizado
-            $logger = LoggerFactory::createLogger();
-            $logger->info('Erro JWT geral', [
-                'id' => $_SESSION['id'] ?? null,
-                'usuario' => $_SESSION['nome'] ?? null,
-                'email' => $_SESSION['email'] ?? null,
-                'perfil' => $_SESSION['nivel_de_acesso'] ?? null,
-                'sujeito' => null,
-                'mensagem' => $e->getMessage()
-            ]);
+            // Log para outros erros (token inválido, assinatura incorreta, etc)
+            if (class_exists('LoggerFactory')) {
+                $logger = LoggerFactory::createLogger();
+                $logger->info('Erro JWT geral', [
+                    'id' => $_SESSION['id'] ?? null,
+                    'usuario' => $_SESSION['nome'] ?? null,
+                    'mensagem' => $e->getMessage()
+                ]);
+            }
             return false;
+        }
     }
 }
-
