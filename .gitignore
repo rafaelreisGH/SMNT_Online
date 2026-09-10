@@ -1,5 +1,10 @@
-components/ConexaoDB/conexao.php
-assets/images/CBMMT_00.png
+
+#assets/images/CBMMT_00.png
 assets/uploads/
 
 /vendor/
+
+#arquivos de configuração
+.env
+.agents
+errors.log
