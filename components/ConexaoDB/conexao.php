@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
-
-use Dotenv\Dotenv;
+require_once __DIR__ . '/../Config/EnvLoader.php';
 
 /**
  * Classe de gerenciamento da conexão com o banco de dados MySQL via PDO.
@@ -20,11 +19,7 @@ class Conexao
     {
         if (!self::$conn) {
             // Carrega as variáveis de ambiente do arquivo .env na raiz do projeto
-            $envPath = __DIR__ . '/../../';
-            if (file_exists($envPath . '.env')) {
-                $dotenv = Dotenv::createImmutable($envPath);
-                $dotenv->safeLoad();
-            }
+            EnvLoader::load(__DIR__ . '/../../');
 
             $servername = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?? null;
             $myDB       = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?? null;

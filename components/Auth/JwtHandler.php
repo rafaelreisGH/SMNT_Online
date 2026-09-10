@@ -1,11 +1,11 @@
 <?php
 // components/Auth/JwtHandler.php
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../Config/EnvLoader.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
-use Dotenv\Dotenv;
 
 /**
  * Classe responsável por gerenciar a emissão e validação de tokens JWT.
@@ -19,11 +19,7 @@ class JwtHandler
     public function __construct()
     {
         // Carrega as variáveis de ambiente do arquivo .env na raiz do projeto
-        $envPath = __DIR__ . '/../../';
-        if (file_exists($envPath . '.env')) {
-            $dotenv = Dotenv::createImmutable($envPath);
-            $dotenv->safeLoad();
-        }
+        EnvLoader::load(__DIR__ . '/../../');
 
         // Define a chave secreta das variáveis de ambiente de forma segura
         $this->secret = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET') ?: null;
