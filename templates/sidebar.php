@@ -24,6 +24,13 @@
 
     <!-- Custom styles for this template-->
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- DATA TABLEAS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 </head>
 
 <body id="page-top">
@@ -32,7 +39,7 @@
     <div id="wrapper">
 
         <!-- Sidebar -->
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+        <ul class="navbar-nav bg-gradient-danger sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="../pages/home.php">
@@ -47,7 +54,7 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
-                <a class="nav-link" href="../pages/home.php">
+                <a class="nav-link" href="../pages/dashboard.php">
                     <i class="fas fa-fw fa-home"></i>
                     <span>Página inicial</span></a>
             </li>
@@ -72,6 +79,8 @@
                         <h6 class="collapse-header">Funções para viaturas:</h6>
                         <a class="collapse-item" href="../pages/cadastro_viatura.php">Cadastrar</a>
                         <a class="collapse-item" href="../pages/pesquisar_viatura.php">Pesquisar</a>
+                        <h6 class="collapse-header">Funções para acessórios:</h6>
+                        <a class="collapse-item" href="../pages/gestao_acessorios.php">Cadastrar</a>
                     </div>
                 </div>
             </li>
@@ -87,10 +96,49 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Funções de manutenção:</h6>
-                        <a class="collapse-item" href="../pages/pesquisar_manutencoes.php">Pesquisar</a>
+                        <a class="collapse-item" href="../pages/pesquisar_manutencoes.php"><i class="fas fa-search me-2"></i>&nbsp;Pesquisar</a>
+                        <a class="collapse-item" href="../pages/registrar_manutencao.php"><i class="fas fa-plus-circle me-2"></i>&nbsp;Registrar</a>
+                        <h6 class="collapse-header">Funções de avarias:</h6>
+                        <a class="collapse-item" href="../pages/pesquisar_avaria.php"><i class="fas fa-search me-2"></i>&nbsp;Pesquisar</a>
+                        <a class="collapse-item" href="../pages/registrar_avaria.php"><i class="fas fa-plus-circle me-2"></i>&nbsp;Registrar</a>
+                        <!--<a class="collapse-item" href="utilities-animation.html">Animations</a>
+                        <a class="collapse-item" href="utilities-other.html">Other</a> -->
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Utilities Collapse Menu -->
+            <li class="nav-item ">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseRevisao"
+                    aria-expanded="true" aria-controls="collapseRevisao">
+                    <i class="fas fa-fw fa-tasks"></i>
+                    <span>Revisões</span>
+                </a>
+                <div id="collapseRevisao" class="collapse" aria-labelledby="headingRevisao"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Funções de Revisão:</h6>
+                        <a class="collapse-item" href="../pages/pesquisar_revisao.php">Pesquisar</a>
+                        <a class="collapse-item" href="../pages/cadastro_revisao.php">Cadastrar Revisão</a>
                         <!-- <a class="collapse-item" href="utilities-border.html">Borders</a>
                         <a class="collapse-item" href="utilities-animation.html">Animations</a>
                         <a class="collapse-item" href="utilities-other.html">Other</a> -->
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePlanos"
+                    aria-expanded="true" aria-controls="collapsePlanos">
+                    <i class="fas fa-fw fa-business-time"></i>
+                    <span>Planos de Manutenção</span>
+                </a>
+                <div id="collapsePlanos" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Opções de planos:</h6>
+                        <a class="collapse-item" href="../pages/cadastro_plano_manutencao.php">Cadastrar Plano</a>
+                        <a class="collapse-item" href="../pages/cadastro_itens_preventiva.php">Cadastrar Itens</a>
                     </div>
                 </div>
             </li>
@@ -111,6 +159,25 @@
                 </div>
             </li>
 
+            <!-- Nav Item - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMovimento"
+                    aria-expanded="true" aria-controls="collapseMovimento">
+                    <i class="fas fa-fw fa-random"></i>
+                    <span>Movimentação</span>
+                </a>
+                <div id="collapseMovimento" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Opções de movimentação:</h6>
+                        <a class="collapse-item" href="../pages/transferir_viatura.php">Transferir Viatura</a>
+                        <a class="collapse-item" href="../pages/confirmar_recebimento.php">Confirmar Recebimento</a>
+                        <h6 class="collapse-header">Opções de cautela:</h6>
+                        <a class="collapse-item" href="../pages/abrir_cautela.php">Criar Cautela</a>
+                        <a class="collapse-item" href="../pages/pesquisar_cautelas.php">Pesquisar Cautela</a>
+                    </div>
+                </div>
+            </li>
+
             <!-- Divider -->
             <hr class="sidebar-divider">
 
@@ -120,26 +187,24 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <!-- <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
-                    aria-expanded="true" aria-controls="collapsePages">
-                    <i class="fas fa-fw fa-folder"></i>
-                    <span>Pages</span>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseOficina"
+                    aria-expanded="true" aria-controls="collapseOficina">
+                    <i class="fas fa-fw fa-store"></i>
+                    <span>Oficinas</span>
                 </a>
-                <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div id="collapseOficina" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Login Screens:</h6>
-                        <a class="collapse-item" href="login.html">Login</a>
-                        <a class="collapse-item" href="register.html">Register</a>
-                        <a class="collapse-item" href="forgot-password.html">Forgot Password</a>
-                        <div class="collapse-divider"></div>
+                        <h6 class="collapse-header">Opções para oficinas:</h6>
+                        <a class="collapse-item" href="../pages/cadastro_oficina.php">Cadastrar</a>
+                        <!-- <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a> -->
                     </div>
                 </div>
-            </li> 
--->
+            </li>
+
             <!-- Nav Item - Charts -->
             <!--
             <li class="nav-item">
@@ -151,10 +216,35 @@
 
             <!-- Nav Item - Tables -->
             <li class="nav-item">
+                <a class="nav-link" href="../pages/mensagens.php">
+                    <i class="fas fa-fw fa-envelope"></i>
+                    <span>Mensagens</span></a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="../pages/mapa_viaturas.php">
                     <i class="fas fa-fw fa-map"></i>
                     <span>Mapa de viaturas</span></a>
             </li>
+
+            <!-- Seção Administrativa (Escondida por padrão) -->
+            <div id="secao-admin-sidebar" class="d-none">
+                <hr class="sidebar-divider">
+                <div class="sidebar-heading">
+                    Configurações Master
+                </div>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/gestao_usuarios.php">
+                        <i class="fas fa-fw fa-users-cog"></i>
+                        <span>Gestão de Usuários</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/gerenciar_combustiveis.php">
+                        <i class="fas fa-fw fa-gas-pump"></i>
+                        <span>Gestão de Combustíveis</span>
+                    </a>
+                </li>
+            </div>
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
@@ -189,15 +279,20 @@
                     </button>
 
                     <!-- Topbar Search -->
-                    <form
-                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-                        <div class="input-group">
-                            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
-                                aria-label="Search" aria-describedby="basic-addon2">
+                    <!-- Topbar Search -->
+                    <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search" id="globalSearchForm" autocomplete="off">
+                        <div class="input-group" style="position: relative;"> <!-- position relative é importante! -->
+                            <input type="text" class="form-control bg-light border-0 small" id="globalSearchInput"
+                                placeholder="Buscar viatura ou condutor..." aria-label="Search">
                             <div class="input-group-append">
-                                <button class="btn btn-primary" type="button">
+                                <button class="btn btn-danger" type="button">
                                     <i class="fas fa-search fa-sm"></i>
                                 </button>
+                            </div>
+
+                            <!-- CONTAINER PARA OS RESULTADOS DA BUSCA -->
+                            <div id="globalSearchResults" class="dropdown-menu shadow w-100 mt-1" style="display: none; position: absolute; top: 100%; z-index: 1050;">
+                                <!-- JS preencherá aqui -->
                             </div>
                         </div>
                     </form>
@@ -231,52 +326,18 @@
 
                         <!-- Nav Item - Alerts -->
                         <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown">
                                 <i class="fas fa-bell fa-fw"></i>
-                                <!-- Counter - Alerts -->
-                                <span class="badge badge-danger badge-counter">3+</span>
+                                <!-- O contador -->
+                                <span class="badge badge-danger badge-counter d-none" id="notificacao-contador">0</span>
                             </a>
-                            <!-- Dropdown - Alerts -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">
-                                    Alerts Center
-                                </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 12, 2019</div>
-                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-success">
-                                            <i class="fas fa-donate text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 7, 2019</div>
-                                        $290.29 has been deposited into your account!
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-warning">
-                                            <i class="fas fa-exclamation-triangle text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 2, 2019</div>
-                                        Spending Alert: We've noticed unusually high spending for your account.
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+                            <!-- Onde as notas vão aparecer -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="alertsDropdown">
+                                <h6 class="dropdown-header">Centro de Alertas</h6>
+                                <div id="container-notificacoes-itens">
+                                    <!-- JS preenche aqui -->
+                                </div>
+                                <a class="dropdown-item text-center small text-gray-500" href="pages/notificacoes.php">Ver todas as notificações</a>
                             </div>
                         </li>
 
@@ -286,7 +347,7 @@
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw"></i>
                                 <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
+                                <span class="badge badge-danger badge-counter d-none" id="msg-contador">0</span>
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -294,55 +355,12 @@
                                 <h6 class="dropdown-header">
                                     Message Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
-                                            alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                                <!-- Onde as mensagens serão injetadas -->
+                                <div id="container-mensagens-itens">
+                                    <p class="small text-center p-3 text-muted">Carregando...</p>
+                                </div>
+
+                                <a class="dropdown-item text-center small text-gray-500" href="pages/mensagens.php">Ler todas as mensagens</a>
                             </div>
                         </li>
 
@@ -352,29 +370,29 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
-                                <img class="img-profile rounded-circle"
-                                    src="img/undraw_profile.svg">
+                                <!-- Adicionamos o ID user-name-display -->
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small" id="user-name-display">Carregando...</span>
+                                <img class="img-profile rounded-circle" id="user-img-topbar" src="assets/uploads/perfil/undraw_profile.svg">
                             </a>
                             <!-- Dropdown - User Information -->
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="#">
+                                <a class="dropdown-item" href="/pages/perfil.php">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
+                                    Perfil
                                 </a>
-                                <a class="dropdown-item" href="#">
+                                <a class="dropdown-item" href="/pages/configuracoes.php">
                                     <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Settings
+                                    Alterar senha
                                 </a>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Activity Log
+                                <a class="dropdown-item" href="/pages/logs_atividades.php">
+                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400" id="link-logs-auditoria"></i>
+                                    Histórico (log)
                                 </a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Logout
+                                    Sair
                                 </a>
                             </div>
                         </li>

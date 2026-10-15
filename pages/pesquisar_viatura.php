@@ -1,143 +1,29 @@
 <?php
-// Inclua seu arquivo de conexão com o banco de dados
+// pages/pesquisar_viatura.php
+
+require_once '../api/middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
-$conn = Conexao::getConexao(); // Use $conn para a conexão PDO
+require_once '../components/DAO/CombustivelDAO.php';
 
-// Lógica de pesquisa
-$results = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Coleta dos filtros do formulário
-    $tipo_operacional = $_POST['tipo_operacional'] ?? '';
-    $prefixo = $_POST['prefixo'] ?? '';
-    $numero = $_POST['numero'] ?? '';
-    $placa = $_POST['placa'] ?? '';
-    $renavam = $_POST['renavam'] ?? '';
-    $marca = $_POST['marca'] ?? '';
-    $modelo = $_POST['modelo'] ?? '';
-    $ano = $_POST['ano'] ?? '';
-    $pbt = $_POST['pbt'] ?? '';
-    $tipo_aquisicao = $_POST['tipo_aquisicao'] ?? '';
-    $status_da_viatura = $_POST['status_da_viatura'] ?? '';
-    $lotacao_atual_id = $_POST['lotacao_atual_id'] ?? '';
-    $cilindradas = $_POST['cilindradas'] ?? '';
-    $cavalos_forca = $_POST['cavalos_forca'] ?? '';
-    $torque = $_POST['torque'] ?? '';
-    $garantia_fim = $_POST['garantia_fim'] ?? '';
-    $tipo_cambio = $_POST['tipo_cambio'] ?? '';
-    $numero_marchas = $_POST['numero_marchas'] ?? '';
+// 1. Instancia os DAOs necessários (Resolve o erro de "Undefined variable $vDAO")
+$vDAO = new ViaturaDAO();
+$combDAO = new CombustivelDAO();
 
-    // Constrói a consulta SQL dinamicamente
-    // A consulta seleciona apenas as colunas necessárias para exibição na tabela e para as ações.
-    $sql = "SELECT
-                v.id,
-                v.prefixo,
-                v.numero,
-                v.marca,
-                v.modelo,
-                v.status_da_viatura,
-                u.nome AS unidade_lotacao
-            FROM
-                controle_viaturas.viaturas v
-            LEFT JOIN
-                controle_viaturas.unidades u ON v.lotacao_atual_id = u.id
-            WHERE 1=1";
+// 2. Carrega lista de combustíveis para o <select> de filtros
+$listaCombustiveis = $combDAO->listarTodos();
 
-    $params = [];
+// 3. Captura os filtros enviados via POST (ou inicializa vazio)
+$filters = $_POST ?: [];
 
-    if (!empty($tipo_operacional)) {
-        $sql .= " AND v.tipo_operacional = :tipo_operacional";
-        $params[':tipo_operacional'] = $tipo_operacional;
-    }
-    if (!empty($prefixo)) {
-        $sql .= " AND v.prefixo LIKE :prefixo";
-        $params[':prefixo'] = '%' . $prefixo . '%';
-    }
-    if (!empty($numero)) {
-        $sql .= " AND v.numero = :numero";
-        $params[':numero'] = $numero;
-    }
-    if (!empty($placa)) {
-        $sql .= " AND v.placa LIKE :placa";
-        $params[':placa'] = '%' . $placa . '%';
-    }
-    if (!empty($renavam)) {
-        $sql .= " AND v.renavam LIKE :renavam";
-        $params[':renavam'] = '%' . $renavam . '%';
-    }
-    if (!empty($marca)) {
-        $sql .= " AND v.marca LIKE :marca";
-        $params[':marca'] = '%' . $marca . '%';
-    }
-    if (!empty($modelo)) {
-        $sql .= " AND v.modelo LIKE :modelo";
-        $params[':modelo'] = '%' . $modelo . '%';
-    }
-    if (!empty($ano)) {
-        $sql .= " AND v.ano = :ano";
-        $params[':ano'] = $ano;
-    }
-    if (!empty($pbt)) {
-        $sql .= " AND v.pbt = :pbt";
-        $params[':pbt'] = $pbt;
-    }
-    if (!empty($tipo_aquisicao)) {
-        $sql .= " AND v.tipo_aquisicao = :tipo_aquisicao";
-        $params[':tipo_aquisicao'] = $tipo_aquisicao;
-    }
-    if (!empty($status_da_viatura)) {
-        $sql .= " AND v.status_da_viatura = :status_da_viatura";
-        $params[':status_da_viatura'] = $status_da_viatura;
-    }
-    if (!empty($lotacao_atual_id)) {
-        $sql .= " AND v.lotacao_atual_id = :lotacao_atual_id";
-        $params[':lotacao_atual_id'] = $lotacao_atual_id;
-    }
-    if (!empty($cilindradas)) {
-        $sql .= " AND v.cilindradas = :cilindradas";
-        $params[':cilindradas'] = $cilindradas;
-    }
-    if (!empty($cavalos_forca)) {
-        $sql .= " AND v.cavalos_forca = :cavalos_forca";
-        $params[':cavalos_forca'] = $cavalos_forca;
-    }
-    if (!empty($torque)) {
-        $sql .= " AND v.torque LIKE :torque";
-        $params[':torque'] = '%' . $torque . '%';
-    }
-
-    if (!empty($garantia_fim)) {
-        $sql .= " AND v.garantia_fim >= :garantia_fim"; // Buscar viaturas com garantia igual ou maior que a data informada
-        $params[':garantia_fim'] = $garantia_fim;
-    }
-
-    if (!empty($tipo_cambio)) {
-        $sql .= " AND v.tipo_cambio = :tipo_cambio";
-        $params[':tipo_cambio'] = $tipo_cambio;
-    }
-    if (!empty($numero_marchas)) {
-        $sql .= " AND v.numero_marchas = :numero_marchas";
-        $params[':numero_marchas'] = $numero_marchas;
-    }
-
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        echo "<div class='alert alert-danger'>Erro ao consultar o banco de dados: " . $e->getMessage() . "</div>";
-    }
-}
-
-// Para popular os selects de Unidades
-$unidades = [];
-
+// 4. Executa a busca através do DAO
+// O DAO agora centraliza toda a lógica de SQL e RBAC que estava solta na página
 try {
-    $stmtUnidades = $conn->query('SELECT id, nome FROM controle_viaturas.unidades ORDER BY nome');
-    $unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    echo "<div class='alert alert-danger'>Erro ao carregar dados para os filtros: " . $e->getMessage() . "</div>";
+    $results = $vDAO->buscarViaturasComFiltros($filters);
+} catch (Exception $e) {
+    error_log("Erro na pesquisa: " . $e->getMessage());
+    $results = [];
+    echo "<div class='alert alert-danger'>Erro ao processar consulta no servidor.</div>";
 }
-
 ?>
 
 <!-- Begin Page Content -->
@@ -229,16 +115,26 @@ try {
                                         <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
                                         <select class="form-select" id="lotacao_atual_id" name="lotacao_atual_id">
                                             <option value="">Todas as Unidades</option>
-                                            <?php
-                                            // Assume que $unidades está carregado do banco de dados ou similar
-                                            // $unidades = [...];
-                                            if (isset($unidades) && is_array($unidades)) {
-                                                foreach ($unidades as $unidade) {
-                                                    $selected = (isset($_POST['lotacao_atual_id']) && $_POST['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
-                                                    echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
-                                                }
-                                            }
-                                            ?>
+
+                                            <?php foreach ($unidadesAgrupadas as $comando => $unidades_do_grupo): ?>
+                                                <optgroup label="<?= htmlspecialchars($comando) ?>">
+                                                    <?php foreach ($unidades_do_grupo as $unidade): ?>
+                                                        <?php
+                                                        // Formata o nome: "Unidade - Município"
+                                                        $labelUnidade = htmlspecialchars($unidade['unidade_nome']);
+                                                        if (!empty($unidade['municipio_nome'])) {
+                                                            $labelUnidade .= " - " . htmlspecialchars($unidade['municipio_nome']);
+                                                        }
+
+                                                        // Verifica se esta unidade foi a selecionada na pesquisa anterior
+                                                        $selected = (isset($_POST['lotacao_atual_id']) && $_POST['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
+                                                        ?>
+                                                        <option value="<?= $unidade['id'] ?>" <?= $selected ?>>
+                                                            <?= $labelUnidade ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -274,6 +170,38 @@ try {
                                     <div class="col-md-4">
                                         <label for="numero_marchas" class="form-label">Número de Marchas</label>
                                         <input type="number" class="form-control" id="numero_marchas" name="numero_marchas" value="<?= htmlspecialchars($_POST['numero_marchas'] ?? '') ?>">
+                                    </div>
+
+                                    <!-- NOVO FILTRO DE COMBUSTÍVEL -->
+                                    <div class="col-md-4">
+                                        <label for="combustivel_id" class="form-label">Tipo de Combustível</label>
+                                        <select class="form-select" id="combustivel_id" name="combustivel_id">
+                                            <option value="">Todos</option>
+                                            <?php foreach ($listaCombustiveis as $c): ?>
+                                                <option value="<?= $c['id'] ?>" <?= (isset($_POST['combustivel_id']) && $_POST['combustivel_id'] == $c['id']) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($c['tipo']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="tipo_cambio" class="form-label">Tipo de Câmbio</label>
+                                        <select class="form-select" id="tipo_cambio" name="tipo_cambio">
+                                            <option value="">Todos</option>
+                                            <?php
+                                            $tiposCambio = ['Manual', 'Automático'];
+                                            foreach ($tiposCambio as $cambio) {
+                                                $selected = (isset($_POST['tipo_cambio']) && $_POST['tipo_cambio'] == $cambio) ? 'selected' : '';
+                                                echo "<option value=\"$cambio\" $selected>$cambio</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
+                                        <input type="number" class="form-control" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($_POST['cilindradas'] ?? '') ?>">
                                     </div>
                                 </div>
                             </div>
@@ -342,9 +270,12 @@ try {
                                                     <th>Status</th>
                                                     <th>Lotação</th>
                                                     <th>Detalhes</th>
-                                                    <th>Editar</th>
-                                                    <th>Reativar</th>
-                                                    <th>Baixar</th>
+                                                    <!-- RBAC: Só mostra os cabeçalhos de ação para quem pode editar -->
+                                                    <?php if (in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'])): ?>
+                                                        <th>Editar</th>
+                                                        <th>Reativar</th>
+                                                        <th>Baixar</th>
+                                                    <?php endif; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -356,8 +287,9 @@ try {
                                                         <td><?= htmlspecialchars($viatura['modelo']) ?></td>
                                                         <td class="viatura-status"><?= htmlspecialchars($viatura['status_da_viatura']) ?></td>
                                                         <td><?= htmlspecialchars($viatura['unidade_lotacao'] ?? 'Não informada') ?></td>
+
+                                                        <!-- Detalhes: Todo mundo vê -->
                                                         <td>
-                                                            <!-- ANTES ERA UM <a>, AGORA É UM <button> -->
                                                             <button type="button" class="btn btn-outline-info btn-sm"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#detalhesModal"
@@ -366,27 +298,31 @@ try {
                                                                 <i class="bi bi-list-check"></i>
                                                             </button>
                                                         </td>
-                                                        <td>
-                                                            <a href="pages/editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
-                                                                <i class="bi bi-pen"></i>
-                                                            </a>
-                                                        </td>
-                                                        <td>
-                                                            <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
-                                                                    <i class="bi bi-check-lg"></i>
-                                                                </button>
-                                                            </form>
-                                                        </td>
-                                                        <td>
-                                                            <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
-                                                                <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
-                                                                <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
-                                                                    <i class="bi bi-x-lg"></i>
-                                                                </button>
-                                                            </form>
-                                                        </td>
+
+                                                        <!-- RBAC: Colunas Restritas -->
+                                                        <?php if (in_array(USER_AUTH['perfil'], ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'])): ?>
+                                                            <td>
+                                                                <a href="pages/editar_viatura.php?id=<?= $viatura['id'] ?>" class="btn btn-outline-warning btn-sm" title="Editar Dados da Viatura">
+                                                                    <i class="bi bi-pen"></i>
+                                                                </a>
+                                                            </td>
+                                                            <td>
+                                                                <form class="form-reativa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                    <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                    <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] == 'Operante') ? 'btn-secondary' : 'btn-outline-success' ?>" title="Reativar Viatura" <?= ($viatura['status_da_viatura'] == 'Operante') ? 'disabled' : '' ?>>
+                                                                        <i class="bi bi-check-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                            <td>
+                                                                <form class="form-baixa-viatura" data-id-viatura="<?= $viatura['id'] ?>" style="display:inline;">
+                                                                    <input type="hidden" name="id_viatura" value="<?= $viatura['id'] ?>">
+                                                                    <button type="submit" class="btn btn-sm <?= ($viatura['status_da_viatura'] != 'Operante') ? 'btn-secondary' : 'btn-outline-danger' ?>" title="Baixar Viatura" <?= ($viatura['status_da_viatura'] != 'Operante') ? 'disabled' : '' ?>>
+                                                                        <i class="bi bi-x-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
@@ -440,188 +376,151 @@ try {
     function initializePesquisaViaturaScripts() {
         const formPesquisa = document.getElementById('form-pesquisa-viatura');
         const areaResultados = document.getElementById('resultado-pesquisa');
+        const token = localStorage.getItem('smnt_token');
 
-        // Adiciona listener ao formulário de pesquisa (se ainda não tiver)
-        if (formPesquisa && !formPesquisa.hasAttribute('data-ajax-initialized')) {
+        if (!formPesquisa) return;
+
+        // --- FUNÇÃO PARA EXECUTAR A PESQUISA (Sem risco de recarregar) ---
+        const executarPesquisa = () => {
+            const formData = new FormData(formPesquisa);
+            areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Atualizando resultados...</div>';
+
+            fetch('pages/pesquisar_viatura.php', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: formData
+                })
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const novosResultados = doc.getElementById('resultado-pesquisa');
+                    if (novosResultados) {
+                        areaResultados.innerHTML = novosResultados.innerHTML;
+                        initializePageSpecificActions(); // Re-vincula os botões da nova tabela
+                    }
+                })
+                .catch(err => console.error("Erro na atualização:", err));
+        };
+
+        // Adiciona listener ao formulário de pesquisa (Prevenindo o redirect de vez)
+        if (!formPesquisa.hasAttribute('data-ajax-initialized')) {
             formPesquisa.setAttribute('data-ajax-initialized', 'true');
             formPesquisa.addEventListener('submit', function(event) {
-                event.preventDefault();
-                const formData = new FormData(formPesquisa);
-                areaResultados.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Pesquisando...</div>';
-
-                fetch('pages/pesquisar_viatura.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const novosResultados = doc.getElementById('resultado-pesquisa');
-
-                        if (novosResultados) {
-                            areaResultados.innerHTML = novosResultados.innerHTML;
-                            // Re-inicializa os scripts para a nova tabela de resultados
-                            initializePageSpecificActions();
-                        } else {
-                            areaResultados.innerHTML = '<div class="alert alert-danger">Erro ao processar a resposta.</div>';
-                        }
-                    })
-                    .catch(error => console.error('Erro na pesquisa AJAX:', error));
+                event.preventDefault(); // CANCELA o envio real do navegador
+                event.stopPropagation();
+                executarPesquisa();
             });
         }
 
-        // Adiciona listener ao botão de limpar (se ainda não tiver)
         const btnLimpar = document.getElementById('btn-limpar-filtros');
         if (btnLimpar && !btnLimpar.hasAttribute('data-ajax-initialized')) {
             btnLimpar.setAttribute('data-ajax-initialized', 'true');
-            btnLimpar.addEventListener('click', () => formPesquisa?.reset());
+            btnLimpar.addEventListener('click', () => {
+                formPesquisa.reset();
+                areaResultados.innerHTML = '';
+            });
         }
 
-        // =======================================================================
-        // AQUI ESTÁ O CÓDIGO QUE FALTAVA
-        // Esta função anexa os listeners para Toasts, Baixar, Reativar, etc.
-        // =======================================================================
         function initializePageSpecificActions() {
-
-            // Função para exibir Toasts (notificações)
-            // function showToast(message, type = 'success') {
-            //     const toastContainer = document.querySelector('.toast-container');
-            //     if (!toastContainer) return;
-
-            //     const bgColorClass = {
-            //         success: 'text-bg-success',
-            //         danger: 'text-bg-danger',
-            //         warning: 'text-bg-warning'
-            //     } [type] || 'text-bg-info';
-            //     const iconClass = {
-            //         success: 'bi-check-circle-fill',
-            //         danger: 'bi-x-circle-fill',
-            //         warning: 'bi-exclamation-triangle-fill'
-            //     } [type] || 'bi-info-circle-fill';
-            //     const toastId = `liveToast-${Date.now()}`;
-
-            //     const toastHtml = `
-            //         <div id="${toastId}" class="toast ${bgColorClass}" role="alert" aria-live="assertive" aria-atomic="true">
-            //             <div class="toast-header">
-            //                 <i class="bi ${iconClass} me-2"></i>
-            //                 <strong class="me-auto">Notificação</strong>
-            //                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            //             </div>
-            //             <div class="toast-body">${message}</div>
-            //         </div>`;
-
-            //     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            //     const toastEl = document.getElementById(toastId);
-            //     const toast = new bootstrap.Toast(toastEl, {
-            //         delay: 5000
-            //     });
-            //     toast.show();
-            //     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-            // }
-
             // Lógica para Baixar Viatura
             document.querySelectorAll('.form-baixa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
+                form.onsubmit = function(event) {
                     event.preventDefault();
-                    if (!confirm('Tem certeza que deseja baixar esta viatura?')) return;
+                    if (!confirm('Deseja BAIXAR esta viatura?')) return;
 
-                    const idViatura = this.dataset.idViatura;
-                    const formData = new FormData();
-                    formData.append('id_viatura', idViatura);
+                    const formData = new FormData(this);
+                    const token = localStorage.getItem('smnt_token');
 
-                    fetch('../api/processar_baixar_viatura.php', {
+                    fetch('api/processar_status_viatura.php?acao=baixar', {
                             method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token
+                            },
                             body: formData
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                showToast(data.message, 'success');
-                                const row = form.closest('tr');
-                                row.querySelector('.viatura-status').textContent = 'Baixada';
-                                form.querySelector('button').disabled = true;
-                                form.querySelector('button').classList.replace('btn-outline-danger', 'btn-secondary');
-                                const reativarBtn = row.querySelector('.form-reativa-viatura button');
-                                reativarBtn.disabled = false;
-                                reativarBtn.classList.replace('btn-secondary', 'btn-outline-success');
-                            } else {
-                                showToast(data.message, 'danger');
+                        .then(async res => {
+                            const text = await res.text();
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                throw new Error("Erro no servidor: " + text);
                             }
                         })
-                        .catch(error => {
-                            console.error('Erro AJAX ao baixar:', error);
-                            showToast('Erro de comunicação ao baixar viatura.', 'danger');
-                        });
-                });
+                        .then(data => {
+                            showToast(data.message, data.success ? 'success' : 'danger');
+                            if (data.success) executarPesquisa();
+                        })
+                        .catch(err => showToast(err.message, 'danger'));
+                };
             });
 
             // Lógica para Reativar Viatura
             document.querySelectorAll('.form-reativa-viatura').forEach(form => {
-                form.addEventListener('submit', function(event) {
+                form.onsubmit = function(event) {
                     event.preventDefault();
-                    if (!confirm('Tem certeza que deseja reativar esta viatura?')) return;
+                    if (!confirm('Deseja REATIVAR esta viatura?')) return;
 
-                    const idViatura = this.dataset.idViatura;
-                    const formData = new FormData();
-                    formData.append('id_viatura', idViatura);
+                    const formData = new FormData(this);
+                    const token = localStorage.getItem('smnt_token');
 
-                    fetch('../api/processar_reativacao_viatura.php', {
+                    // VERIFIQUE SE O CAMINHO ESTÁ EXATAMENTE IGUAL AO DE BAIXAR
+                    fetch('api/processar_status_viatura.php?acao=reativar', {
                             method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token
+                            },
                             body: formData
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                showToast(data.message, 'success');
-                                const row = form.closest('tr');
-                                row.querySelector('.viatura-status').textContent = 'Operante';
-                                form.querySelector('button').disabled = true;
-                                form.querySelector('button').classList.replace('btn-outline-success', 'btn-secondary');
-                                const baixarBtn = row.querySelector('.form-baixa-viatura button');
-                                baixarBtn.disabled = false;
-                                baixarBtn.classList.replace('btn-secondary', 'btn-outline-danger');
-                            } else {
-                                showToast(data.message, 'danger');
+                        .then(async res => {
+                            const text = await res.text();
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                throw new Error("Erro no servidor: " + text);
                             }
                         })
-                        .catch(error => {
-                            console.error('Erro AJAX ao reativar:', error);
-                            showToast('Erro de comunicação ao reativar viatura.', 'danger');
-                        });
-                });
-            });
-            // NOVA LÓGICA PARA O MODAL DE DETALHES
-            const detalhesModal = document.getElementById('detalhesModal');
-            if (detalhesModal) {
-                detalhesModal.addEventListener('show.bs.modal', function(event) {
-                    const button = event.relatedTarget; // O botão que acionou o modal
-                    const viaturaId = button.getAttribute('data-viatura-id'); // Pega o ID do atributo data
-
-                    const modalBody = detalhesModal.querySelector('#detalhesModalBody');
-
-                    // Mostra o spinner de carregamento
-                    modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>';
-
-                    // Busca os detalhes da viatura na nossa nova API
-                    fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`)
-                        .then(response => response.text())
-                        .then(html => {
-                            // Preenche o corpo do modal com o HTML recebido
-                            modalBody.innerHTML = html;
+                        .then(data => {
+                            showToast(data.message, data.success ? 'success' : 'danger');
+                            if (data.success) executarPesquisa();
                         })
-                        .catch(error => {
-                            modalBody.innerHTML = '<div class="alert alert-danger">Erro ao carregar os detalhes.</div>';
-                            console.error('Erro ao buscar detalhes da viatura:', error);
+                        .catch(err => showToast(err.message, 'danger'));
+                };
+            });
+
+            // Lógica do Modal (Blindada contra duplicação de eventos)
+            const detalhesModal = document.getElementById('detalhesModal');
+            if (detalhesModal && !detalhesModal.hasAttribute('data-modal-ready')) {
+                detalhesModal.setAttribute('data-modal-ready', 'true');
+                detalhesModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    const viaturaId = button.getAttribute('data-viatura-id');
+                    const modalBody = document.getElementById('detalhesModalBody');
+
+                    modalBody.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Carregando...</div>';
+
+                    fetch(`api/get_detalhes_viatura.php?id=${viaturaId}`, {
+                            headers: {
+                                'Authorization': 'Bearer ' + token
+                            }
+                        })
+                        .then(res => res.text())
+                        .then(html => {
+                            if (html.trim().startsWith('{')) {
+                                const err = JSON.parse(html);
+                                modalBody.innerHTML = `<div class='alert alert-danger'>${err.message}</div>`;
+                            } else {
+                                modalBody.innerHTML = html;
+                            }
                         });
                 });
             }
         }
 
-        // Chama a função pela primeira vez para os elementos que já estão na página
         initializePageSpecificActions();
     }
 
-    // Finalmente, chamamos a função principal para inicializar tudo nesta carga.
     initializePesquisaViaturaScripts();
 </script>

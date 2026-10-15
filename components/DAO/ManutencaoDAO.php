@@ -1,5 +1,5 @@
 <?php
-// ARQUIVO: components/DAO/ManutencaoDAO.php
+// components/DAO/ManutencaoDAO.php
 
 require_once __DIR__ . '/../../components/ConexaoDB/conexao.php';
 
@@ -14,208 +14,254 @@ class ManutencaoDAO
     }
 
     /**
-     * Insere um novo registro de manutenção no banco de dados.
-     * @param array $data Um array associativo com os dados da manutenção.
-     * @return bool True em caso de sucesso, false em caso de falha.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Helper para aplicar as restrições de escopo (RBAC)
      */
+    private function aplicarEscopoRBAC(string $aliasViatura = 'v', string $aliasUnidade = 'u'): array
+    {
+        $sql = "";
+        $params = [];
+        if (defined('USER_AUTH')) {
+            $user = USER_AUTH;
+            switch ($user['perfil']) {
+                case 'Gestor Local':
+                    $sql = " AND v.lotacao_atual_id = :rbac_unidade_id";
+                    $params[':rbac_unidade_id'] = $user['unidade_id'];
+                    break;
+                case 'Gestor Regional':
+                    $sql = " AND u.comando_regional_id = :rbac_crbm_id";
+                    $params[':rbac_crbm_id'] = $user['comando_regional_id'];
+                    break;
+            }
+        }
+        return ['sql' => $sql, 'params' => $params];
+    }
+
     public function inserirManutencao(array $data): bool
     {
-        // CORREÇÃO: Trocado 'oficina_nome' por 'oficina_id'
         $sql = "INSERT INTO " . $this->table_name . " (
-                viatura_id, avaria_id, data_entrada, data_saida, tipo_manutencao, 
-                descricao_problema, servico_realizado, observacoes, tempo_oficina, 
-                custo, oficina_id, registrado_por_usuario_id
+                viatura_id, avaria_id, item_preventiva_id, data_entrada, tipo_manutencao, 
+                quilometragem, status, descricao_problema, oficina_id, ordem_de_servico, registrado_por_usuario_id
             ) VALUES (
-                :viatura_id, :avaria_id, :data_entrada, :data_saida, :tipo_manutencao, 
-                :descricao_problema, :servico_realizado, :observacoes, :tempo_oficina, 
-                :custo, :oficina_id, :registrado_por_usuario_id
+                :viatura_id, :avaria_id, :item_preventiva_id, :data_entrada, :tipo_manutencao, 
+                :quilometragem, :status, :descricao_problema, :oficina_id, :ordem_de_servico, :registrado_por_usuario_id
             )";
 
         try {
             $stmt = $this->conn->prepare($sql);
 
-            // ... (outros bindValues permanecem os mesmos) ...
-            $stmt->bindValue(':viatura_id', $data['viatura_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':avaria_id', $data['avaria_id'] !== '' ? $data['avaria_id'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':data_entrada', $data['data_entrada'] !== '' ? $data['data_entrada'] : null);
-            $stmt->bindValue(':data_saida', $data['data_saida'] !== '' ? $data['data_saida'] : null);
-            $stmt->bindValue(':tipo_manutencao', $data['tipo_manutencao'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':descricao_problema', $data['descricao_problema'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':servico_realizado', $data['servico_realizado'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':observacoes', $data['observacoes'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':tempo_oficina', $data['tempo_oficina'] !== '' ? $data['tempo_oficina'] : null);
-            $stmt->bindValue(':custo', $data['custo'] !== '' ? $data['custo'] : null);
-
-            // CORREÇÃO: Bind para :oficina_id (que agora está no SQL)
-            $stmt->bindValue(':oficina_id', $data['oficina_id'] !== '' ? $data['oficina_id'] : null, PDO::PARAM_INT);
-
-            $stmt->bindValue(':registrado_por_usuario_id', $data['registrado_por_usuario_id'] ?? null, PDO::PARAM_INT);
+            $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':avaria_id', !empty($data['avaria_id']) ? $data['avaria_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':item_preventiva_id', !empty($data['item_preventiva_id']) ? $data['item_preventiva_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':data_entrada', !empty($data['data_entrada']) ? $data['data_entrada'] : date('Y-m-d H:i:s'));
+            $stmt->bindValue(':tipo_manutencao', $data['tipo_manutencao']);
+            $stmt->bindValue(':quilometragem', $data['quilometragem'], PDO::PARAM_INT);
+            $stmt->bindValue(':status', $data['status'] ?? 'Pendente');
+            $stmt->bindValue(':descricao_problema', $data['descricao_problema'] ?? null);
+            $stmt->bindValue(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':ordem_de_servico', !empty($data['ordem_de_servico']) ? $data['ordem_de_servico'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':registrado_por_usuario_id', defined('USER_AUTH') ? USER_AUTH['id'] : null, PDO::PARAM_INT);
 
             return $stmt->execute();
         } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao inserir manutenção: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro ao inserir manutenção: " . $e->getMessage());
         }
     }
-
-    /**
-     * Atualiza um registro de manutenção existente.
-     * @param array $data Array com os dados, incluindo o 'id' da manutenção.
-     * @return bool True em caso de sucesso.
-     * @throws Exception
-     */
-    public function updateManutencao(array $data): bool
-    {
-        // CORREÇÃO: Trocado 'oficina_nome = :oficina_nome' por 'oficina_id = :oficina_id'
-        $sql = "UPDATE " . $this->table_name . " SET
-                viatura_id = :viatura_id,
-                avaria_id = :avaria_id,
-                data_entrada = :data_entrada,
-                data_saida = :data_saida,
-                tipo_manutencao = :tipo_manutencao,
-                descricao_problema = :descricao_problema,
-                servico_realizado = :servico_realizado,
-                observacoes = :observacoes,
-                tempo_oficina = :tempo_oficina,
-                custo = :custo,
-                oficina_id = :oficina_id,
-                registrado_por_usuario_id = :registrado_por_usuario_id
-            WHERE id = :id";
-
-        try {
-            $stmt = $this->conn->prepare($sql);
-
-            // ... (outros bindValues permanecem os mesmos) ...
-            $stmt->bindValue(':viatura_id', $data['viatura_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':avaria_id', $data['avaria_id'] !== '' ? $data['avaria_id'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':data_entrada', $data['data_entrada'] !== '' ? $data['data_entrada'] : null);
-            $stmt->bindValue(':data_saida', $data['data_saida'] !== '' ? $data['data_saida'] : null);
-            $stmt->bindValue(':tipo_manutencao', $data['tipo_manutencao'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':descricao_problema', $data['descricao_problema'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':servico_realizado', $data['servico_realizado'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':observacoes', $data['observacoes'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':tempo_oficina', $data['tempo_oficina'] !== '' ? $data['tempo_oficina'] : null);
-            $stmt->bindValue(':custo', $data['custo'] !== '' ? $data['custo'] : null);
-
-            // CORREÇÃO: Bind para :oficina_id
-            $stmt->bindValue(':oficina_id', $data['oficina_id'] !== '' ? $data['oficina_id'] : null, PDO::PARAM_INT);
-
-            $stmt->bindValue(':registrado_por_usuario_id', $data['registrado_por_usuario_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindParam(':id', $data['id'], PDO::PARAM_INT);
-
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao atualizar manutenção: " . $e->getMessage(), 0, $e);
-        }
-    }
-
-    /**
-     * Busca um registro de manutenção pelo seu ID.
-     * @param int $id O ID da manutenção.
-     * @return array|false Retorna os dados da manutenção ou false se não encontrada.
-     * @throws Exception
-     */
-    public function getManutencaoById(int $id)
-    {
-        $query = "SELECT m.*, v.prefixo as viatura_prefixo, v.placa as viatura_placa,
-                     o.nome as oficina_nome -- MUDANÇA: Adicionado nome da oficina
-              FROM " . $this->table_name . " m
-              LEFT JOIN viaturas v ON m.viatura_id = v.id
-              LEFT JOIN oficinas o ON m.oficina_id = o.id -- MUDANÇA: Adicionado JOIN
-              WHERE m.id = :id";
-        try {
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            throw new Exception("Erro ao buscar manutenção por ID: " . $e->getMessage(), 0, $e);
-        }
-    }
-
-    /**
-     * Busca manutenções com base em um array de filtros.
-     * @param array $filters Filtros como ['viatura_id' => 5, 'tipo_manutencao' => 'Corretiva'].
-     * @return array Retorna uma lista de manutenções.
-     * @throws Exception
-     */
 
     public function buscarManutencoes(array $filters = []): array
     {
+        $rbac = $this->aplicarEscopoRBAC();
+
         $sql = "SELECT
-                m.id, m.data_entrada, m.data_saida, m.tipo_manutencao, m.custo,
-                v.prefixo as viatura_prefixo, v.placa as viatura_placa,
-                o.nome as oficina_nome
-            FROM
-                " . $this->table_name . " m
-            LEFT JOIN
-                viaturas v ON m.viatura_id = v.id
-            LEFT JOIN
-                oficinas o ON m.oficina_id = o.id
-            WHERE 1=1";
+            m.id, m.ordem_de_servico, m.data_entrada, m.data_saida, m.tipo_manutencao, m.custo, m.status,
+            v.prefixo as viatura_prefixo, v.numero as viatura_numero, v.placa as viatura_placa,
+            o.nome_fantasia as oficina_nome -- CORREÇÃO: era o.nome
+        FROM
+            " . $this->table_name . " m
+        LEFT JOIN
+            viaturas v ON m.viatura_id = v.id
+        LEFT JOIN
+            unidades u ON v.lotacao_atual_id = u.id -- Necessário para o RBAC
+        LEFT JOIN
+            oficinas o ON m.oficina_id = o.id
+        WHERE 1=1 {$rbac['sql']}";
 
-        $params = [];
+        $params = $rbac['params'];
 
-        // --- Filtros ---
-        if (!empty($filters['oficina_nome'])) {
-            $sql .= " AND o.nome LIKE :oficina_nome";
-            $params[':oficina_nome'] = '%' . $filters['oficina_nome'] . '%';
-        }
+        // Filtros do formulário
         if (!empty($filters['viatura_id'])) {
-            $sql .= " AND m.viatura_id = :viatura_id";
-            $params[':viatura_id'] = $filters['viatura_id'];
+            $sql .= " AND m.viatura_id = :v_id";
+            $params[':v_id'] = $filters['viatura_id'];
         }
         if (!empty($filters['tipo_manutencao'])) {
-            $sql .= " AND m.tipo_manutencao = :tipo_manutencao";
-            $params[':tipo_manutencao'] = $filters['tipo_manutencao'];
+            $sql .= " AND m.tipo_manutencao = :tipo";
+            $params[':tipo'] = $filters['tipo_manutencao'];
         }
-        if (!empty($filters['avaria_id'])) {
-            $sql .= " AND m.avaria_id = :avaria_id";
-            $params[':avaria_id'] = $filters['avaria_id'];
+        if (!empty($filters['oficina_nome'])) {
+            $sql .= " AND o.nome_fantasia LIKE :oficina"; // CORREÇÃO
+            $params[':oficina'] = '%' . $filters['oficina_nome'] . '%';
         }
-        if (!empty($filters['data_entrada_min'])) {
-            $sql .= " AND m.data_entrada >= :data_entrada_min";
-            $params[':data_entrada_min'] = $filters['data_entrada_min'];
-        }
-        if (!empty($filters['data_entrada_max'])) {
-            $sql .= " AND m.data_entrada <= :data_entrada_max";
-            $params[':data_entrada_max'] = $filters['data_entrada_max'] . ' 23:59:59';
-        }
-        if (isset($filters['custo_min']) && $filters['custo_min'] !== '') {
-            $sql .= " AND m.custo >= :custo_min";
-            $params[':custo_min'] = $filters['custo_min'];
-        }
-        if (isset($filters['custo_max']) && $filters['custo_max'] !== '') {
-            $sql .= " AND m.custo <= :custo_max";
-            $params[':custo_max'] = $filters['custo_max'];
+        // NOVO: Filtro de Status
+        if (!empty($filters['status'])) {
+            $sql .= " AND m.status = :status";
+            $params[':status'] = $filters['status'];
         }
 
         $sql .= " ORDER BY m.data_entrada DESC";
 
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista todas as oficinas ativas para preencher selects.
+     */
+    public function listarOficinasAtivas(): array
+    {
+        $sql = "SELECT id, nome_fantasia FROM oficinas WHERE status = 'ativa' ORDER BY nome_fantasia ASC";
         try {
             $stmt = $this->conn->prepare($sql);
-            $stmt->execute($params);
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            throw new Exception("Erro ao buscar manutenções: " . $e->getMessage(), 0, $e);
+            error_log("Erro ao listar oficinas: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function buscarDetalhesPorId(int $id)
+    {
+        $sql = "SELECT m.*, 
+                   v.prefixo, v.numero, v.placa, v.modelo,
+                   o.nome_fantasia as oficina_nome,
+                   ip.nome as item_preventiva_nome,
+                   ra.observacoes_avaria as relato_avaria
+            FROM manutencoes m
+            JOIN viaturas v ON m.viatura_id = v.id
+            LEFT JOIN oficinas o ON m.oficina_id = o.id
+            LEFT JOIN itens_preventiva ip ON m.item_preventiva_id = ip.id
+            LEFT JOIN registro_avaria ra ON m.avaria_id = ra.id
+            WHERE m.id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateManutencao(array $data): bool
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $sql = "UPDATE " . $this->table_name . " m
+            INNER JOIN viaturas v ON m.viatura_id = v.id
+            INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+            SET 
+                m.viatura_id = :viatura_id,
+                m.avaria_id = :avaria_id,
+                m.item_preventiva_id = :item_preventiva_id,
+                m.oficina_id = :oficina_id,
+                m.ordem_de_servico = :ordem_de_servico,
+                m.data_entrada = :data_entrada,
+                m.tipo_manutencao = :tipo_manutencao,
+                m.quilometragem = :quilometragem,
+                m.status = :status,
+                m.descricao_problema = :descricao_problema
+            WHERE m.id = :id {$rbac['sql']}";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+
+            $stmt->bindValue(':viatura_id', $data['viatura_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':avaria_id', !empty($data['avaria_id']) ? $data['avaria_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':item_preventiva_id', !empty($data['item_preventiva_id']) ? $data['item_preventiva_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':oficina_id', $data['oficina_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':ordem_de_servico', !empty($data['ordem_de_servico']) ? $data['ordem_de_servico'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':data_entrada', $data['data_entrada']);
+            $stmt->bindValue(':tipo_manutencao', $data['tipo_manutencao']);
+            $stmt->bindValue(':quilometragem', $data['quilometragem'], PDO::PARAM_INT);
+            $stmt->bindValue(':status', $data['status']);
+            $stmt->bindValue(':descricao_problema', $data['descricao_problema']);
+            $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
+
+            // Binds do RBAC
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao atualizar manutenção: " . $e->getMessage());
         }
     }
 
     /**
-     * Deleta um registro de manutenção do banco de dados.
-     * @param int $id O ID da manutenção a ser deletada.
-     * @return bool True em caso de sucesso.
-     * @throws Exception
+     * Busca uma manutenção específica com detalhes da viatura e oficina
      */
-    public function deleteManutencao(int $id): bool
+    public function getManutencaoById(int $id)
     {
-        $sql = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $query = "SELECT m.*, 
+                     v.prefixo as viatura_prefixo, v.numero as viatura_numero, v.placa as viatura_placa,
+                     o.nome_fantasia as oficina_nome
+              FROM " . $this->table_name . " m
+              JOIN viaturas v ON m.viatura_id = v.id
+              JOIN unidades u ON v.lotacao_atual_id = u.id 
+              LEFT JOIN oficinas o ON m.oficina_id = o.id
+              WHERE m.id = :id {$rbac['sql']}";
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+
+            // Binds do RBAC
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao buscar manutenção: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Método de finalização atualizado: 
+     * A data de saída vem do formulário (:data_saida), não do sistema.
+     */
+    public function finalizarManutencao(array $data): bool
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        // Cálculo do tempo de oficina baseado na data informada pelo usuário
+        $sql = "UPDATE " . $this->table_name . " m
+            INNER JOIN viaturas v ON m.viatura_id = v.id
+            INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+            SET 
+                m.data_saida = :data_saida,
+                m.servico_realizado = :servico_realizado,
+                m.custo = :custo,
+                m.observacoes = :observacoes,
+                m.status = 'Concluída',
+                -- Calcula a diferença em dias (com decimais para horas)
+                m.tempo_oficina = TIMESTAMPDIFF(MINUTE, m.data_entrada, :data_saida_calc) / 1440
+            WHERE m.id = :id {$rbac['sql']}";
+
         try {
             $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':data_saida', $data['data_saida']);
+            $stmt->bindValue(':data_saida_calc', $data['data_saida']);
+            $stmt->bindValue(':servico_realizado', $data['servico_realizado']);
+            $stmt->bindValue(':custo', $data['custo']);
+            $stmt->bindValue(':observacoes', $data['observacoes'] ?? null);
+            $stmt->bindValue(':id', $id = $data['id'], PDO::PARAM_INT);
+
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
             return $stmt->execute();
         } catch (PDOException $e) {
-            throw new Exception("Erro ao deletar manutenção: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro ao finalizar manutenção: " . $e->getMessage());
         }
     }
 }

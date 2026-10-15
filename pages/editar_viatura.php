@@ -1,13 +1,44 @@
 <?php
-// Inclui os arquivos de dependência (sem alterações)
+// pages/editar_viatura.php
+
+// 1. Proteção e Dependências
+require_once '../api/middleware_auth.php';
 require_once '../components/ConexaoDB/conexao.php';
 require_once '../components/DAO/ViaturaDAO.php';
+require_once '../components/DAO/UnidadeDAO.php';
+require_once '../components/DAO/PlanoManutencaoDAO.php';
+require_once '../components/DAO/CombustivelDAO.php';
 require_once '../api/validate_functions_editar_viatura.php';
+require_once '../components/Log/LoggerService.php';
 
-// --- Lógica para processar a requisição POST (submissão do formulário) ---
+// bloqueio de acesso por perfil
+// BLOQUEIO DE ACESSO POR PERFIL
+$permissaoEdicao = ['Administrador', 'Gestor Central', 'Gestor Regional', 'Gestor Local'];
+
+if (!in_array(USER_AUTH['perfil'], $permissaoEdicao)) {
+    // Se for uma tentativa de salvamento (POST), responde com JSON
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Acesso negado: seu perfil não tem permissão para editar.']);
+        exit;
+    }
+
+    // Se for apenas o carregamento da página (GET), exibe o alerta HTML
+    echo "<div class='container-fluid mt-4'>
+            <div class='alert alert-danger shadow'>
+                <i class='fas fa-lock me-2'></i> <strong>Acesso Negado:</strong> 
+                Seu perfil não possui permissão para editar dados de viaturas.
+            </div>
+          </div>";
+    exit;
+}
+
+// --- Lógica para processar a atualização (POST - AJAX) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Definimos o cabeçalho para indicar que a resposta será em JSON
+    ob_clean();
     header('Content-Type: application/json');
+    ini_set('display_errors', 0);
 
     $response = ['success' => false, 'message' => '', 'errors' => []];
     $data_from_form = $_POST;
@@ -15,419 +46,294 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $validation_errors = validateViaturaData($data_from_form);
 
     if (!empty($validation_errors)) {
-        $response['message'] = "Houve erros no preenchimento. Por favor, corrija os campos indicados.";
+        $response['message'] = "Houve erros no preenchimento.";
         $response['errors'] = $validation_errors;
     } else {
         try {
             $viaturaDAO = new ViaturaDAO();
             if ($viaturaDAO->updateViatura($data_from_form)) {
+
+                // REGISTRO DE LOG PARA AUDITORIA
+                LoggerService::registrar(
+                    "Editou dados da viatura: " . $data_from_form['prefixo'] . " " . $data_from_form['numero'],
+                    "viaturas",
+                    $data_from_form['id'],
+                    "Alteração técnica efetuada pelo gestor da unidade."
+                );
+
                 $response['success'] = true;
                 $response['message'] = "Viatura atualizada com sucesso!";
             } else {
-                $response['message'] = "Erro: Nenhuma alteração foi feita ou a viatura não foi encontrada.";
+                $response['message'] = "Nenhuma alteração foi feita.";
             }
         } catch (Exception $e) {
-            error_log("Erro na atualização da viatura: " . $e->getMessage());
-            $response['message'] = "Ocorreu um erro interno no servidor ao tentar atualizar.";
+            $response['message'] = "Erro: " . $e->getMessage();
         }
     }
-
-    // Envia a resposta JSON e termina a execução do script.
     echo json_encode($response);
     exit();
 }
 
-// --- Lógica para requisição GET continua abaixo, quase sem alterações ---
+// --- Lógica para carregar os dados da página (GET) ---
 $id_viatura_get = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-// Se o ID for inválido, em vez de redirecionar, mostramos um erro.
 if (!$id_viatura_get) {
-    echo "<div class='container-fluid'><div class='alert alert-danger'>ID da viatura inválido ou não fornecido.</div></div>";
+    echo "<div class='container-fluid'><div class='alert alert-danger'>ID inválido.</div></div>";
     exit();
 }
 
+// Inicializamos as variáveis para o HTML não dar erro caso o try falhe
+$display_data = [];
+$tanquesAtuais = [];
+$combustiveis = [];
+$unidadesAgrupadas = [];
+$listaPlanos = [];
+
 try {
+    // 1. Instanciamos os DAOs necessários
     $viaturaDAO = new ViaturaDAO();
+    $unidadeDAO = new UnidadeDAO();
+    $combDAO = new CombustivelDAO();
+    $pDAO = new PlanoManutencaoDAO();
+
+    // 2. Buscamos os dados básicos
     $display_data = $viaturaDAO->getViaturaById($id_viatura_get);
 
     if (!$display_data) {
         echo "<div class='container-fluid'><div class='alert alert-warning'>Viatura não encontrada.</div></div>";
         exit();
     }
+
+    // 3. Buscamos as listas para os selects e checkboxes
+    $unidadesAgrupadas = $unidadeDAO->listarAgrupadasPorComando();
+    $listaPlanos = $pDAO->listarTodos();
+    $combustiveis = $combDAO->listarTodos();
+
+    // 4. Buscamos os tanques (combustíveis) vinculados a esta viatura específica
+    $tanquesAtuais = $viaturaDAO->buscarTanquesViatura($id_viatura_get);
 } catch (Exception $e) {
-    echo "<div class='container-fluid'><div class='alert alert-danger'>Erro de banco de dados ao carregar a viatura.</div></div>";
+    error_log("Erro ao carregar editar_viatura: " . $e->getMessage());
+    echo "<div class='container-fluid'><div class='alert alert-danger'>Erro crítico ao carregar dados do servidor.</div></div>";
     exit();
 }
-
-// Busca de unidades (se necessário)
-$unidadesExemplo = [
-    ['id' => 1, 'nome' => '1ºBBM'],
-    // ... etc
-];
-
 ?>
 
-<!-- O restante do seu HTML (o formulário) continua aqui sem alterações -->
-
-<!-- Begin Page Content -->
 <div class="container-fluid">
-
-    <!-- Page Heading -->
     <h1 class="h3 mb-4 text-gray-800">Edição de viatura</h1>
 
     <div class="row">
-
         <div class="col-lg-10 mx-auto">
-
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="ms-3 font-weight-bold text-primary">Formulário de pesquisa</h6>
+                    <h6 class="ms-3 font-weight-bold text-primary">Formulário de edição</h6>
                 </div>
                 <div class="card-body mx-3 my-3">
-
-
-                    <?php if (!empty($display_data) || !empty($validation_errors)): // Verifica se há dados para exibir ou erros para indicar o formulário 
-                    ?>
-                        <form action="#" method="POST" id="editViaturaForm">
-                            <!-- O ID é crucial e deve ser mantido no formulário -->
+                    <?php if (!empty($display_data)): ?>
+                        <form id="editViaturaForm" novalidate>
                             <input type="hidden" name="id" value="<?= htmlspecialchars($display_data['id'] ?? '') ?>">
 
                             <ul class="nav nav-tabs mb-4" id="viaturaTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="dados-basicos-tab" data-bs-toggle="tab" data-bs-target="#dados-basicos-pane" type="button" role="tab" aria-controls="dados-basicos-pane" aria-selected="true">Dados Básicos</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="motorizacao-tab" data-bs-toggle="tab" data-bs-target="#motorizacao-pane" type="button" role="tab" aria-controls="motorizacao-pane" aria-selected="false">Motorização</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="diversos-tab" data-bs-toggle="tab" data-bs-target="#diversos-pane" type="button" role="tab" aria-controls="diversos-pane" aria-selected="false">Diversos</button>
-                                </li>
+                                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dados-basicos-pane" type="button">Dados Básicos</button></li>
+                                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#motorizacao-pane" type="button">Motorização</button></li>
+                                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#diversos-pane" type="button">Diversos</button></li>
                             </ul>
 
                             <div class="tab-content" id="viaturaTabContent">
-
-                                <div class="tab-pane fade show active" id="dados-basicos-pane" role="tabpanel" aria-labelledby="dados-basicos-tab" tabindex="0">
+                                <div class="tab-pane fade show active" id="dados-basicos-pane" role="tabpanel">
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="tipo_operacional" class="form-label">Tipo Operacional</label>
-                                            <select class="form-select <?= isset($validation_errors['tipo_operacional']) ? 'is-invalid' : '' ?>" id="tipo_operacional" name="tipo_operacional">
-                                                <option value="" <?= (!isset($display_data['tipo_operacional']) || $display_data['tipo_operacional'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
+                                            <label class="form-label">Tipo Operacional</label>
+                                            <select class="form-select" name="tipo_operacional">
+                                                <option value="Operacional" <?= ($display_data['tipo_operacional'] == 'Operacional') ? 'selected' : '' ?>>Operacional</option>
+                                                <option value="Administrativo" <?= ($display_data['tipo_operacional'] == 'Administrativo') ? 'selected' : '' ?>>Administrativo</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label class="form-label">Prefixo</label>
+                                            <input type="text" class="form-control" name="prefixo" maxlength="5" value="<?= htmlspecialchars($display_data['prefixo'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Número</label>
+                                            <input type="number" min="1" class="form-control" name="numero" value="<?= htmlspecialchars($display_data['numero'] ?? '') ?>">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Placa</label>
+                                            <input type="text" class="form-control" name="placa" maxlength="8" value="<?= htmlspecialchars($display_data['placa'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Renavam</label>
+                                            <input type="text" class="form-control" name="renavam" maxlength="11" value="<?= htmlspecialchars($display_data['renavam'] ?? '') ?>">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Marca</label>
+                                            <input type="text" class="form-control" name="marca" value="<?= htmlspecialchars($display_data['marca'] ?? '') ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Modelo</label>
+                                            <input type="text" class="form-control" name="modelo" value="<?= htmlspecialchars($display_data['modelo'] ?? '') ?>">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Status da Viatura</label>
+                                            <select class="form-select" name="status_da_viatura">
                                                 <?php
-                                                $tiposOperacionais = ['Operacional Geral', 'Combate a incendio', 'Administrativa'];
-                                                foreach ($tiposOperacionais as $tipo) {
-                                                    $selected = (isset($display_data['tipo_operacional']) && $display_data['tipo_operacional'] == $tipo) ? 'selected' : '';
-                                                    echo "<option value=\"$tipo\" $selected>$tipo</option>";
+                                                $statusList = ['Operante', 'Baixada', 'Descarregada', 'Indisponível', 'Em fabricação', 'Reserva', 'Senasp'];
+                                                foreach ($statusList as $s) {
+                                                    $sel = ($display_data['status_da_viatura'] == $s) ? 'selected' : '';
+                                                    echo "<option value='$s' $sel>$s</option>";
                                                 }
                                                 ?>
                                             </select>
-                                            <?php if (isset($validation_errors['tipo_operacional'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['tipo_operacional']) ?>
-                                                </div>
-                                            <?php endif; ?>
                                         </div>
-                                        <div class="col-md-3">
-                                            <label for="prefixo" class="form-label">Prefixo</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['prefixo']) ? 'is-invalid' : '' ?>" id="prefixo" name="prefixo" maxlength="5" value="<?= htmlspecialchars($display_data['prefixo'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['prefixo'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['prefixo']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="numero" class="form-label">Número</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['numero']) ? 'is-invalid' : '' ?>" id="numero" name="numero" value="<?= htmlspecialchars($display_data['numero'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['numero'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['numero']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
+
                                         <div class="col-md-6">
-                                            <label for="placa" class="form-label">Placa</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['placa']) ? 'is-invalid' : '' ?>" id="placa" name="placa" maxlength="8" placeholder="Ex: ABC1234" value="<?= htmlspecialchars($display_data['placa'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['placa'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['placa']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="renavam" class="form-label">Renavam</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['renavam']) ? 'is-invalid' : '' ?>" id="renavam" name="renavam" maxlength="11" placeholder="Somente números" value="<?= htmlspecialchars($display_data['renavam'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['renavam'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['renavam']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="marca" class="form-label">Marca</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['marca']) ? 'is-invalid' : '' ?>" id="marca" name="marca" maxlength="50" value="<?= htmlspecialchars($display_data['marca'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['marca'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['marca']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="modelo" class="form-label">Modelo</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['modelo']) ? 'is-invalid' : '' ?>" id="modelo" name="modelo" maxlength="50" value="<?= htmlspecialchars($display_data['modelo'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['modelo'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['modelo']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="ano" class="form-label">Ano</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['ano']) ? 'is-invalid' : '' ?>" id="ano" name="ano" min="1900" max="<?= date('Y') + 1 ?>" value="<?= htmlspecialchars($display_data['ano'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['ano'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['ano']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="pbt" class="form-label">PBT (kg)</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['pbt']) ? 'is-invalid' : '' ?>" id="pbt" name="pbt" value="<?= htmlspecialchars($display_data['pbt'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['pbt'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['pbt']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="tipo_aquisicao" class="form-label">Tipo de Aquisição</label>
-                                            <select class="form-select <?= isset($validation_errors['tipo_aquisicao']) ? 'is-invalid' : '' ?>" id="tipo_aquisicao" name="tipo_aquisicao">
-                                                <option value="" <?= (!isset($display_data['tipo_aquisicao']) || $display_data['tipo_aquisicao'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
-                                                <?php
-                                                $tiposAquisicao = ['Própria', 'Doação', 'Fiel Depositário', 'Locada'];
-                                                foreach ($tiposAquisicao as $tipo) {
-                                                    $selected = (isset($display_data['tipo_aquisicao']) && $display_data['tipo_aquisicao'] == $tipo) ? 'selected' : '';
-                                                    echo "<option value=\"$tipo\" $selected>$tipo</option>";
-                                                }
-                                                ?>
+                                            <label class="form-label">Lotação Atual</label>
+                                            <select class="form-select" name="lotacao_atual_id">
+                                                <?php foreach ($unidadesAgrupadas as $comando => $unidades): ?>
+                                                    <optgroup label="<?= htmlspecialchars($comando) ?>">
+                                                        <?php foreach ($unidades as $u): ?>
+                                                            <option value="<?= $u['id'] ?>" <?= ($display_data['lotacao_atual_id'] == $u['id']) ? 'selected' : '' ?>>
+                                                                <?= htmlspecialchars($u['unidade_nome']) . " - " . htmlspecialchars($u['municipio_nome'] ?? '') ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </optgroup>
+                                                <?php endforeach; ?>
                                             </select>
-                                            <?php if (isset($validation_errors['tipo_aquisicao'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['tipo_aquisicao']) ?>
-                                                </div>
-                                            <?php endif; ?>
                                         </div>
+
                                         <div class="col-md-6">
-                                            <label for="status_da_viatura" class="form-label">Status da Viatura</label>
-                                            <select class="form-select <?= isset($validation_errors['status_da_viatura']) ? 'is-invalid' : '' ?>" id="status_da_viatura" name="status_da_viatura">
-                                                <option value="" <?= (!isset($display_data['status_da_viatura']) || $display_data['status_da_viatura'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
-                                                <?php
-                                                $statusViatura = ['Operante', 'Baixada', 'Descarregada', 'Indisponível'];
-                                                foreach ($statusViatura as $status) {
-                                                    $selected = (isset($display_data['status_da_viatura']) && $display_data['status_da_viatura'] == $status) ? 'selected' : '';
-                                                    echo "<option value=\"$status\" $selected>$status</option>";
-                                                }
-                                                ?>
+                                            <label class="form-label">Plano de Manutenção</label>
+                                            <select class="form-select" name="plano_id">
+                                                <option value="">Nenhum plano associado</option>
+                                                <?php foreach ($listaPlanos as $plano): ?>
+                                                    <option value="<?= $plano['id'] ?>" <?= ($display_data['plano_id'] == $plano['id']) ? 'selected' : '' ?>>
+                                                        <?= htmlspecialchars($plano['descricao']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
                                             </select>
-                                            <?php if (isset($validation_errors['status_da_viatura'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['status_da_viatura']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="lotacao_atual_id" class="form-label">Lotação Atual</label>
-                                            <select class="form-select <?= isset($validation_errors['lotacao_atual_id']) ? 'is-invalid' : '' ?>" id="lotacao_atual_id" name="lotacao_atual_id">
-                                                <option value="" <?= (!isset($display_data['lotacao_atual_id']) || $display_data['lotacao_atual_id'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
-                                                <?php
-                                                foreach ($unidadesExemplo as $unidade) { // Usando a simulação de unidades
-                                                    $selected = (isset($display_data['lotacao_atual_id']) && $display_data['lotacao_atual_id'] == $unidade['id']) ? 'selected' : '';
-                                                    echo "<option value=\"{$unidade['id']}\" $selected>{$unidade['nome']}</option>";
-                                                }
-                                                ?>
-                                            </select>
-                                            <?php if (isset($validation_errors['lotacao_atual_id'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['lotacao_atual_id']) ?>
-                                                </div>
-                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade" id="motorizacao-pane" role="tabpanel" aria-labelledby="motorizacao-tab" tabindex="0">
+                                <div class="tab-pane fade" id="motorizacao-pane" role="tabpanel">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="cilindradas" class="form-label">Cilindradas (cc)</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['cilindradas']) ? 'is-invalid' : '' ?>" id="cilindradas" name="cilindradas" value="<?= htmlspecialchars($display_data['cilindradas'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['cilindradas'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['cilindradas']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="cavalos_forca" class="form-label">Cavalos de Força (cv)</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['cavalos_forca']) ? 'is-invalid' : '' ?>" id="cavalos_forca" name="cavalos_forca" value="<?= htmlspecialchars($display_data['cavalos_forca'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['cavalos_forca'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['cavalos_forca']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="torque" class="form-label">Torque</label>
-                                            <input type="text" class="form-control <?= isset($validation_errors['torque']) ? 'is-invalid' : '' ?>" id="torque" name="torque" maxlength="50" placeholder="Ex: 250 Nm" value="<?= htmlspecialchars($display_data['torque'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['torque'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['torque']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="tipo_cambio" class="form-label">Tipo de Câmbio</label>
-                                            <select class="form-select <?= isset($validation_errors['tipo_cambio']) ? 'is-invalid' : '' ?>" id="tipo_cambio" name="tipo_cambio">
-                                                <option value="" <?= (!isset($display_data['tipo_cambio']) || $display_data['tipo_cambio'] === '') ? 'selected' : '' ?> disabled>Selecione...</option>
-                                                <?php
-                                                $tiposCambio = ['Manual', 'Automático'];
-                                                foreach ($tiposCambio as $tipo) {
-                                                    $selected = (isset($display_data['tipo_cambio']) && $display_data['tipo_cambio'] == $tipo) ? 'selected' : '';
-                                                    echo "<option value=\"$tipo\" $selected>$tipo</option>";
-                                                }
+                                        <div class="col-md-4"><label class="form-label">Cilindradas (cc)</label><input type="number" class="form-control" name="cilindradas" value="<?= $display_data['cilindradas'] ?>"></div>
+                                        <div class="col-md-4"><label class="form-label">Cavalos (cv)</label><input type="number" class="form-control" name="cavalos_forca" value="<?= $display_data['cavalos_forca'] ?>"></div>
+                                        <div class="col-md-4"><label class="form-label">Número de Marchas</label><input type="number" class="form-control" name="numero_marchas" value="<?= $display_data['numero_marchas'] ?>"></div>
+                                        <div class="col-12 mt-4">
+                                            <h6 class="fw-bold text-primary"><i class="fas fa-gas-pump me-2"></i>Tanques e Combustíveis</h6>
+                                            <div class="row g-2">
+                                                <?php foreach ($combustiveis as $cb):
+                                                    $estaVinculado = isset($tanquesAtuais[$cb['id']]);
+                                                    $litragemAtual = $estaVinculado ? $tanquesAtuais[$cb['id']]['litragem'] : '';
                                                 ?>
-                                            </select>
-                                            <?php if (isset($validation_errors['tipo_cambio'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['tipo_cambio']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="numero_marchas" class="form-label">Número de Marchas</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['numero_marchas']) ? 'is-invalid' : '' ?>" id="numero_marchas" name="numero_marchas" min="0" value="<?= htmlspecialchars($display_data['numero_marchas'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['numero_marchas'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['numero_marchas']) ?>
-                                                </div>
-                                            <?php endif; ?>
+                                                    <div class="col-md-6">
+                                                        <div class="border rounded px-5 d-flex align-items-center justify-content-between <?= $estaVinculado ? 'border-primary bg-white' : 'bg-light' ?>">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox" name="tanques[<?= $cb['id'] ?>][ativo]" value="1"
+                                                                    id="cb_<?= $cb['id'] ?>" <?= $estaVinculado ? 'checked' : '' ?>
+                                                                    onchange="document.getElementById('litros_<?= $cb['id'] ?>').disabled = !this.checked">
+                                                                <label class="form-check-label small fw-bold" for="cb_<?= $cb['id'] ?>"><?= htmlspecialchars($cb['tipo']) ?></label>
+                                                            </div>
+                                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                                <input type="number" step="1" min="1" name="tanques[<?= $cb['id'] ?>][litragem]" id="litros_<?= $cb['id'] ?>"
+                                                                    class="form-control" value="<?= $litragemAtual ?>" <?= $estaVinculado ? '' : 'disabled' ?>>
+                                                                <span class="input-group-text">L</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade" id="diversos-pane" role="tabpanel" aria-labelledby="diversos-tab" tabindex="0">
+                                <div class="tab-pane fade" id="diversos-pane" role="tabpanel">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="quilometragem" class="form-label">Quilometragem (km)</label>
-                                            <input type="number" class="form-control <?= isset($validation_errors['quilometragem']) ? 'is-invalid' : '' ?>" id="quilometragem" name="quilometragem" value="<?= htmlspecialchars($display_data['quilometragem'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['quilometragem'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['quilometragem']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="garantia_fim" class="form-label">Fim da Garantia</label>
-                                            <input type="date" class="form-control <?= isset($validation_errors['garantia_fim']) ? 'is-invalid' : '' ?>" id="garantia_fim" name="garantia_fim" value="<?= htmlspecialchars($display_data['garantia_fim'] ?? '') ?>">
-                                            <?php if (isset($validation_errors['garantia_fim'])): ?>
-                                                <div class="invalid-feedback">
-                                                    <?= htmlspecialchars($validation_errors['garantia_fim']) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
+                                        <div class="col-md-6"><label class="form-label">Quilometragem (km)</label><input type="number" class="form-control" name="quilometragem" value="<?= $display_data['quilometragem'] ?>"></div>
+                                        <div class="col-md-6"><label class="form-label">Fim da Garantia</label><input type="date" class="form-control" name="garantia_fim" value="<?= $display_data['garantia_fim'] ?>"></div>
                                     </div>
                                 </div>
-
                             </div>
+
                             <hr class="my-4">
-                            <button class="btn btn-outline-success" type="submit"><i class="fas fa-plus-circle me-2"></i>Atualizar Viatura</button>
+                            <button class="btn btn-outline-success" type="submit" id="btnSalvarVtr">
+                                <i class="fas fa-save me-2"></i>Atualizar Viatura
+                            </button>
+
+                            <!-- NOVO BOTÃO DE RETORNO -->
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="loadPage('pages/pesquisar_viatura.php')">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar para Pesquisa
+                            </button>
                         </form>
-                    <?php else: ?>
-                        <div class="alert alert-info" role="alert">
-                            Nenhum dado de viatura para exibir ou editar. Por favor, selecione uma viatura válida.
-                        </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="b-example-divider b-example-vr"></div>
-
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <!-- Toasts serão injetados aqui pelo JavaScript -->
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Se você quer ícones como bi bi-check-circle-fill, precisa incluir o Bootstrap Icons CSS: -->
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> -->
-
     <script>
-        // --- Lógica de submissão do formulário de edição via AJAX ---
-        function initializeEditFormScripts() {
+        (function() {
             const form = document.getElementById('editViaturaForm');
             if (!form) return;
 
             form.addEventListener('submit', function(event) {
-                event.preventDefault(); // Impede o recarregamento da página
+                event.preventDefault();
+                const btn = document.getElementById('btnSalvarVtr');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
 
-                // Pega os dados do formulário
-                const formData = new FormData(form);
-                const submitButton = form.querySelector('button[type="submit"]');
-
-                // Desabilita o botão para evitar cliques duplos
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Atualizando...';
-
-                // Faz a requisição AJAX para a própria página (que agora sabe lidar com POST)
                 fetch('pages/editar_viatura.php', {
                         method: 'POST',
-                        body: formData
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('smnt_token')
+                        },
+                        body: new FormData(form)
                     })
-                    .then(response => response.json()) // Espera uma resposta JSON
+                    .then(response => response.json())
                     .then(data => {
-                        // Remove mensagens de erro antigas
-                        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                        document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                        // Remove marcações de erro anteriores
+                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
                         if (data.success) {
-                            // Sucesso! Mostra um toast de sucesso.
                             showToast(data.message, 'success');
                         } else {
-                            // Erro de validação ou do servidor
-                            showToast(data.message, 'danger');
-
-                            // Se houver erros de validação específicos, exibe-os
+                            // Se houverem erros específicos detalhados pelo PHP
                             if (data.errors) {
-                                for (const fieldName in data.errors) {
-                                    const input = document.getElementById(fieldName);
-                                    const errorContainer = input ? input.nextElementSibling : null;
-                                    if (input && input.classList.contains('form-control')) {
+                                let listaErros = "<strong>Campos pendentes:</strong><br>";
+
+                                // Percorre o JSON de erros
+                                Object.keys(data.errors).forEach(key => {
+                                    // 1. Monta a mensagem para exibir no Toast
+                                    listaErros += `- ${data.errors[key]}<br>`;
+
+                                    // 2. Tenta encontrar o campo no formulário e marca de vermelho
+                                    const input = form.querySelector(`[name="${key}"]`);
+                                    if (input) {
                                         input.classList.add('is-invalid');
                                     }
-                                    if (errorContainer && errorContainer.classList.contains('invalid-feedback')) {
-                                        errorContainer.textContent = data.errors[fieldName];
-                                    }
-                                }
+                                });
+
+                                // Exibe o Toast com a lista completa do que falta
+                                showToast(listaErros, 'danger');
+                            } else {
+                                // Mensagem genérica se o PHP não detalhou os campos
+                                showToast(data.message, 'danger');
                             }
                         }
                     })
-                    .catch(error => {
-                        console.error('Erro na requisição AJAX:', error);
-                        showToast('Ocorreu um erro de comunicação. Tente novamente.', 'danger');
+                    .catch((err) => {
+                        console.error(err);
+                        showToast('Erro de conexão ou resposta inválida.', 'danger');
                     })
                     .finally(() => {
-                        // Reabilita o botão após a requisição
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = '<i class="fas fa-plus-circle me-2"></i>Atualizar Viatura';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Viatura';
                     });
             });
-        }
-
-        // Inicializa os scripts quando a página é carregada
-        document.addEventListener('DOMContentLoaded', function() {
-            // Suas outras inicializações (renavam, etc) podem ficar aqui
-            initializeEditFormScripts();
-        });
-
-        // É crucial chamar a função diretamente para o caso de carregamento via AJAX
-        initializeEditFormScripts();
+        })();
     </script>
+</div>

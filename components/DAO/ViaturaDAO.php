@@ -1,158 +1,215 @@
 <?php
 // ViaturaDAO.php
-require_once __DIR__ . '/../../components/ConexaoDB/conexao.php'; 
+require_once __DIR__ . '/../../components/ConexaoDB/conexao.php';
 
-class ViaturaDAO {
+class ViaturaDAO
+{
     private $conn;
-    private $table_name = "viaturas"; // Ajuste para o nome real da sua tabela
+    private $table_name = "viaturas";
 
-    public function __construct() {
-        // Usa sua classe Conexao para obter a conexão PDO
-        // Se a conexão falhar aqui, Conexao::getConexao() já chama die(), parando o script.
+    public function __construct()
+    {
         $this->conn = Conexao::getConexao();
     }
 
     /**
-     * Busca uma viatura pelo ID.
-     * @param int $id O ID da viatura.
-     * @return array|false Retorna os dados da viatura como array associativo ou false se não encontrada.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Helper para aplicar as restrições de escopo (RBAC) nas queries SQL.
+     * Retorna um array com a string SQL e os parâmetros necessários.
      */
-    public function getViaturaById($id) {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 0,1";
+    private function aplicarEscopoRBAC(string $aliasViatura = 'v', string $aliasUnidade = 'u'): array
+    {
+        $sql = "";
+        $params = [];
+
+        if (defined('USER_AUTH')) {
+            $user = USER_AUTH;
+            switch ($user['perfil']) {
+                case 'Gestor Local':
+                    $sql = " AND {$aliasViatura}.lotacao_atual_id = :rbac_unidade_id";
+                    $params[':rbac_unidade_id'] = $user['unidade_id'];
+                    break;
+                case 'Gestor Regional':
+                    $sql = " AND {$aliasUnidade}.comando_regional_id = :rbac_crbm_id";
+                    $params[':rbac_crbm_id'] = $user['comando_regional_id'];
+                    break;
+                    // Admin e Gestor Central não recebem filtros (vêem tudo)
+            }
+        }
+        return ['sql' => $sql, 'params' => $params];
+    }
+
+    /**
+     * Busca uma viatura pelo ID respeitando o escopo do usuário.
+     */
+    public function getViaturaById($id)
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $query = "SELECT v.* FROM {$this->table_name} v
+                  JOIN unidades u ON v.lotacao_atual_id = u.id
+                  WHERE v.id = :id {$rbac['sql']} LIMIT 1";
         try {
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT); // Especifique o tipo para segurança
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            // Em vez de apenas logar, relança uma exceção para ser tratada pela camada superior (cadastro.php/editar_viatura.php)
-            throw new Exception("Erro de PDO ao buscar viatura: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            throw new Exception("Erro inesperado ao buscar viatura: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro de PDO ao buscar viatura: " . $e->getMessage());
         }
     }
 
     /**
-     * Atualiza os dados de uma viatura.
-     * @param array $data Um array associativo com os dados da viatura (id, placa, renavam, etc.).
-     * @return bool True se a atualização for bem-sucedida, false caso contrário.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Atualiza os dados de uma viatura, garantindo que o usuário tenha poder sobre ela via WHERE.
      */
-    public function updateViatura(array $data) {
-        // Ajuste esta query com TODOS os campos da sua tabela que você quer atualizar.
-        $query = "UPDATE " . $this->table_name . " SET
-                            tipo_operacional = :tipo_operacional,
-                            prefixo = :prefixo,
-                            numero = :numero,
-                            placa = :placa,
-                            renavam = :renavam,
-                            marca = :marca,
-                            modelo = :modelo,
-                            ano = :ano,
-                            pbt = :pbt,
-                            tipo_aquisicao = :tipo_aquisicao,
-                            status_da_viatura = :status_da_viatura,
-                            lotacao_atual_id = :lotacao_atual_id,
-                            cilindradas = :cilindradas,
-                            cavalos_forca = :cavalos_forca,
-                            torque = :torque,
-                            tipo_cambio = :tipo_cambio,
-                            numero_marchas = :numero_marchas,
-                            quilometragem = :quilometragem,
-                            garantia_fim = :garantia_fim
-                      WHERE id = :id";
+    public function updateViatura(array $data)
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $query = "UPDATE {$this->table_name} v
+              INNER JOIN unidades u ON v.lotacao_atual_id = u.id
+              SET v.tipo_operacional = :tipo_operacional,
+                  v.prefixo = :prefixo,
+                  v.numero = :numero,
+                  v.placa = :placa,
+                  v.renavam = :renavam,
+                  v.marca = :marca,
+                  v.modelo = :modelo,
+                  v.ano = :ano,
+                  v.pbt = :pbt,
+                  v.tipo_aquisicao = :tipo_aquisicao,
+                  v.status_da_viatura = :status_da_viatura,
+                  v.lotacao_atual_id = :lotacao_atual_id,
+                  v.cilindradas = :cilindradas,
+                  v.cavalos_forca = :cavalos_forca,
+                  v.torque = :torque,
+                  v.tipo_cambio = :tipo_cambio,
+                  v.numero_marchas = :numero_marchas,
+                  v.quilometragem = :quilometragem,
+                  v.garantia_fim = :garantia_fim,
+                  v.plano_id = :plano_id
+              WHERE v.id = :id {$rbac['sql']}";
 
         try {
-            $stmt = $this->conn->prepare($query);
+            $this->conn->beginTransaction();
 
-            // Bind de TODOS os parâmetros, com seus respectivos tipos PDO se possível
-            // Usando o operador de coalescência nula (??) para garantir que valores vazios virem null para o banco.
-            $stmt->bindValue(':tipo_operacional', $data['tipo_operacional'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':prefixo', $data['prefixo'] ?? null, PDO::PARAM_STR);
+            $stmt = $this->conn->prepare($query);
+            // Binds padrão
+            $stmt->bindValue(':tipo_operacional', $data['tipo_operacional'] ?? null);
+            $stmt->bindValue(':prefixo', $data['prefixo'] ?? null);
             $stmt->bindValue(':numero', $data['numero'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':placa', $data['placa'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':renavam', $data['renavam'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':marca', $data['marca'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':modelo', $data['modelo'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':placa', $data['placa'] ?? null);
+            $stmt->bindValue(':renavam', $data['renavam'] ?? null);
+            $stmt->bindValue(':marca', $data['marca'] ?? null);
+            $stmt->bindValue(':modelo', $data['modelo'] ?? null);
             $stmt->bindValue(':ano', $data['ano'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':pbt', $data['pbt'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':tipo_aquisicao', $data['tipo_aquisicao'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':status_da_viatura', $data['status_da_viatura'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':tipo_aquisicao', $data['tipo_aquisicao'] ?? null);
+            $stmt->bindValue(':status_da_viatura', $data['status_da_viatura'] ?? null);
             $stmt->bindValue(':lotacao_atual_id', $data['lotacao_atual_id'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':cilindradas', $data['cilindradas'] !== '' ? $data['cilindradas'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':cavalos_forca', $data['cavalos_forca'] !== '' ? $data['cavalos_forca'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':torque', $data['torque'] !== '' ? $data['torque'] : null, PDO::PARAM_STR);
-            $stmt->bindValue(':tipo_cambio', $data['tipo_cambio'] !== '' ? $data['tipo_cambio'] : null, PDO::PARAM_STR);
-            $stmt->bindValue(':numero_marchas', $data['numero_marchas'] !== '' ? $data['numero_marchas'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':quilometragem', $data['quilometragem'] !== '' ? $data['quilometragem'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':garantia_fim', $data['garantia_fim'] !== '' ? $data['garantia_fim'] : null, PDO::PARAM_STR); // Datas como string 'YYYY-MM-DD'
-            $stmt->bindParam(':id', $data['id'], PDO::PARAM_INT); // ID sempre presente na atualização
+            $stmt->bindValue(':cilindradas', $data['cilindradas'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':cavalos_forca', $data['cavalos_forca'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':torque', $data['torque'] ?: null);
+            $stmt->bindValue(':tipo_cambio', $data['tipo_cambio'] ?: null);
+            $stmt->bindValue(':numero_marchas', $data['numero_marchas'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':quilometragem', $data['quilometragem'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':garantia_fim', $data['garantia_fim'] ?: null);
+            $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
+            $stmt->bindValue(':plano_id', !empty($data['plano_id']) ? $data['plano_id'] : null, PDO::PARAM_INT);
 
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            // Relança uma exceção para ser tratada pela camada superior (editar_viatura.php)
-            throw new Exception("Erro de PDO ao atualizar viatura: " . $e->getMessage(), 0, $e);
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+
+            // 1. EXECUTA O UPDATE DA VIATURA (Sem o return aqui!)
+            $stmt->execute();
+
+            // 2. GESTÃO DE TANQUES (Limpa e Reinserção)
+            $sqlDel = "DELETE FROM tanques_combustivel WHERE viatura_id = :v_id";
+            $stmtDel = $this->conn->prepare($sqlDel);
+            $stmtDel->execute([':v_id' => $data['id']]);
+
+            if (!empty($data['tanques']) && is_array($data['tanques'])) {
+                $sqlIns = "INSERT INTO tanques_combustivel (viatura_id, combustivel_id, litragem) VALUES (:v_id, :c_id, :litros)";
+                $stmtIns = $this->conn->prepare($sqlIns);
+
+                foreach ($data['tanques'] as $combId => $info) {
+                    if (isset($info['ativo']) && $info['ativo'] == '1') {
+
+                        // 1. Tratamento da string (troca vírgula por ponto e converte para float)
+                        $litragem = !empty($info['litragem']) ? (float)str_replace(',', '.', $info['litragem']) : 0;
+
+                        // 2. VALIDAÇÃO BACKEND: Impede valores negativos
+                        if ($litragem < 0) {
+                            // Opção A: Forçar zero se for negativo
+                            $litragem = 0;
+
+                            // Opção B (Recomendada): Lançar uma exceção para avisar o erro
+                            // throw new Exception("A litragem do combustível não pode ser negativa.");
+                        }
+
+                        $stmtIns->execute([
+                            ':v_id'   => $data['id'], // ou $viaturaId no caso do insert
+                            ':c_id'   => $combId,
+                            ':litros' => $litragem
+                        ]);
+                    }
+                }
+            }
+
+            // 3. FINALIZA A TRANSAÇÃO
+            $this->conn->commit();
+            return true;
         } catch (Exception $e) {
-            // Relança uma exceção genérica
-            throw new Exception("Erro inesperado ao atualizar viatura: " . $e->getMessage(), 0, $e);
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            throw new Exception("Erro ao atualizar viatura e tanques: " . $e->getMessage());
         }
     }
 
     /**
-     * Busca os detalhes completos de uma viatura pelo seu ID para exibição detalhada.
-     * @param int $id O ID da viatura a ser buscada.
-     * @return array|false Retorna um array associativo com os dados detalhados da viatura ou false se não encontrada.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Detalhes da viatura com restrição de escopo.
      */
-    public function buscarDetalhesViaturaPorId(int $id) {
-        $sql = "SELECT
-                    v.id,
-                    v.placa,
-                    v.prefixo,
-                    v.marca,
-                    v.modelo,
-                    v.ano,
-                    v.quilometragem,
-                    v.tipo_operacional,
-                    v.status_da_viatura,
-                    v.tipo_cambio,
-                    v.numero_marchas,
-                    v.numero,
-                    v.cilindradas,
-                    v.cavalos_forca,
-                    v.torque,
-                    v.tipo_aquisicao,
-                    v.renavam,
-                    v.pbt,
-                    v.garantia_fim,
-                    v.lotacao_atual_id -- Adicionado para buscar e exibir a lotação atual (ID)
-                FROM
-                    viaturas v
-                WHERE
-                    v.id = :id_viatura";
+    public function buscarDetalhesViaturaPorId(int $id)
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        $sql = "SELECT v.*, u.nome as unidade_nome 
+                FROM viaturas v
+                JOIN unidades u ON v.lotacao_atual_id = u.id
+                WHERE v.id = :id_viatura {$rbac['sql']}";
 
         try {
             $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id_viatura', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':id_viatura', $id, PDO::PARAM_INT);
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao buscar detalhes da viatura: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            throw new Exception("Erro inesperado ao buscar detalhes da viatura: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro ao buscar detalhes: " . $e->getMessage());
         }
     }
 
     /**
-     * Insere uma nova viatura no banco de dados.
-     *
-     * @param array $data Um array associativo contendo os dados da nova viatura.
-     * Os campos 'id' (se auto-incremento) devem ser omitidos.
-     * @return bool Retorna true em caso de sucesso na inserção, false em caso de falha.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Inserção de viatura. 
+     * Nota: Aqui o RBAC deve validar se o usuário pode inserir na lotação escolhida.
      */
-    public function insertViatura(array $data): bool {
+    public function insertViatura(array $data): bool
+    {
+        // Validação de Segurança antes do INSERT
+        if (defined('USER_AUTH')) {
+            $user = USER_AUTH;
+            if ($user['perfil'] === 'Gestor Local' && $data['lotacao_atual_id'] != $user['unidade_id']) {
+                throw new Exception("Você só pode cadastrar viaturas para a sua própria unidade.");
+            }
+            // Adicione lógica similar para Gestor Regional se necessário (checar se unidade pertence ao CRBM)
+        }
+
         $sql = "INSERT INTO viaturas (
             tipo_operacional, prefixo, numero, placa, renavam, marca, modelo, ano, pbt,
             tipo_aquisicao, status_da_viatura, lotacao_atual_id, cilindradas,
@@ -165,124 +222,183 @@ class ViaturaDAO {
 
         try {
             $stmt = $this->conn->prepare($sql);
-
-            // Vinculação de parâmetros (bindValue)
-            // Use PDO::PARAM_NULL para campos que podem ser nulos no banco de dados (se o valor for null/vazio)
-            // e PDO::PARAM_STR/PDO::PARAM_INT para os outros, conforme o tipo.
-            // O operador ?? null garante que se a chave não existir ou for null, o valor será null.
-            // A verificação !== '' ? ... : null garante que strings vazias sejam convertidas para null.
-
-            $stmt->bindValue(':tipo_operacional', $data['tipo_operacional'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':prefixo', $data['prefixo'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':tipo_operacional', $data['tipo_operacional'] ?? null);
+            $stmt->bindValue(':prefixo', $data['prefixo'] ?? null);
             $stmt->bindValue(':numero', $data['numero'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':placa', $data['placa'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':renavam', $data['renavam'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':marca', $data['marca'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':modelo', $data['modelo'] ?? null, PDO::PARAM_STR);
+            $stmt->bindValue(':placa', $data['placa'] ?? null);
+            $stmt->bindValue(':renavam', $data['renavam'] ?? null);
+            $stmt->bindValue(':marca', $data['marca'] ?? null);
+            $stmt->bindValue(':modelo', $data['modelo'] ?? null);
             $stmt->bindValue(':ano', $data['ano'] ?? null, PDO::PARAM_INT);
             $stmt->bindValue(':pbt', $data['pbt'] ?? null, PDO::PARAM_INT);
-            $stmt->bindValue(':tipo_aquisicao', $data['tipo_aquisicao'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':status_da_viatura', $data['status_da_viatura'] ?? null, PDO::PARAM_STR);
-            $stmt->bindValue(':lotacao_atual_id', $data['lotacao_atual_id'] ?? null, PDO::PARAM_INT); // Chave estrangeira
-
-            // Campos opcionais de motorização e diversos (podem ser null)
-            $stmt->bindValue(':cilindradas', $data['cilindradas'] !== '' ? $data['cilindradas'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':cavalos_forca', $data['cavalos_forca'] !== '' ? $data['cavalos_forca'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':torque', $data['torque'] !== '' ? $data['torque'] : null, PDO::PARAM_STR);
-            $stmt->bindValue(':quilometragem', $data['quilometragem'] !== '' ? $data['quilometragem'] : null, PDO::PARAM_INT);
-            $stmt->bindValue(':garantia_fim', $data['garantia_fim'] !== '' ? $data['garantia_fim'] : null, PDO::PARAM_STR); // Data como string 'YYYY-MM-DD'
-            $stmt->bindValue(':tipo_cambio', $data['tipo_cambio'] !== '' ? $data['tipo_cambio'] : null, PDO::PARAM_STR);
-            $stmt->bindValue(':numero_marchas', $data['numero_marchas'] !== '' ? $data['numero_marchas'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(':tipo_aquisicao', $data['tipo_aquisicao'] ?? null);
+            $stmt->bindValue(':status_da_viatura', $data['status_da_viatura'] ?? null);
+            $stmt->bindValue(':lotacao_atual_id', $data['lotacao_atual_id'] ?? null, PDO::PARAM_INT);
+            $stmt->bindValue(':cilindradas', $data['cilindradas'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':cavalos_forca', $data['cavalos_forca'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':torque', $data['torque'] ?: null);
+            $stmt->bindValue(':quilometragem', $data['quilometragem'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':garantia_fim', $data['garantia_fim'] ?: null);
+            $stmt->bindValue(':tipo_cambio', $data['tipo_cambio'] ?: null);
+            $stmt->bindValue(':numero_marchas', $data['numero_marchas'] ?: null, PDO::PARAM_INT);
+            $stmt->bindValue(':plano_id', !empty($data['plano_id']) ? $data['plano_id'] : null, PDO::PARAM_INT);
 
             return $stmt->execute();
-
         } catch (PDOException $e) {
-            // Relança uma exceção para ser tratada pela camada superior (cadastro.php)
-            throw new Exception("Erro de PDO ao inserir viatura: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            // Relança uma exceção genérica
-            throw new Exception("Erro inesperado ao inserir viatura: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro ao inserir viatura: " . $e->getMessage());
+        }
+    }
+
+    // Métodos de checagem de unicidade (Globais, sem filtro de unidade por segurança de dados)
+    public function existsByPlaca(string $placa, ?int $excludeId = null): bool
+    {
+        $sql = "SELECT COUNT(*) FROM viaturas WHERE placa = :placa" . ($excludeId ? " AND id != :ex" : "");
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':placa', $placa);
+        if ($excludeId) $stmt->bindValue(':ex', $excludeId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() > 0;
+    }
+
+    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool
+    {
+        $sql = "SELECT COUNT(*) FROM viaturas WHERE renavam = :renavam" . ($excludeId ? " AND id != :ex" : "");
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':renavam', $renavam);
+        if ($excludeId) $stmt->bindValue(':ex', $excludeId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() > 0;
+    }
+
+    public function existsByNumero(int $numero, ?int $excludeId = null): bool
+    {
+        $sql = "SELECT COUNT(*) FROM viaturas WHERE numero = :numero" . ($excludeId ? " AND id != :ex" : "");
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':numero', $numero, PDO::PARAM_INT);
+        if ($excludeId) $stmt->bindValue(':ex', $excludeId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Listagem para Selects com RBAC aplicado.
+     */
+    public function listarTodasParaSelect(): array
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+
+        // ADICIONADO: lotacao_atual_id na consulta
+        $sql = "SELECT v.id, v.prefixo, v.numero, v.modelo, v.placa, v.lotacao_atual_id 
+            FROM viaturas v
+            JOIN unidades u ON v.lotacao_atual_id = u.id
+            WHERE 1=1 {$rbac['sql']}
+            ORDER BY v.prefixo ASC, v.numero ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            foreach ($rbac['params'] as $key => $value) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            throw new Exception("Erro ao listar viaturas: " . $e->getMessage());
         }
     }
 
     /**
-     * Verifica se uma placa já existe no banco de dados, excluindo um ID específico (para edição).
-     * @param string $placa A placa a ser verificada.
-     * @param int|null $excludeId O ID da viatura a ser excluída da verificação (para atualizações).
-     * @return bool True se a placa já existe, false caso contrário.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Busca os combustíveis e litragens vinculados a uma viatura
      */
-    public function existsByPlaca(string $placa, ?int $excludeId = null): bool {
-        $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE placa = :placa";
-        if ($excludeId !== null) {
-            $sql .= " AND id != :exclude_id";
-        }
+    public function buscarTanquesViatura(int $id)
+    {
+        $sql = "SELECT combustivel_id, litragem FROM tanques_combustivel WHERE viatura_id = :id";
         try {
             $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':placa', $placa, PDO::PARAM_STR);
-            if ($excludeId !== null) {
-                $stmt->bindParam(':exclude_id', $excludeId, PDO::PARAM_INT);
-            }
-            $stmt->execute();
-            return $stmt->fetchColumn() > 0;
+            $stmt->execute([':id' => $id]);
+            // fetchAll com FETCH_UNIQUE retornará [] se não houver registros
+            return $stmt->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao verificar placa: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            throw new Exception("Erro inesperado ao verificar placa: " . $e->getMessage(), 0, $e);
+            return []; // Retorna vazio em caso de erro no SQL
         }
     }
 
     /**
-     * Verifica se um renavam já existe no banco de dados, excluindo um ID específico (para edição).
-     * @param string $renavam O renavam a ser verificado.
-     * @param int|null $excludeId O ID da viatura a ser excluída da verificação (para atualizações).
-     * @return bool True se o renavam já existe, false caso contrário.
-     * @throws Exception Se ocorrer um erro no banco de dados.
+     * Busca viaturas com filtros avançados e suporte a RBAC
      */
-    public function existsByRenavam(string $renavam, ?int $excludeId = null): bool {
-        $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE renavam = :renavam";
-        if ($excludeId !== null) {
-            $sql .= " AND id != :exclude_id";
-        }
-        try {
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':renavam', $renavam, PDO::PARAM_STR);
-            if ($excludeId !== null) {
-                $stmt->bindParam(':exclude_id', $excludeId, PDO::PARAM_INT);
-            }
-            $stmt->execute();
-            return $stmt->fetchColumn() > 0;
-        } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao verificar renavam: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            throw new Exception("Erro inesperado ao verificar renavam: " . $e->getMessage(), 0, $e);
-        }
-    }
+    public function buscarViaturasComFiltros(array $f = [])
+    {
+        $rbac = $this->aplicarEscopoRBAC();
+        $params = $rbac['params'];
 
-    /**
-     * Verifica se um número de viatura já existe no banco de dados, excluindo um ID específico (para edição).
-     * @param int $numero O número a ser verificado.
-     * @param int|null $excludeId O ID da viatura a ser excluída da verificação (para atualizações).
-     * @return bool True se o número já existe, false caso contrário.
-     * @throws Exception Se ocorrer um erro no banco de dados.
-     */
-    public function existsByNumero(int $numero, ?int $excludeId = null): bool {
-        $sql = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE numero = :numero";
-        if ($excludeId !== null) {
-            $sql .= " AND id != :exclude_id";
+        // 1. Base da Query com DISTINCT (evita duplicar viatura se tiver 2 tanques)
+        $sql = "SELECT DISTINCT 
+                v.id, v.prefixo, v.numero, v.marca, v.modelo, v.placa,
+                v.status_da_viatura, v.quilometragem,
+                u.nome AS unidade_lotacao
+            FROM viaturas v
+            LEFT JOIN unidades u ON v.lotacao_atual_id = u.id";
+
+        // 2. JOIN condicional para Combustível
+        if (!empty($f['combustivel_id'])) {
+            $sql .= " INNER JOIN tanques_combustivel tc ON v.id = tc.viatura_id";
         }
+
+        $sql .= " WHERE 1=1 {$rbac['sql']}";
+
+        // 3. Filtros Dinâmicos
+        if (!empty($f['tipo_operacional'])) {
+            $sql .= " AND v.tipo_operacional = :tipo_op";
+            $params[':tipo_op'] = $f['tipo_operacional'];
+        }
+        if (!empty($f['prefixo'])) {
+            $sql .= " AND v.prefixo LIKE :prefixo";
+            $params[':prefixo'] = '%' . $f['prefixo'] . '%';
+        }
+        if (!empty($f['numero'])) {
+            $sql .= " AND v.numero = :numero";
+            $params[':numero'] = $f['numero'];
+        }
+        if (!empty($f['placa'])) {
+            $sql .= " AND v.placa LIKE :placa";
+            $params[':placa'] = '%' . $f['placa'] . '%';
+        }
+        if (!empty($f['combustivel_id'])) {
+            $sql .= " AND tc.combustivel_id = :comb_id";
+            $params[':comb_id'] = $f['combustivel_id'];
+        }
+        if (!empty($f['lotacao_atual_id'])) {
+            $sql .= " AND v.lotacao_atual_id = :lotacao";
+            $params[':lotacao'] = $f['lotacao_atual_id'];
+        }
+        if (!empty($f['status_da_viatura'])) {
+            $sql .= " AND v.status_da_viatura = :status";
+            $params[':status'] = $f['status_da_viatura'];
+        }
+        if (!empty($f['cilindradas'])) {
+            $sql .= " AND v.cilindradas = :cil";
+            $params[':cil'] = $f['cilindradas'];
+        }
+        if (!empty($f['cavalos_forca'])) {
+            $sql .= " AND v.cavalos_forca = :cv";
+            $params[':cv'] = $f['cavalos_forca'];
+        }
+        if (!empty($f['tipo_cambio'])) {
+            $sql .= " AND v.tipo_cambio = :cambio";
+            $params[':cambio'] = $f['tipo_cambio'];
+        }
+        if (!empty($f['garantia_fim'])) {
+            $sql .= " AND v.garantia_fim >= :garantia";
+            $params[':garantia'] = $f['garantia_fim'];
+        }
+
+        $sql .= " ORDER BY v.prefixo ASC, v.numero ASC";
+
         try {
             $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':numero', $numero, PDO::PARAM_INT);
-            if ($excludeId !== null) {
-                $stmt->bindParam(':exclude_id', $excludeId, PDO::PARAM_INT);
-            }
-            $stmt->execute();
-            return $stmt->fetchColumn() > 0;
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            throw new Exception("Erro de PDO ao verificar número da viatura: " . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
-            throw new Exception("Erro inesperado ao verificar número da viatura: " . $e->getMessage(), 0, $e);
+            throw new Exception("Erro SQL: " . $e->getMessage());
         }
     }
 }

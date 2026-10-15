@@ -9,7 +9,11 @@
             "email": "rafael.infosys@gmail.com"
         }
     ],
-    "require": {},
+    "require": {
+        "firebase/php-jwt": "^7.0",
+        "monolog/monolog": "^3.10",
+        "dompdf/dompdf": "^3.1"
+    },
     "autoload": {
         "psr-4": {
             "Componentes\\": "components/"

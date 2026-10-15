@@ -2,6 +2,7 @@
 // api/get_detalhes_viatura.php
 
 // 1. Inclui a classe ViaturaDAO (ajuste o caminho se necessário)
+require_once 'middleware_auth.php';
 require_once '../components/DAO/ViaturaDAO.php';
 
 // Verifica se o ID da viatura foi passado via GET
