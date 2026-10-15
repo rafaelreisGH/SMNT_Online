@@ -1,10 +1,36 @@
+# Arquivos de ambiente e segredos
+.env
+.env.backup
+.env.local
 
-#assets/images/CBMMT_00.png
-assets/uploads/
-
+# Dependências do Composer
 /vendor/
 
-#arquivos de configuração
-.env
-.agents
+# Uploads e mídias geradas
+assets/uploads/
+!assets/uploads/perfil/undraw_profile.svg
+
+# Logs de aplicação e do sistema
+*.log
 errors.log
+
+# Configurações de IDEs e Editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Arquivos de sistema operacional
+Thumbs.db
+Desktop.ini
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Configurações de agentes de IA locais
+.agents
